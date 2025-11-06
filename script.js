@@ -388,12 +388,20 @@ async function handlePreferencesSubmit() {
 
 // Show Dashboard
 function showDashboard() {
-    if (!currentUser) return;
+    if (!currentUser) {
+        console.warn('No current user, cannot show dashboard');
+        return;
+    }
+    
+    console.log('Showing dashboard for user:', currentUser);
     
     // Update profile info
     const fullName = currentUser.fullName || `${currentUser.firstName} ${currentUser.lastName}`;
-    document.getElementById('dash-profile-name').textContent = fullName;
-    document.getElementById('member-since').textContent = `Member since: ${currentUser.memberSince || new Date().toLocaleDateString()}`;
+    const profileNameEl = document.getElementById('dash-profile-name');
+    const memberSinceEl = document.getElementById('member-since');
+    
+    if (profileNameEl) profileNameEl.textContent = fullName;
+    if (memberSinceEl) memberSinceEl.textContent = `Member since: ${currentUser.memberSince || new Date().toLocaleDateString()}`;
     
     // Update initials
     updateUserInitials();
@@ -670,12 +678,19 @@ function updateCardInfo() {
     const accountId = currentUser.accountId || generateAccountId();
     currentUser.accountId = accountId;
     
-    document.getElementById('account-id').textContent = accountId;
-    document.getElementById('card-name').textContent = currentUser.fullName || '';
-    document.getElementById('card-member-since').textContent = currentUser.memberSince || new Date().toLocaleDateString();
-    document.getElementById('back-name').textContent = currentUser.fullName || '';
-    document.getElementById('back-email').textContent = currentUser.email || '';
-    document.getElementById('back-points').textContent = currentPoints;
+    const accountIdEl = document.getElementById('account-id');
+    const cardNameEl = document.getElementById('card-name');
+    const cardMemberEl = document.getElementById('card-member-since');
+    const backNameEl = document.getElementById('back-name');
+    const backEmailEl = document.getElementById('back-email');
+    const backPointsEl = document.getElementById('back-points');
+    
+    if (accountIdEl) accountIdEl.textContent = accountId;
+    if (cardNameEl) cardNameEl.textContent = currentUser.fullName || '';
+    if (cardMemberEl) cardMemberEl.textContent = currentUser.memberSince || new Date().toLocaleDateString();
+    if (backNameEl) backNameEl.textContent = currentUser.fullName || '';
+    if (backEmailEl) backEmailEl.textContent = currentUser.email || '';
+    if (backPointsEl) backPointsEl.textContent = currentPoints;
     
     localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
 }
@@ -828,9 +843,12 @@ function confirmReset() {
 
 // Update User Initials
 function updateUserInitials() {
-    if (currentUser && currentUser.firstName && currentUser.lastName) {
+    if (!currentUser || !currentUser.firstName || !currentUser.lastName) return;
+    
+    const userInitialsEl = document.getElementById('user-initials');
+    if (userInitialsEl) {
         const initials = `${currentUser.firstName[0]}${currentUser.lastName[0]}`;
-        document.getElementById('user-initials').textContent = initials.toUpperCase();
+        userInitialsEl.textContent = initials.toUpperCase();
     }
 }
 
