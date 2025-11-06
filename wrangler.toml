@@ -1,4 +1,5 @@
 name = "mycirkle-auth"
+main = "cloudflare/worker.js"
 compatibility_date = "2025-10-25"
 
 # Environment variables (add these via Cloudflare Dashboard or wrangler secret)
