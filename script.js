@@ -399,9 +399,26 @@ function showDashboard() {
     const fullName = currentUser.fullName || `${currentUser.firstName} ${currentUser.lastName}`;
     const profileNameEl = document.getElementById('dash-profile-name');
     const memberSinceEl = document.getElementById('member-since');
+    const availablePointsEl = document.getElementById('available-points');
     
     if (profileNameEl) profileNameEl.textContent = fullName;
-    if (memberSinceEl) memberSinceEl.textContent = `Member since: ${currentUser.memberSince || new Date().toLocaleDateString()}`;
+    if (memberSinceEl) memberSinceEl.textContent = currentUser.memberSince || new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    if (availablePointsEl) availablePointsEl.textContent = currentUser.points || 0;
+    
+    // Update stats
+    const statRewards = document.getElementById('stat-rewards');
+    const statProducts = document.getElementById('stat-products');
+    const statTier = document.getElementById('stat-tier');
+    
+    if (statRewards) statRewards.textContent = '4';
+    if (statProducts) statProducts.textContent = '0';
+    if (statTier) {
+        const points = currentUser.points || 0;
+        if (points >= 2000) statTier.textContent = 'Platinum';
+        else if (points >= 1000) statTier.textContent = 'Gold';
+        else if (points >= 500) statTier.textContent = 'Silver';
+        else statTier.textContent = 'Bronze';
+    }
     
     // Update initials
     updateUserInitials();
@@ -415,7 +432,12 @@ function showDashboard() {
     // Update all user references
     updateCardInfo();
     
+    // Show dashboard page and default content
     showPage('dashboard');
+    hideAllDashboardContent();
+    const dashContent = document.getElementById('dashboard-content');
+    if (dashContent) dashContent.classList.remove('hidden');
+    updateNavActive('dashboard');
 }
 
 // Menu Clicks
@@ -603,29 +625,285 @@ function handleLogout() {
 
 // Modern Navigation Functions
 function showRewards() {
-    showPage('rewards');
-    updatePoints();
+    hideAllDashboardContent();
+    const rewardsContent = document.getElementById('rewards-content');
+    if (rewardsContent) {
+        rewardsContent.innerHTML = `
+            <div class="content-header">
+                <h2 class="content-title">Rewards & Points</h2>
+                <div class="points-display">
+                    <span class="points-label">Points</span>
+                    <span class="points-value">${currentUser?.points || 0}</span>
+                </div>
+            </div>
+            
+            <div class="section-card mb-6">
+                <h3 class="section-title">Points Progress</h3>
+                <div class="mb-4">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill-dashboard" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <button onclick="setTarget(100)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">100</button>
+                    <button onclick="setTarget(200)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">200</button>
+                    <button onclick="setTarget(500)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">500</button>
+                    <button onclick="setTarget(750)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">750</button>
+                    <button onclick="setTarget(1000)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">1000</button>
+                    <button onclick="setTarget(1500)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">1500</button>
+                    <button onclick="setTarget(2000)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">2000</button>
+                </div>
+            </div>
+            
+            <div class="section-card">
+                <h3 class="section-title">Available Rewards</h3>
+                <div class="rewards-grid">
+                    <div class="reward-card featured">
+                        <span class="reward-badge">DAILY</span>
+                        <div class="reward-icon">🎁</div>
+                        <h4 class="reward-title">Daily Reward</h4>
+                        <p class="reward-desc">Free Shipping Voucher</p>
+                        <button onclick="redeemReward('Daily Reward')" class="reward-btn">Redeem Now!</button>
+                    </div>
+                    
+                    <div class="reward-card">
+                        <span class="reward-badge">500 PTS</span>
+                        <div class="reward-icon">💰</div>
+                        <h4 class="reward-title">10% Discount</h4>
+                        <p class="reward-desc">10% off next product</p>
+                        <button onclick="redeemReward('10% Discount')" class="reward-btn">Redeem</button>
+                    </div>
+                    
+                    <div class="reward-card">
+                        <span class="reward-badge">750 PTS</span>
+                        <div class="reward-icon">🎨</div>
+                        <h4 class="reward-title">Commission Discount</h4>
+                        <p class="reward-desc">40% off a commission</p>
+                        <button onclick="redeemReward('Commission Discount')" class="reward-btn">Redeem</button>
+                    </div>
+                    
+                    <div class="reward-card">
+                        <span class="reward-badge">2000 PTS</span>
+                        <div class="reward-icon">🆓</div>
+                        <h4 class="reward-title">Free Product</h4>
+                        <p class="reward-desc">Get any product for free</p>
+                        <button onclick="redeemReward('Free Product')" class="reward-btn">Redeem</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        rewardsContent.classList.remove('hidden');
+        updatePoints();
+    }
+    updateNavActive('rewards');
 }
 
 function showFAQ() {
-    showPage('faq');
+    hideAllDashboardContent();
+    const faqContent = document.getElementById('faq-content');
+    if (faqContent) {
+        faqContent.innerHTML = `
+            <div class="content-header">
+                <h2 class="content-title">Frequently Asked Questions</h2>
+            </div>
+            
+            <div class="section-card">
+                <div class="space-y-4">
+                    <div class="settings-group">
+                        <details class="p-4 bg-gray-50 rounded-lg">
+                            <summary class="font-semibold cursor-pointer">Terms & Conditions</summary>
+                            <div class="mt-3 text-gray-600">
+                                <a href="https://shop.cirkledevelopment.co.uk/mycirkle" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 underline">
+                                    View our complete Terms & Conditions
+                                </a>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <details class="p-4 bg-gray-50 rounded-lg">
+                            <summary class="font-semibold cursor-pointer">Lost Account Details</summary>
+                            <div class="mt-3 text-gray-600">
+                                Contact us at: <a href="mailto:mycirkle@cirkledevelopment.co.uk" class="text-blue-600 hover:underline">mycirkle@cirkledevelopment.co.uk</a>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <details class="p-4 bg-gray-50 rounded-lg">
+                            <summary class="font-semibold cursor-pointer">What is MyCirkle?</summary>
+                            <div class="mt-3 text-gray-600">
+                                MyCirkle is an exclusive loyalty program that rewards our valued customers with points for every purchase. Earn rewards, unlock perks, and enjoy member-only benefits!
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </div>
+        `;
+        faqContent.classList.remove('hidden');
+    }
+    updateNavActive('faq');
 }
 
 function showProducts() {
-    showPage('products');
-    renderProducts();
+    hideAllDashboardContent();
+    const productsContent = document.getElementById('products-content');
+    if (productsContent) {
+        productsContent.innerHTML = `
+            <div class="content-header">
+                <h2 class="content-title">My Products</h2>
+                <p class="content-subtitle">Products you've purchased</p>
+            </div>
+            
+            <div class="section-card">
+                <div id="products-list-dash" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="text-center py-12 text-gray-500">Loading products...</div>
+                </div>
+            </div>
+        `;
+        productsContent.classList.remove('hidden');
+        renderProductsToDashboard();
+    }
+    updateNavActive('products');
+}
+
+async function renderProductsToDashboard() {
+    const productsListDash = document.getElementById('products-list-dash');
+    if (!productsListDash || !currentUser) return;
+
+    try {
+        const response = await fetch(`https://mycirkle-auth.marcusray.workers.dev/api/products?accountId=${encodeURIComponent(currentUser.accountId || currentUser.discordId)}`);
+        const data = await response.json();
+
+        if (data.products && data.products.length > 0) {
+            productsListDash.innerHTML = data.products.map(product => `
+                <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition">
+                    <div class="text-4xl mb-3 text-center">📦</div>
+                    <h3 class="font-semibold text-lg mb-2">${product.name || 'Product'}</h3>
+                    <p class="text-sm text-gray-600 mb-3">${product.description || 'No description'}</p>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500">Owned</span>
+                        <span class="text-green-600 font-semibold">✓</span>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            productsListDash.innerHTML = '<div class="text-center py-12 text-gray-500 col-span-full">No products found. Make a purchase to see your items here!</div>';
+        }
+    } catch (error) {
+        console.error('Error loading products:', error);
+        productsListDash.innerHTML = '<div class="text-center py-12 text-red-500 col-span-full">Failed to load products.</div>';
+    }
 }
 
 function showAccount() {
-    showPage('account');
-    document.getElementById('edit-name').value = currentUser.fullName || '';
-    document.getElementById('edit-email').value = currentUser.email || '';
+    hideAllDashboardContent();
+    const accountContent = document.getElementById('account-content');
+    if (accountContent) {
+        accountContent.innerHTML = `
+            <div class="content-header">
+                <h2 class="content-title">Account Settings</h2>
+                <p class="content-subtitle">Manage your profile and preferences</p>
+            </div>
+            
+            <div class="section-card">
+                <div class="settings-group">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Display Name</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="edit-name" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${currentUser?.fullName || ''}">
+                        <button onclick="updateDisplayName()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+                    <div class="flex gap-2">
+                        <input type="email" id="edit-email" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${currentUser?.email || ''}">
+                        <button onclick="updateEmail()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">New Password</label>
+                    <div class="flex gap-2">
+                        <input type="password" id="edit-pass" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter new password">
+                        <button onclick="updatePassword()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                    </div>
+                </div>
+                
+                <div class="danger-zone">
+                    <h3 class="danger-title">Danger Zone</h3>
+                    <p class="danger-subtitle">These actions cannot be undone</p>
+                    <button onclick="deleteAccount()" class="danger-btn">Delete Account</button>
+                </div>
+            </div>
+        `;
+        accountContent.classList.remove('hidden');
+    }
+    updateNavActive('account');
 }
 
 function showLoyaltyCard() {
-    showPage('loyalty');
-    generateBarcode();
-    updateCardInfo();
+    hideAllDashboardContent();
+    const loyaltyContent = document.getElementById('loyalty-content');
+    if (loyaltyContent) {
+        loyaltyContent.innerHTML = `
+            <div class="content-header">
+                <h2 class="content-title">My Loyalty Card</h2>
+                <p class="content-subtitle">Your digital membership card</p>
+            </div>
+            
+            <div class="section-card max-w-md mx-auto">
+                <div class="loyalty-card-modern">
+                    <div class="loyalty-card-front">
+                        <div class="loyalty-card-header">
+                            <h3 class="text-2xl font-bold">MyCirkle</h3>
+                            <div class="text-sm opacity-90">Premium Member</div>
+                        </div>
+                        <div class="loyalty-card-body">
+                            <div class="mb-4">
+                                <p class="text-sm opacity-75">Member Name</p>
+                                <p class="text-xl font-semibold" id="card-name">${currentUser?.fullName || 'Guest'}</p>
+                            </div>
+                            <div class="mb-4">
+                                <p class="text-sm opacity-75">Points Balance</p>
+                                <p class="text-3xl font-bold" id="card-points">${currentUser?.points || 0}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm opacity-75">Member ID</p>
+                                <p class="text-xs font-mono" id="card-id">${currentUser?.accountId || 'XXXX-XXXX-XXXX-XXXX'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <svg id="barcode-svg" width="100%" height="60" viewBox="0 0 200 60" class="mx-auto"></svg>
+                    <p class="text-center text-xs text-gray-500 mt-2">Scan at checkout to earn points</p>
+                </div>
+            </div>
+        `;
+        loyaltyContent.classList.remove('hidden');
+        generateBarcode();
+    }
+    updateNavActive('loyalty');
+}
+
+function hideAllDashboardContent() {
+    const contents = ['dashboard-content', 'rewards-content', 'products-content', 'loyalty-content', 'account-content', 'faq-content'];
+    contents.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
+}
+
+function updateNavActive(page) {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.getAttribute('onclick')?.includes(page)) {
+            item.classList.add('active');
+        }
+    });
 }
 
 // Card Flip Function
