@@ -54,6 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loginBtn.addEventListener('click', handleLogin);
     document.getElementById('continue-name').addEventListener('click', handleNameSubmit);
     document.getElementById('submit-pass').addEventListener('click', handlePassSubmit);
+    document.getElementById('submit-preferences').addEventListener('click', handlePreferencesSubmit);
+    document.getElementById('go-dashboard').addEventListener('click', () => showDashboard());
     document.getElementById('lets-go').addEventListener('click', () => showPage('dashboard'));
     document.querySelectorAll('.menu-btn, .redeem-btn').forEach(btn => btn.addEventListener('click', handleMenuClick));
     document.getElementById('exit-redeem').addEventListener('click', () => showPage('rewards'));
@@ -255,48 +257,68 @@ async function handlePassSubmit() {
     if (pass.length >= 6) {
         currentUser.password = pass; // In production, hash and store securely
         localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
-        showPage('confirm');
-        
-        // Save to Google Sheets
-        try {
-            const signupResponse = await fetch(`${WORKER_URL}/api/signup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    discordId: currentUser.id,
-                    discordUsername: currentUser.username,
-                    firstName: currentUser.firstName,
-                    lastName: currentUser.lastName,
-                    email: currentUser.email,
-                    memberSince: currentUser.memberSince
-                })
-            });
-            
-            const result = await signupResponse.json();
-            if (result.success) {
-                console.log('User registered successfully');
-            } else {
-                console.error('Signup failed:', result.error);
-            }
-        } catch (err) {
-            console.error('Error during signup:', err);
-        }
-        
-        setTimeout(() => {
-            document.getElementById('confirm-details').classList.add('hidden');
-            document.getElementById('setup-portal').classList.remove('hidden');
-        }, 3000);
-        setTimeout(() => {
-            document.getElementById('setup-portal').classList.add('hidden');
-            document.getElementById('patience').classList.remove('hidden');
-            setTimeout(() => {
-                showPage('welcome-popup');
-                welcomeName.textContent = currentUser.fullName;
-            }, 4000);
-        }, 5000);
+        showPage('create-preferences');
     } else {
         alert('Password must be at least 6 characters.');
     }
+}
+
+// Preferences Submit
+async function handlePreferencesSubmit() {
+    const country = document.getElementById('user-country').value;
+    const timezone = document.getElementById('user-timezone').value;
+    const language = document.getElementById('user-language').value;
+    
+    if (!country || !timezone) {
+        alert('Please select your country and timezone.');
+        return;
+    }
+    
+    // Add preferences to user data
+    currentUser.country = country;
+    currentUser.timezone = timezone;
+    currentUser.language = language;
+    localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+    
+    showPage('confirm');
+    
+    // Save to Google Sheets
+    try {
+        const signupResponse = await fetch(`${WORKER_URL}/api/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.id,
+                discordUsername: currentUser.username,
+                firstName: currentUser.firstName,
+                lastName: currentUser.lastName,
+                email: currentUser.email,
+                memberSince: currentUser.memberSince
+            })
+        });
+        
+        const result = await signupResponse.json();
+        if (result.success) {
+            console.log('User registered successfully');
+        } else {
+            console.error('Signup failed:', result.error);
+        }
+    } catch (err) {
+        console.error('Error during signup:', err);
+    }
+    
+    setTimeout(() => {
+        document.getElementById('confirm-details').classList.add('hidden');
+        document.getElementById('setup-portal').classList.remove('hidden');
+    }, 3000);
+    setTimeout(() => {
+        document.getElementById('setup-portal').classList.add('hidden');
+        document.getElementById('patience').classList.remove('hidden');
+        setTimeout(() => {
+            showPage('welcome-popup');
+            welcomeName.textContent = currentUser.fullName;
+        }, 4000);
+    }, 5000);
 }
 
 // Show Dashboard
