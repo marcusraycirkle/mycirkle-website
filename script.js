@@ -51,7 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('hashchange', handleHashRouting);
 
     // Event Listeners
-    loginBtn.addEventListener('click', handleLogin);
+    const loginBtn = document.getElementById('login-btn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', handleLogin);
+    }
     document.getElementById('continue-name').addEventListener('click', handleNameSubmit);
     document.getElementById('submit-pass').addEventListener('click', handlePassSubmit);
     document.getElementById('submit-preferences').addEventListener('click', handlePreferencesSubmit);
