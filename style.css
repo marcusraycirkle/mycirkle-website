@@ -16,6 +16,113 @@ body {
     padding-bottom: 60px;
 }
 
+/* ===== HOME PAGE HERO ===== */
+.hero-container {
+    width: 100%;
+    max-width: 1200px;
+    padding: 40px 20px;
+}
+
+.logo-large {
+    font-size: 5em;
+    font-weight: 900;
+    margin-bottom: 10px;
+    text-shadow: 3px 3px 10px rgba(0,0,0,0.3);
+    letter-spacing: 3px;
+    background: linear-gradient(45deg, #fff, #f0f0f0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-title {
+    font-size: 3em;
+    font-weight: 700;
+    margin: 20px 0;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+}
+
+.hero-subtitle {
+    font-size: 1.3em;
+    margin: 20px auto 40px;
+    max-width: 600px;
+    opacity: 0.95;
+    line-height: 1.6;
+}
+
+.btn-discord {
+    background: #5865F2;
+    color: white;
+    border: none;
+    padding: 18px 48px;
+    font-size: 1.2em;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(88, 101, 242, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0 60px;
+}
+
+.btn-discord:hover {
+    background: #4752C4;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(88, 101, 242, 0.6);
+}
+
+.btn-discord:active {
+    transform: translateY(0);
+}
+
+.discord-icon {
+    width: 28px;
+    height: 28px;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    margin-top: 60px;
+    width: 100%;
+}
+
+.feature-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 40px 30px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    animation: slideUp 0.6s ease-out;
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.feature-icon {
+    font-size: 3em;
+    margin-bottom: 20px;
+}
+
+.feature-card h3 {
+    font-size: 1.5em;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.feature-card p {
+    font-size: 1.05em;
+    opacity: 0.9;
+    line-height: 1.5;
+}
+
 /* ===== PAGE SYSTEM ===== */
 .page {
     display: none;
@@ -731,6 +838,11 @@ input::placeholder {
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
+    .logo-large { font-size: 3.5em; }
+    .hero-title { font-size: 2.2em; }
+    .hero-subtitle { font-size: 1.1em; }
+    .features-grid { grid-template-columns: 1fr; gap: 20px; }
+    .btn-discord { padding: 16px 40px; font-size: 1.1em; }
     .logo { font-size: 3em; }
     h1 { font-size: 2em; }
     .header { font-size: 1.4em; padding: 15px; }
@@ -741,6 +853,13 @@ input::placeholder {
 }
 
 @media (max-width: 480px) {
+    .logo-large { font-size: 2.5em; }
+    .hero-title { font-size: 1.8em; }
+    .hero-subtitle { font-size: 1em; padding: 0 10px; }
+    .btn-discord { padding: 14px 32px; font-size: 1em; }
+    .feature-card { padding: 30px 20px; }
+    .feature-icon { font-size: 2.5em; }
+    .feature-card h3 { font-size: 1.3em; }
     .logo { font-size: 2.5em; }
     h1 { font-size: 1.6em; }
     .btn-primary { padding: 12px 30px; font-size: 1em; }

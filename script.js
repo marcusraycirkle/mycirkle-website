@@ -153,6 +153,7 @@ async function handleOAuthCallback(code) {
         const user = await response.json();
         if (user.id) {
             localStorage.setItem('discordUser', JSON.stringify(user));
+            
             // Check guild membership
             const membershipResponse = await fetch(`${WORKER_URL}/auth/check-membership?user_id=${user.id}`);
             const membership = await membershipResponse.json();
@@ -161,12 +162,51 @@ async function handleOAuthCallback(code) {
                 window.location.href = REDIRECT_URI;
                 return;
             }
+            
+            // Show loading profile
             showPage('loading-profile');
-            setTimeout(() => {
+            setTimeout(async () => {
                 profileIcon.src = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`;
-                profileName.textContent = user.global_name || `${user.username}#${user.discriminator}`;
+                profileName.textContent = user.global_name || user.username;
                 document.querySelector('#loading-profile .profile-found').classList.remove('hidden');
-                setTimeout(() => showPage('create-name'), 2000);
+                
+                // Check if user exists in database
+                try {
+                    const userDataResponse = await fetch(`${WORKER_URL}/api/user-data`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ discordId: user.id })
+                    });
+                    const userData = await userDataResponse.json();
+                    
+                    if (userData.found) {
+                        // User exists, load their data and go to dashboard
+                        currentUser = {
+                            ...user,
+                            firstName: userData.firstName,
+                            lastName: userData.lastName,
+                            fullName: `${userData.firstName} ${userData.lastName}`,
+                            email: userData.email,
+                            memberSince: userData.memberSince,
+                            signupDate: userData.signupDate
+                        };
+                        currentPoints = userData.points || 0;
+                        localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+                        localStorage.setItem('points', currentPoints);
+                        
+                        setTimeout(() => {
+                            showPage('welcome-popup');
+                            welcomeName.textContent = currentUser.fullName;
+                        }, 2000);
+                    } else {
+                        // New user, show signup form
+                        setTimeout(() => showPage('create-name'), 2000);
+                    }
+                } catch (err) {
+                    console.error('Error checking user data:', err);
+                    // If error, assume new user
+                    setTimeout(() => showPage('create-name'), 2000);
+                }
             }, 3000);
         } else {
             alert('Authentication failed. Please try again.');
@@ -194,12 +234,38 @@ function handleNameSubmit() {
 }
 
 // Password Submit
-function handlePassSubmit() {
+async function handlePassSubmit() {
     const pass = document.getElementById('user-password').value;
     if (pass.length >= 6) {
         currentUser.password = pass; // In production, hash and store securely
         localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
         showPage('confirm');
+        
+        // Save to Google Sheets
+        try {
+            const signupResponse = await fetch(`${WORKER_URL}/api/signup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    discordId: currentUser.id,
+                    discordUsername: currentUser.username,
+                    firstName: currentUser.firstName,
+                    lastName: currentUser.lastName,
+                    email: currentUser.email,
+                    memberSince: currentUser.memberSince
+                })
+            });
+            
+            const result = await signupResponse.json();
+            if (result.success) {
+                console.log('User registered successfully');
+            } else {
+                console.error('Signup failed:', result.error);
+            }
+        } catch (err) {
+            console.error('Error during signup:', err);
+        }
+        
         setTimeout(() => {
             document.getElementById('confirm-details').classList.add('hidden');
             document.getElementById('setup-portal').classList.remove('hidden');
