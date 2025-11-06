@@ -45,9 +45,14 @@ document.addEventListener('DOMContentLoaded', () => {
     accountIdSpan = document.getElementById('account-id');
     loyaltyCard = document.getElementById('loyalty-card');
     
-    updatePoints();
-    rotateDailyReward();
-    setInterval(rotateDailyReward, 5000);
+    // Only update points if elements exist (not on homepage)
+    if (availablePoints && progressFill) {
+        updatePoints();
+    }
+    if (dailyRewardText) {
+        rotateDailyReward();
+        setInterval(rotateDailyReward, 5000);
+    }
     
     if (targetSelect) {
         targetSelect.addEventListener('change', (e) => {
@@ -432,18 +437,20 @@ function handleMenuClick(e) {
 
 // Update Points and Progress
 function updatePoints() {
-    availablePoints.textContent = currentPoints;
-    backPoints.textContent = currentPoints;
+    if (availablePoints) availablePoints.textContent = currentPoints;
+    if (backPoints) backPoints.textContent = currentPoints;
     updateProgress();
 }
 
 function updateProgress() {
+    if (!progressFill) return;
     const percentage = Math.min((currentPoints / targetPoints) * 100, 100);
     progressFill.style.width = percentage + '%';
 }
 
 // Rotate Daily Reward
 function rotateDailyReward() {
+    if (!dailyRewardText) return;
     dailyRewardText.textContent = dailyRewards[currentDailyIndex];
     currentDailyIndex = (currentDailyIndex + 1) % dailyRewards.length;
 }
