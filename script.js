@@ -110,12 +110,98 @@ document.addEventListener('DOMContentLoaded', () => {
         showDashboard();
     }
 
-    // Handle OAuth callback from Worker
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('code')) {
-        handleOAuthCallback(urlParams.get('code'));
+    // Handle OAuth callback from Worker (via URL hash)
+    if (window.location.hash.includes('discord-callback')) {
+        handleHashCallback();
     }
 });
+
+// Handle Discord callback from URL hash
+function handleHashCallback() {
+    const hash = window.location.hash;
+    const params = new URLSearchParams(hash.split('?')[1]);
+    const userDataEncoded = params.get('user');
+    
+    if (userDataEncoded) {
+        try {
+            const user = JSON.parse(decodeURIComponent(userDataEncoded));
+            handleDiscordUser(user);
+        } catch (err) {
+            console.error('Error parsing user data:', err);
+            alert('Failed to process login data.');
+            window.location.hash = 'home';
+        }
+    }
+}
+
+// Process Discord user after OAuth
+async function handleDiscordUser(user) {
+    if (user.id) {
+        localStorage.setItem('discordUser', JSON.stringify(user));
+        
+        // Check guild membership
+        try {
+            const membershipResponse = await fetch(`${WORKER_URL}/auth/check-membership?user_id=${user.id}`);
+            const membership = await membershipResponse.json();
+            if (!membership.isMember) {
+                alert('You must be a member of the MyCirkle Discord server to proceed.');
+                window.location.hash = 'home';
+                return;
+            }
+        } catch (err) {
+            console.error('Membership check error:', err);
+        }
+        
+        // Show loading profile
+        showPage('loading-profile');
+        setTimeout(async () => {
+            profileIcon.src = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`;
+            profileName.textContent = user.global_name || user.username;
+            document.querySelector('#loading-profile .profile-found').classList.remove('hidden');
+            
+            // Check if user exists in database
+            try {
+                const userDataResponse = await fetch(`${WORKER_URL}/api/user-data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ discordId: user.id })
+                });
+                const userData = await userDataResponse.json();
+                
+                if (userData.found) {
+                    // User exists, load their data and go to dashboard
+                    currentUser = {
+                        ...user,
+                        firstName: userData.firstName,
+                        lastName: userData.lastName,
+                        fullName: `${userData.firstName} ${userData.lastName}`,
+                        email: userData.email,
+                        memberSince: userData.memberSince,
+                        signupDate: userData.signupDate
+                    };
+                    currentPoints = userData.points || 0;
+                    localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+                    localStorage.setItem('points', currentPoints);
+                    
+                    setTimeout(() => {
+                        showPage('welcome-popup');
+                        welcomeName.textContent = currentUser.fullName;
+                    }, 2000);
+                } else {
+                    // New user, show signup form
+                    setTimeout(() => showPage('create-name'), 2000);
+                }
+            } catch (err) {
+                console.error('Error checking user data:', err);
+                // If error, assume new user
+                setTimeout(() => showPage('create-name'), 2000);
+            }
+        }, 3000);
+    } else {
+        alert('Authentication failed. Please try again.');
+        window.location.hash = 'home';
+    }
+}
 
 // Routing
 function handleHashRouting() {
@@ -144,79 +230,6 @@ function showPage(pageId) {
 // Discord Login via Worker
 function handleLogin() {
     window.location.href = `${WORKER_URL}/auth/discord?redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
-}
-
-// Handle OAuth Callback
-async function handleOAuthCallback(code) {
-    try {
-        const response = await fetch(`${WORKER_URL}/auth/callback?code=${code}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`);
-        const user = await response.json();
-        if (user.id) {
-            localStorage.setItem('discordUser', JSON.stringify(user));
-            
-            // Check guild membership
-            const membershipResponse = await fetch(`${WORKER_URL}/auth/check-membership?user_id=${user.id}`);
-            const membership = await membershipResponse.json();
-            if (!membership.isMember) {
-                alert('You must be a member of the MyCirkle Discord server to proceed.');
-                window.location.href = REDIRECT_URI;
-                return;
-            }
-            
-            // Show loading profile
-            showPage('loading-profile');
-            setTimeout(async () => {
-                profileIcon.src = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`;
-                profileName.textContent = user.global_name || user.username;
-                document.querySelector('#loading-profile .profile-found').classList.remove('hidden');
-                
-                // Check if user exists in database
-                try {
-                    const userDataResponse = await fetch(`${WORKER_URL}/api/user-data`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ discordId: user.id })
-                    });
-                    const userData = await userDataResponse.json();
-                    
-                    if (userData.found) {
-                        // User exists, load their data and go to dashboard
-                        currentUser = {
-                            ...user,
-                            firstName: userData.firstName,
-                            lastName: userData.lastName,
-                            fullName: `${userData.firstName} ${userData.lastName}`,
-                            email: userData.email,
-                            memberSince: userData.memberSince,
-                            signupDate: userData.signupDate
-                        };
-                        currentPoints = userData.points || 0;
-                        localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
-                        localStorage.setItem('points', currentPoints);
-                        
-                        setTimeout(() => {
-                            showPage('welcome-popup');
-                            welcomeName.textContent = currentUser.fullName;
-                        }, 2000);
-                    } else {
-                        // New user, show signup form
-                        setTimeout(() => showPage('create-name'), 2000);
-                    }
-                } catch (err) {
-                    console.error('Error checking user data:', err);
-                    // If error, assume new user
-                    setTimeout(() => showPage('create-name'), 2000);
-                }
-            }, 3000);
-        } else {
-            alert('Authentication failed. Please try again.');
-        }
-    } catch (err) {
-        console.error('OAuth error:', err);
-        alert('An error occurred during login.');
-    }
-    // Clear query params
-    window.history.replaceState({}, document.title, REDIRECT_URI);
 }
 
 // Name Submit
