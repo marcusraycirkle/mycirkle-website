@@ -395,6 +395,12 @@ function showDashboard() {
     
     console.log('Showing dashboard for user:', currentUser);
     
+    // Get time-based greeting
+    const hour = new Date().getHours();
+    let greeting = 'Good Evening';
+    if (hour < 12) greeting = 'Good Morning';
+    else if (hour < 18) greeting = 'Good Afternoon';
+    
     // Update profile info
     const fullName = currentUser.fullName || `${currentUser.firstName} ${currentUser.lastName}`;
     const profileNameEl = document.getElementById('dash-profile-name');
@@ -404,6 +410,14 @@ function showDashboard() {
     if (profileNameEl) profileNameEl.textContent = fullName;
     if (memberSinceEl) memberSinceEl.textContent = currentUser.memberSince || new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     if (availablePointsEl) availablePointsEl.textContent = currentUser.points || 0;
+    
+    // Update greeting in dashboard content
+    setTimeout(() => {
+        const contentTitle = document.querySelector('.content-title');
+        if (contentTitle && contentTitle.textContent === 'Welcome Back!') {
+            contentTitle.textContent = `${greeting}, ${currentUser.firstName || fullName.split(' ')[0]}!`;
+        }
+    }, 100);
     
     // Update stats
     const statRewards = document.getElementById('stat-rewards');
@@ -773,6 +787,20 @@ async function renderProductsToDashboard() {
 
     try {
         const response = await fetch(`https://mycirkle-auth.marcusray.workers.dev/api/products?accountId=${encodeURIComponent(currentUser.accountId || currentUser.discordId)}`);
+        
+        // Check if response is ok
+        if (!response.ok) {
+            console.warn('Products API returned:', response.status);
+            productsListDash.innerHTML = `
+                <div class="text-center py-12 text-gray-500 col-span-full">
+                    <div class="text-6xl mb-4">📦</div>
+                    <p class="text-lg font-semibold mb-2">No products yet!</p>
+                    <p class="text-sm">Your purchased products will appear here.</p>
+                </div>
+            `;
+            return;
+        }
+        
         const data = await response.json();
 
         if (data.products && data.products.length > 0) {
@@ -788,11 +816,23 @@ async function renderProductsToDashboard() {
                 </div>
             `).join('');
         } else {
-            productsListDash.innerHTML = '<div class="text-center py-12 text-gray-500 col-span-full">No products found. Make a purchase to see your items here!</div>';
+            productsListDash.innerHTML = `
+                <div class="text-center py-12 text-gray-500 col-span-full">
+                    <div class="text-6xl mb-4">📦</div>
+                    <p class="text-lg font-semibold mb-2">No products found</p>
+                    <p class="text-sm">Make a purchase to see your items here!</p>
+                </div>
+            `;
         }
     } catch (error) {
         console.error('Error loading products:', error);
-        productsListDash.innerHTML = '<div class="text-center py-12 text-red-500 col-span-full">Failed to load products.</div>';
+        productsListDash.innerHTML = `
+            <div class="text-center py-12 text-gray-500 col-span-full">
+                <div class="text-6xl mb-4">📦</div>
+                <p class="text-lg font-semibold mb-2">No products yet!</p>
+                <p class="text-sm">Your purchased products will appear here.</p>
+            </div>
+        `;
     }
 }
 
