@@ -50,41 +50,106 @@
     </section>
 
     <!-- Loading Profile -->
-    <section id="loading-profile" class="page">
-        <div class="loading-text">Searching Profile...</div>
-        <div class="profile-found hidden">
-            <img id="profile-icon" src="" alt="Profile" class="profile-img">
-            <h2 id="profile-name"></h2>
-            <p>Profile Found!</p>
+    <section id="loading-profile" class="page signup-flow">
+        <div class="signup-container">
+            <div class="signup-left">
+                <div class="signup-logo">MyCirkle</div>
+                <p class="signup-tagline">Your rewards journey starts here</p>
+            </div>
+            <div class="signup-right">
+                <div class="loading-content">
+                    <div class="loading-spinner-modern"></div>
+                    <h2>Connecting to Discord...</h2>
+                    <p>Verifying your account</p>
+                </div>
+                <div class="profile-found-modern hidden">
+                    <img id="profile-icon" src="" alt="Profile" class="profile-img-large">
+                    <h2 id="profile-name"></h2>
+                    <p class="success-text">✓ Profile Found!</p>
+                </div>
+            </div>
         </div>
     </section>
 
     <!-- Create Account: Name -->
-    <section id="create-name" class="page">
-        <h2>Welcome to MyCirkle! Let's create an account for you.</h2>
-        <input type="text" id="first-name" placeholder="First Name">
-        <input type="text" id="last-name" placeholder="Last Name">
-        <button id="continue-name" class="btn-primary">Continue</button>
+    <section id="create-name" class="page signup-flow">
+        <div class="signup-container">
+            <div class="signup-left">
+                <div class="signup-logo">MyCirkle</div>
+                <p class="signup-tagline">Let's get you started</p>
+                <div class="progress-dots">
+                    <span class="dot active"></span>
+                    <span class="dot"></span>
+                </div>
+            </div>
+            <div class="signup-right slide-in">
+                <div class="form-card">
+                    <h2>Welcome! What's your name?</h2>
+                    <p class="form-subtitle">We'll use this to personalize your experience</p>
+                    <div class="input-group">
+                        <label for="first-name">First Name</label>
+                        <input type="text" id="first-name" placeholder="John" class="modern-input">
+                    </div>
+                    <div class="input-group">
+                        <label for="last-name">Last Name</label>
+                        <input type="text" id="last-name" placeholder="Doe" class="modern-input">
+                    </div>
+                    <button id="continue-name" class="btn-modern">Continue →</button>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- Create Account: Password -->
-    <section id="create-pass" class="page">
-        <h2>Please insert a password</h2>
-        <input type="password" id="user-password" placeholder="Password">
-        <button id="submit-pass" class="btn-primary">Submit</button>
+    <section id="create-pass" class="page signup-flow">
+        <div class="signup-container">
+            <div class="signup-left">
+                <div class="signup-logo">MyCirkle</div>
+                <p class="signup-tagline">Almost done!</p>
+                <div class="progress-dots">
+                    <span class="dot active"></span>
+                    <span class="dot active"></span>
+                </div>
+            </div>
+            <div class="signup-right slide-in">
+                <div class="form-card">
+                    <h2>Secure your account</h2>
+                    <p class="form-subtitle">Create a strong password to protect your rewards</p>
+                    <div class="input-group">
+                        <label for="user-password">Password</label>
+                        <input type="password" id="user-password" placeholder="Min. 6 characters" class="modern-input">
+                        <small class="input-hint">Choose a password with at least 6 characters</small>
+                    </div>
+                    <button id="submit-pass" class="btn-modern">Create Account →</button>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- Confirmation Screens -->
-    <section id="confirm" class="page">
-        <div class="confirm-step active" id="confirm-details">
-            <p>We are just confirming your details...</p>
-        </div>
-        <div class="confirm-step hidden" id="setup-portal">
-            <p>We are now setting up your portal...</p>
-        </div>
-        <div class="confirm-step hidden" id="patience">
-            <p>Thank you for your patience</p>
-            <div class="spinner"></div>
+    <section id="confirm" class="page signup-flow">
+        <div class="signup-container">
+            <div class="signup-left">
+                <div class="signup-logo">MyCirkle</div>
+                <p class="signup-tagline">Setting up your portal</p>
+            </div>
+            <div class="signup-right">
+                <div class="form-card confirmation-card">
+                    <div class="confirm-step active" id="confirm-details">
+                        <div class="loading-spinner-modern"></div>
+                        <h3>Confirming your details...</h3>
+                    </div>
+                    <div class="confirm-step hidden" id="setup-portal">
+                        <div class="loading-spinner-modern"></div>
+                        <h3>Setting up your portal...</h3>
+                    </div>
+                    <div class="confirm-step hidden" id="patience">
+                        <div class="loading-spinner-modern"></div>
+                        <h3>Almost ready!</h3>
+                        <p>Thank you for your patience</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 

@@ -21,16 +21,21 @@ export default {
             if (!clientId) {
                 return new Response(JSON.stringify({ error: 'DISCORD_CLIENT_ID not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
-            const redirectUri = url.searchParams.get('redirect_uri') || 'http://localhost:8080';
+            const frontendRedirect = url.searchParams.get('redirect_uri') || 'http://localhost:8080';
+            const workerCallbackUrl = `${url.protocol}//${url.host}/auth/callback`;
+            
             const params = new URLSearchParams({
                 client_id: clientId,
-                redirect_uri: redirectUri,
+                redirect_uri: workerCallbackUrl,
                 response_type: 'code',
-                scope: 'identify guilds'
+                scope: 'identify guilds',
+                state: frontendRedirect // Pass frontend URL in state
             });
             return Response.redirect(`https://discord.com/api/oauth2/authorize?${params}`, 302);
         } else if (path === '/auth/callback') {
             const code = url.searchParams.get('code');
+            const state = url.searchParams.get('state'); // Original redirect URI
+            
             if (!code) {
                 return new Response('Missing code', { status: 400, headers: corsHeaders });
             }
@@ -40,7 +45,9 @@ export default {
             if (!clientId || !clientSecret) {
                 return new Response(JSON.stringify({ error: 'Discord credentials not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
-            const redirectUri = url.searchParams.get('redirect_uri') || 'http://localhost:8080';
+            
+            // The redirect_uri must match what we sent to Discord (worker callback URL)
+            const workerCallbackUrl = `${url.protocol}//${url.host}/auth/callback`;
 
             try {
                 const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
@@ -51,7 +58,7 @@ export default {
                         client_secret: clientSecret,
                         grant_type: 'authorization_code',
                         code: code,
-                        redirect_uri: redirectUri
+                        redirect_uri: workerCallbackUrl
                     })
                 });
 
@@ -65,11 +72,12 @@ export default {
                 });
                 const user = await userResponse.json();
 
-                return new Response(JSON.stringify(user), {
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-                });
+                // Redirect back to frontend with user data in URL fragment
+                const frontendUrl = state || 'http://localhost:8080';
+                const userDataEncoded = encodeURIComponent(JSON.stringify(user));
+                return Response.redirect(`${frontendUrl}#discord-callback?user=${userDataEncoded}`, 302);
             } catch (error) {
-                return new Response(JSON.stringify({ error: 'OAuth error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return new Response(JSON.stringify({ error: 'OAuth error', details: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
         } else if (path === '/auth/check-membership') {
             const userId = url.searchParams.get('user_id');
