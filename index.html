@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyCirkle Loyalty</title>
+    <title>MyCirkle - Loyalty Programme</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="./style.css">
 </head>
-<body>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
     <!-- Footer (always visible, positioned fixed) -->
     <footer class="footer">
         © Cirkle Development 2025 - Followed by MyCirkleDevelopment Account | mycirkle@cirkledevelopment.co.uk
@@ -286,177 +287,362 @@
         </div>
     </section>
 
-    <!-- Dashboard (Main Menu) -->
-    <section id="dashboard" class="page">
-        <header class="header">MyCirkleDevelopment Loyalty</header>
-        <div class="profile-header">
-            <img id="dash-profile-img" src="" alt="Profile" class="profile-img">
-            <div>
-                <h2 id="dash-profile-name"></h2>
-                <p id="member-since" class="grey-text">Member since: ...</p>
-            </div>
-        </div>
-        <div class="menu-grid">
-            <button class="menu-btn" data-page="rewards">Rewards and Points</button>
-            <button class="menu-btn" data-page="faq">FAQ</button>
-            <button class="menu-btn" data-page="products">My Products</button>
-            <button class="menu-btn" data-page="account">Account Details</button>
-            <button class="menu-btn" data-page="loyalty">Loyalty Card</button>
-        </div>
-        <button id="logout-btn" class="btn-logout">Log Out</button>
-    </section>
-
-    <!-- Rewards and Points -->
-    <section id="rewards" class="page">
-        <header class="header">Rewards and Points</header>
-        <div class="progress-section">
-            <p>Available Points: <span id="available-points">0</span></p>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill"></div>
-            </div>
-        </div>
-        <div class="target-section">
-            <label>Set Target: </label>
-            <select id="target-select">
-                <option value="100">100</option>
-                <option value="200">200</option>
-                <option value="500">500</option>
-                <option value="750">750</option>
-                <option value="1000">1000</option>
-                <option value="1500">1500</option>
-                <option value="2000">2000</option>
-            </select>
-        </div>
-        <h3>Available Rewards</h3>
-        <div class="rewards-grid">
-            <div class="reward-item daily-reward">
-                <span>🎁 DAILY REWARD:</span>
-                <p id="daily-reward-text">10% off</p>
-                <button class="redeem-btn">Redeem Now!</button>
-            </div>
-            <div class="reward-item">
-                <span>10% off next product</span>
-                <p>500 points</p>
-                <button class="redeem-btn">Redeem Now!</button>
-            </div>
-            <div class="reward-item">
-                <span>Free Product</span>
-                <p>2000 points</p>
-                <button class="redeem-btn">Redeem Now!</button>
-            </div>
-            <div class="reward-item">
-                <span>40% off a commission</span>
-                <p>750 points</p>
-                <button class="redeem-btn">Redeem Now!</button>
+    <!-- Modern Dashboard -->
+    <section id="dashboard" class="page hidden min-h-screen">
+        <div class="max-w-6xl mx-auto px-4 py-8">
+            <!-- Header -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <div class="flex items-center mb-6">
+                    <div class="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold mr-4">
+                        <span id="user-initials"></span>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-semibold" id="dash-profile-name"></h2>
+                        <p class="text-gray-500 text-sm" id="member-since">Member since: ...</p>
+                    </div>
+                </div>
+                
+                <!-- Menu Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                    <button onclick="showRewards()" class="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg hover:from-green-600 hover:to-green-700 transition duration-300 transform hover:-translate-y-1">
+                        <div class="text-3xl mb-2">🎁</div>
+                        <div class="font-semibold">Rewards & Points</div>
+                    </button>
+                    <button onclick="showFAQ()" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 transform hover:-translate-y-1">
+                        <div class="text-3xl mb-2">❓</div>
+                        <div class="font-semibold">FAQ</div>
+                    </button>
+                    <button onclick="showProducts()" class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition duration-300 transform hover:-translate-y-1">
+                        <div class="text-3xl mb-2">📦</div>
+                        <div class="font-semibold">My Products</div>
+                    </button>
+                    <button onclick="showAccount()" class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-lg hover:from-orange-600 hover:to-orange-700 transition duration-300 transform hover:-translate-y-1">
+                        <div class="text-3xl mb-2">⚙️</div>
+                        <div class="font-semibold">Account Details</div>
+                    </button>
+                    <button onclick="showLoyaltyCard()" class="bg-gradient-to-r from-pink-500 to-pink-600 text-white p-4 rounded-lg hover:from-pink-600 hover:to-pink-700 transition duration-300 transform hover:-translate-y-1">
+                        <div class="text-3xl mb-2">💳</div>
+                        <div class="font-semibold">Loyalty Card</div>
+                    </button>
+                </div>
+                
+                <button onclick="handleLogout()" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
+                    Log Out
+                </button>
             </div>
         </div>
     </section>
 
-    <!-- Redeem Screen -->
-    <section id="redeem" class="page">
-        <header class="header">Redeem Reward</header>
-        <div class="scratch-card">
-            <h3>It's all yours, <span id="redeem-name"></span>!</h3>
-            <canvas id="scratch-canvas" width="300" height="150"></canvas>
-            <div id="code-reveal" class="hidden">
-                <p class="code-text">Your 24-digit code: <span id="reward-code"></span></p>
+    <!-- Modern Rewards Section -->
+    <section id="rewards" class="page hidden min-h-screen">
+        <div class="max-w-6xl mx-auto px-4 py-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">Rewards & Points</h2>
+                    <button onclick="showDashboard()" class="text-blue-600 hover:text-blue-700 font-semibold">← Back</button>
+                </div>
+                
+                <div class="mb-8">
+                    <p class="text-lg font-semibold mb-4">Available Points: <span id="available-points" class="text-blue-600">0</span></p>
+                    <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+                        <div id="progress-fill" class="bg-gradient-to-r from-green-400 to-green-600 h-4 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <p class="text-sm text-gray-600 mb-2">Set Target:</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="setTarget(100)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">100</button>
+                            <button onclick="setTarget(200)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">200</button>
+                            <button onclick="setTarget(500)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">500</button>
+                            <button onclick="setTarget(750)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">750</button>
+                            <button onclick="setTarget(1000)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">1000</button>
+                            <button onclick="setTarget(1500)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">1500</button>
+                            <button onclick="setTarget(2000)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">2000</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 class="text-xl font-semibold mb-4">Available Rewards</h3>
+                <div class="space-y-4">
+                    <div class="bg-gradient-to-r from-yellow-100 to-yellow-200 border-2 border-yellow-300 p-4 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <span class="text-3xl mr-3">🎁</span>
+                                <div>
+                                    <h4 class="font-semibold">DAILY REWARD:</h4>
+                                    <p class="text-sm text-gray-600" id="daily-reward-text">Free Shipping Voucher</p>
+                                </div>
+                            </div>
+                            <button onclick="redeemReward('Daily Reward')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105">
+                                Redeem Now!
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-semibold">10% off next product</h4>
+                                <p class="text-sm text-gray-600">500 points required</p>
+                            </div>
+                            <button onclick="redeemReward('10% Discount')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105">
+                                Redeem Now!
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-semibold">40% off a commission</h4>
+                                <p class="text-sm text-gray-600">750 points required</p>
+                            </div>
+                            <button onclick="redeemReward('Commission Discount')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105">
+                                Redeem Now!
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-semibold">Free Product</h4>
+                                <p class="text-sm text-gray-600">2000 points required</p>
+                            </div>
+                            <button onclick="redeemReward('Free Product')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105">
+                                Redeem Now!
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <p>Use this code to redeem your reward by opening a ticket in the MyCirkle Category. Please save it before exiting.</p>
-            <button id="exit-redeem" class="btn-primary">Exit</button>
         </div>
     </section>
 
-    <!-- FAQ -->
-    <section id="faq" class="page">
-        <header class="header">FAQ</header>
-        <div class="faq-grid">
-            <details class="faq-item">
-                <summary>Terms & Conditions</summary>
-                <p><a href="https://shop.cirkledevelopment.co.uk/mycirkle" target="_blank">View our complete Terms & Conditions</a></p>
-            </details>
-            <details class="faq-item">
-                <summary>Lost Account Details</summary>
-                <p>TBA - mycirkle@cirkledevelopment.co.uk</p>
-            </details>
-            <details class="faq-item">
-                <summary>What is MyCirkle?</summary>
-                <p>TBA</p>
-            </details>
+    <!-- Modern Redeem Screen -->
+    <section id="redeem" class="page hidden min-h-screen">
+        <div class="max-w-2xl mx-auto px-4 py-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-center mb-4">It's all yours, <span id="redeem-name"></span>!</h2>
+                <div class="bg-gray-300 h-32 rounded-lg mb-4 relative overflow-hidden cursor-crosshair" id="scratch-area">
+                    <p class="absolute inset-0 flex items-center justify-center text-gray-600 font-semibold">Scratch to reveal code</p>
+                    <canvas id="scratch-canvas" class="absolute inset-0 w-full h-full" width="600" height="128"></canvas>
+                </div>
+                <div id="code-reveal" class="hidden bg-white border-2 border-dashed border-gray-400 p-4 rounded-lg text-center mb-4">
+                    <p class="font-mono text-lg font-semibold" id="reward-code"></p>
+                </div>
+                <p class="text-sm text-gray-600 text-center mb-6">Use this code to redeem your reward by opening a ticket in the MyCirkle Category. Please save it before exiting.</p>
+                <button onclick="exitRedeem()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
+                    Exit
+                </button>
+            </div>
         </div>
     </section>
 
-    <!-- My Products -->
-    <section id="products" class="page">
-        <header class="header">My Products</header>
-        <div id="products-list" class="products-grid"></div>
+    <!-- Modern FAQ Section -->
+    <section id="faq" class="page hidden min-h-screen">
+        <div class="max-w-4xl mx-auto px-4 py-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">Frequently Asked Questions</h2>
+                    <button onclick="showDashboard()" class="text-blue-600 hover:text-blue-700 font-semibold">← Back</button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleFAQ('faq1')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition">
+                            <span class="font-semibold">Terms & Conditions</span>
+                            <span id="faq1-icon" class="text-2xl transition-transform">+</span>
+                        </button>
+                        <div id="faq1-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                            <a href="https://shop.cirkledevelopment.co.uk/mycirkle" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 underline">
+                                View our complete Terms & Conditions
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleFAQ('faq2')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition">
+                            <span class="font-semibold">Lost Account Details</span>
+                            <span id="faq2-icon" class="text-2xl transition-transform">+</span>
+                        </button>
+                        <div id="faq2-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                            <p class="text-gray-600">Contact us at: <a href="mailto:mycirkle@cirkledevelopment.co.uk" class="text-blue-600 hover:underline">mycirkle@cirkledevelopment.co.uk</a></p>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleFAQ('faq3')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition">
+                            <span class="font-semibold">What is MyCirkle?</span>
+                            <span id="faq3-icon" class="text-2xl transition-transform">+</span>
+                        </button>
+                        <div id="faq3-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                            <p class="text-gray-600">MyCirkle is an exclusive loyalty program that rewards our valued customers with points for every purchase. Earn rewards, unlock perks, and enjoy member-only benefits!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 
-    <!-- Product Detail Modal -->
-    <div id="product-modal" class="modal-overlay hidden">
-        <div class="modal">
-            <img id="detail-img" src="" alt="">
-            <h3 id="detail-name"></h3>
-            <p id="detail-price"></p>
-            <p id="detail-desc"></p>
-            <p id="detail-payment"></p>
-            <p id="detail-date"></p>
-            <button id="close-detail" class="btn-primary">Close</button>
+    <!-- Modern Products Section -->
+    <section id="products" class="page hidden min-h-screen">
+        <div class="max-w-6xl mx-auto px-4 py-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">My Products</h2>
+                    <button onclick="showDashboard()" class="text-blue-600 hover:text-blue-700 font-semibold">← Back</button>
+                </div>
+                
+                <div id="products-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Products will be populated here -->
+                </div>
+            </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Account Details -->
-    <section id="account" class="page">
-        <header class="header">Account Details</header>
-        <div class="account-form">
-            <label>Display Name: <input type="text" id="edit-name"></label>
-            <label>Password: <input type="password" id="edit-pass"></label>
-            <label>Email: <input type="email" id="edit-email"></label>
-            <button id="save-account" class="btn-primary">Save Changes</button>
-            <button id="reset-account" class="btn-danger">Reset Account</button>
+    <!-- Modern Account Details -->
+    <section id="account" class="page hidden min-h-screen">
+        <div class="max-w-2xl mx-auto px-4 py-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">Account Details</h2>
+                    <button onclick="showDashboard()" class="text-blue-600 hover:text-blue-700 font-semibold">← Back</button>
+                </div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2">Display Name</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="edit-name" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button onclick="updateDisplayName()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+                        <div class="flex gap-2">
+                            <input type="email" id="edit-email" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button onclick="updateEmail()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2">New Password</label>
+                        <div class="flex gap-2">
+                            <input type="password" id="edit-pass" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter new password">
+                            <button onclick="updatePassword()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-6 border-t border-gray-200">
+                        <button onclick="resetAccount()" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition">
+                            Reset Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modern Loyalty Card with Flip -->
+    <section id="loyalty" class="page hidden min-h-screen">
+        <div class="max-w-4xl mx-auto px-4 py-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">Loyalty Card</h2>
+                    <button onclick="showDashboard()" class="text-blue-600 hover:text-blue-700 font-semibold">← Back</button>
+                </div>
+                
+                <div class="max-w-md mx-auto" style="perspective: 1000px;">
+                    <div id="loyalty-card" onclick="flipCard()" class="relative w-full h-56 cursor-pointer" style="transform-style: preserve-3d; transition: transform 0.8s;">
+                        <!-- Front of card -->
+                        <div class="absolute w-full h-full rounded-xl shadow-2xl p-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white" style="backface-visibility: hidden; transform-style: preserve-3d;">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <p class="text-sm font-semibold" id="card-name"></p>
+                                </div>
+                                <div class="text-right">
+                                    <h3 class="text-xl font-bold">MyCirkle</h3>
+                                    <p class="text-xs opacity-75">Loyalty Program</p>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <div class="bg-white bg-opacity-20 p-3 rounded-lg">
+                                    <svg id="barcode-svg" width="100%" height="60" class="barcode"></svg>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-xs opacity-75">Member Since</p>
+                                    <p class="text-sm font-semibold" id="card-member-since"></p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs opacity-75">Tap to flip</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Back of card -->
+                        <div class="absolute w-full h-full rounded-xl shadow-2xl p-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white" style="backface-visibility: hidden; transform: rotateY(180deg); transform-style: preserve-3d;">
+                            <div class="mb-3">
+                                <div class="bg-white bg-opacity-20 p-3 rounded-lg">
+                                    <p class="text-xs opacity-75 mb-1">Account ID</p>
+                                    <p class="font-mono text-sm" id="account-id"></p>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+                                        <svg id="barcode-svg" width="100%" height="60" class="barcode"></svg>
+                                    <p class="text-sm font-semibold" id="back-name"></p>
+                                </div>
+                                <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+                                    <p class="text-xs opacity-75 mb-1">Email</p>
+                                    <p class="text-sm" id="back-email"></p>
+                                </div>
+                                <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+                                    <p class="text-xs opacity-75 mb-1">Total Points</p>
+                                    <p class="text-lg font-bold" id="back-points">0</p>
+                                </div>
+                            </div>
+                            <div class="text-center mt-3">
+                                <p class="text-xs opacity-75">Tap to return</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-center text-gray-500 text-sm mt-4">Click card to view details</p>
+                </div>
+            </div>
         </div>
     </section>
 
     <!-- Reset Confirmation Modal -->
-    <div id="reset-modal" class="modal-overlay hidden">
-        <div class="modal">
-            <h3>Are you sure?</h3>
-            <p>This will reset your account and log you out.</p>
-            <button id="confirm-reset" class="btn-danger">Yes</button>
-            <button id="cancel-reset" class="btn-primary">No</button>
+    <div id="reset-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md mx-4 text-center">
+            <div class="text-red-500 text-5xl mb-4">⚠️</div>
+            <h3 class="text-2xl font-bold mb-4">Are you sure?</h3>
+            <p class="text-gray-600 mb-6">This will reset your account and delete all your data. This action cannot be undone.</p>
+            <div class="flex gap-4">
+                <button onclick="cancelReset()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition">
+                    Cancel
+                </button>
+                <button onclick="confirmReset()" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition">
+                    Yes, Reset
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Reset Loading -->
-    <section id="reset-loading" class="page">
-        <div class="reset-bg"></div>
-        <p>Resetting. This may take a while...</p>
-        <div class="spinner large"></div>
-    </section>
-
-    <!-- Loyalty Card -->
-    <section id="loyalty" class="page">
-        <header class="header">Loyalty Card</header>
-        <div class="card-container">
-            <div id="loyalty-card" class="loyalty-card">
-                <div class="card-front">
-                    <span id="card-name"></span>
-                    <span class="card-brand">MyCirkle</span>
-                    <div class="barcode">||| ||| ||| (Scan for ID)</div>
-                </div>
-                <div class="card-back">
-                    <h4>Account ID: <span id="account-id"></span></h4>
-                    <p>Name: <span id="back-name"></span></p>
-                    <p>Email: <span id="back-email"></span></p>
-                    <p>Total Points: <span id="back-points">0</span></p>
-                </div>
-            </div>
-        </div>
+    <section id="reset-loading" class="page hidden min-h-screen bg-black text-white flex flex-col items-center justify-center">
+        <div class="text-2xl mb-8">Resetting. This may take a while...</div>
+        <div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
     </section>
 
     <!-- Logout Loading -->
-    <section id="logout-loading" class="page">
-        <p>Logging you out...</p>
-        <div class="spinner"></div>
+    <section id="logout-loading" class="page hidden min-h-screen bg-black text-white flex flex-col items-center justify-center">
+        <div class="text-2xl mb-8">Logging you out...</div>
+        <div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
     </section>
 
     <script src="./script.js"></script>

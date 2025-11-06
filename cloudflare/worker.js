@@ -156,6 +156,21 @@ export default {
             } catch (error) {
                 return new Response(JSON.stringify({ error: 'Failed to update points', details: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
+        } else if (path === '/api/products' && request.method === 'POST') {
+            try {
+                const body = await request.json();
+                const { discordId, productId } = body || {};
+
+                if (!discordId) {
+                    return new Response(JSON.stringify({ error: 'Missing discordId' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                }
+
+                const products = await getUserProducts(env, discordId, productId);
+
+                return new Response(JSON.stringify({ success: true, products }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            } catch (error) {
+                return new Response(JSON.stringify({ error: 'Failed to fetch products', details: error.message, products: [] }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            }
         }
 
         return new Response('Not Found', { status: 404, headers: corsHeaders });
@@ -265,4 +280,95 @@ async function updateUserPoints(env, discordId, points) {
     }
 
     return await response.json();
+}
+
+async function getUserProducts(env, discordId, productId) {
+    // Accept either PARCELROBLOX_API_KEY or PARCEL_API_KEY (legacy)
+    const PARCEL_API_KEY = env.PARCELROBLOX_API_KEY || env.PARCEL_API_KEY;
+    if (!PARCEL_API_KEY) {
+        throw new Error('Parcel API key not configured');
+    }
+
+    // Get user data to find their email or identifier
+    const userData = await getUserFromSheets(env, discordId);
+
+    if (!userData.found) {
+        return [];
+    }
+
+    const identifier = userData.email || userData.discordId || '';
+    const identifierType = userData.email ? 'email' : 'discordId';
+
+    try {
+        // If caller requested a single productId, check ownership for that product.
+        if (productId) {
+            // We POST to a Parcel ownership-check endpoint. If your Parcel API differs, update this path.
+            const checkUrl = 'https://api.parcelroblox.com/v1/ownerships/check';
+            const response = await fetch(checkUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${PARCEL_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    identifier: identifier,
+                    identifier_type: identifierType
+                })
+            });
+
+            if (!response.ok) {
+                console.error('Parcel ownership check error:', await response.text());
+                return [];
+            }
+
+            const data = await response.json();
+            // Expecting response shape like { owned: true, product: { ... } }
+            if (data && data.owned) {
+                const p = data.product || { id: productId, name: 'Owned Product' };
+                return [{
+                    id: p.id || productId,
+                    name: p.name || 'Owned Product',
+                    price: p.price ? `$${(p.price / 100).toFixed(2)}` : 'N/A',
+                    img: p.image || p.thumbnail || 'https://via.placeholder.com/200x150?text=Product',
+                    desc: p.description || '',
+                    payment: p.paymentMethod || 'N/A',
+                    date: p.purchaseDate || new Date().toISOString().split('T')[0]
+                }];
+            }
+
+            return [];
+        }
+
+        // Otherwise request all owned products for this identifier
+        const listUrl = `https://api.parcelroblox.com/v1/products/owned?identifier=${encodeURIComponent(identifier)}&identifier_type=${encodeURIComponent(identifierType)}`;
+        const listResp = await fetch(listUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${PARCEL_API_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!listResp.ok) {
+            console.error('Parcel list error:', await listResp.text());
+            return [];
+        }
+
+        const listData = await listResp.json();
+        const products = (listData.products || []).map(product => ({
+            id: product.id || product.productId,
+            name: product.name || 'Unknown Product',
+            price: product.price ? `$${(product.price / 100).toFixed(2)}` : 'N/A',
+            img: product.image || product.thumbnail || 'https://via.placeholder.com/200x150?text=Product',
+            desc: product.description || 'No description available',
+            payment: product.paymentMethod || 'N/A',
+            date: product.purchaseDate || product.createdAt || new Date().toISOString().split('T')[0]
+        }));
+
+        return products;
+    } catch (error) {
+        console.error('Error fetching Parcel products:', error);
+        return [];
+    }
 }
