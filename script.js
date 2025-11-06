@@ -261,10 +261,13 @@ async function handleDiscordUser(user) {
 function handleHashRouting() {
     const hash = window.location.hash.slice(1) || 'home';
     showPage(hash);
-    if (hash === 'dashboard' || hash === 'rewards' || hash === 'faq' || hash === 'products' || hash === 'account' || hash === 'loyalty') {
-        document.querySelector('.header').style.display = 'block';
-    } else {
-        document.querySelector('.header').style.display = 'none';
+    const header = document.querySelector('.header');
+    if (header) {
+        if (hash === 'dashboard' || hash === 'rewards' || hash === 'faq' || hash === 'products' || hash === 'account' || hash === 'loyalty') {
+            header.style.display = 'block';
+        } else {
+            header.style.display = 'none';
+        }
     }
 }
 
@@ -283,7 +286,12 @@ function showPage(pageId) {
 
 // Discord Login via Worker
 function handleLogin() {
-    window.location.href = `${WORKER_URL}/auth/discord?redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+    console.log('handleLogin called!');
+    console.log('WORKER_URL:', WORKER_URL);
+    console.log('REDIRECT_URI:', REDIRECT_URI);
+    const redirectUrl = `${WORKER_URL}/auth/discord?redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+    console.log('Redirecting to:', redirectUrl);
+    window.location.href = redirectUrl;
 }
 
 // Name Submit
