@@ -1,0 +1,7 @@
+# Security Configuration
+
+.env
+*.key
+*.pem
+secrets.json
+credentials.json

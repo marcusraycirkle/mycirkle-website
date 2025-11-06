@@ -1,2 +1,11 @@
 name = "mycirkle-auth"
 compatibility_date = "2025-10-25"
+
+# Environment variables (add these via Cloudflare Dashboard or wrangler secret)
+# Run these commands to set secrets:
+# wrangler secret put DISCORD_CLIENT_ID
+# wrangler secret put DISCORD_CLIENT_SECRET
+# wrangler secret put DISCORD_BOT_TOKEN
+# wrangler secret put GOOGLE_SHEETS_API_KEY
+# wrangler secret put SPREADSHEET_ID
+# wrangler secret put DISCORD_GUILD_ID
