@@ -12,41 +12,50 @@ let currentDailyIndex = 0;
 let targetPoints = 100;
 let generatedCodes = {};
 
-// DOM Elements
-const pages = document.querySelectorAll('.page');
-const modals = document.querySelectorAll('.modal-overlay');
-const loginBtn = document.getElementById('login-btn');
-const profileIcon = document.getElementById('profile-icon');
-const profileName = document.getElementById('profile-name');
-const dashProfileImg = document.getElementById('dash-profile-img');
-const dashProfileName = document.getElementById('dash-profile-name');
-const memberSince = document.getElementById('member-since');
-const availablePoints = document.getElementById('available-points');
-const progressFill = document.getElementById('progress-fill');
-const targetSelect = document.getElementById('target-select');
-const dailyRewardText = document.getElementById('daily-reward-text');
-const productsList = document.getElementById('products-list');
-const welcomeName = document.getElementById('welcome-name');
-const redeemName = document.getElementById('redeem-name');
-const rewardCode = document.getElementById('reward-code');
-const scratchCanvas = document.getElementById('scratch-canvas');
-const codeReveal = document.getElementById('code-reveal');
-const cardName = document.getElementById('card-name');
-const backName = document.getElementById('back-name');
-const backEmail = document.getElementById('back-email');
-const backPoints = document.getElementById('back-points');
-const accountIdSpan = document.getElementById('account-id');
-const loyaltyCard = document.getElementById('loyalty-card');
+// DOM Elements - will be populated after DOM loads
+let pages, modals, profileIcon, profileName, dashProfileImg, dashProfileName;
+let memberSince, availablePoints, progressFill, targetSelect, dailyRewardText;
+let productsList, welcomeName, redeemName, rewardCode, scratchCanvas, codeReveal;
+let cardName, backName, backEmail, backPoints, accountIdSpan, loyaltyCard;
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
+    // Get all DOM elements after page loads
+    pages = document.querySelectorAll('.page');
+    modals = document.querySelectorAll('.modal-overlay');
+    profileIcon = document.getElementById('profile-icon');
+    profileName = document.getElementById('profile-name');
+    dashProfileImg = document.getElementById('dash-profile-img');
+    dashProfileName = document.getElementById('dash-profile-name');
+    memberSince = document.getElementById('member-since');
+    availablePoints = document.getElementById('available-points');
+    progressFill = document.getElementById('progress-fill');
+    targetSelect = document.getElementById('target-select');
+    dailyRewardText = document.getElementById('daily-reward-text');
+    productsList = document.getElementById('products-list');
+    welcomeName = document.getElementById('welcome-name');
+    redeemName = document.getElementById('redeem-name');
+    rewardCode = document.getElementById('reward-code');
+    scratchCanvas = document.getElementById('scratch-canvas');
+    codeReveal = document.getElementById('code-reveal');
+    cardName = document.getElementById('card-name');
+    backName = document.getElementById('back-name');
+    backEmail = document.getElementById('back-email');
+    backPoints = document.getElementById('back-points');
+    accountIdSpan = document.getElementById('account-id');
+    loyaltyCard = document.getElementById('loyalty-card');
+    
     updatePoints();
     rotateDailyReward();
     setInterval(rotateDailyReward, 5000);
-    targetSelect.addEventListener('change', (e) => {
-        targetPoints = parseInt(e.target.value);
-        updateProgress();
-    });
+    
+    if (targetSelect) {
+        targetSelect.addEventListener('change', (e) => {
+            targetPoints = parseInt(e.target.value);
+            updateProgress();
+        });
+    }
+    
     handleHashRouting();
     window.addEventListener('hashchange', handleHashRouting);
 
@@ -54,60 +63,92 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('login-btn');
     if (loginBtn) {
         loginBtn.addEventListener('click', handleLogin);
+        console.log('Login button event listener attached');
+    } else {
+        console.error('Login button not found!');
     }
-    document.getElementById('continue-name').addEventListener('click', handleNameSubmit);
-    document.getElementById('submit-pass').addEventListener('click', handlePassSubmit);
-    document.getElementById('submit-preferences').addEventListener('click', handlePreferencesSubmit);
-    document.getElementById('go-dashboard').addEventListener('click', () => showDashboard());
-    document.getElementById('lets-go').addEventListener('click', () => showPage('dashboard'));
+    
+    // Add smooth scrolling for nav links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+    
+    const continueNameBtn = document.getElementById('continue-name');
+    const submitPassBtn = document.getElementById('submit-pass');
+    const submitPrefsBtn = document.getElementById('submit-preferences');
+    const goDashboardBtn = document.getElementById('go-dashboard');
+    const letsGoBtn = document.getElementById('lets-go');
+    const exitRedeemBtn = document.getElementById('exit-redeem');
+    const saveAccountBtn = document.getElementById('save-account');
+    const resetAccountBtn = document.getElementById('reset-account');
+    const confirmResetBtn = document.getElementById('confirm-reset');
+    const cancelResetBtn = document.getElementById('cancel-reset');
+    const closeDetailBtn = document.getElementById('close-detail');
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    if (continueNameBtn) continueNameBtn.addEventListener('click', handleNameSubmit);
+    if (submitPassBtn) submitPassBtn.addEventListener('click', handlePassSubmit);
+    if (submitPrefsBtn) submitPrefsBtn.addEventListener('click', handlePreferencesSubmit);
+    if (goDashboardBtn) goDashboardBtn.addEventListener('click', () => showDashboard());
+    if (letsGoBtn) letsGoBtn.addEventListener('click', () => showPage('dashboard'));
+    if (exitRedeemBtn) exitRedeemBtn.addEventListener('click', () => showPage('rewards'));
+    if (saveAccountBtn) saveAccountBtn.addEventListener('click', saveAccount);
+    if (resetAccountBtn) resetAccountBtn.addEventListener('click', showResetModal);
+    if (confirmResetBtn) confirmResetBtn.addEventListener('click', handleReset);
+    if (cancelResetBtn) cancelResetBtn.addEventListener('click', hideResetModal);
+    if (closeDetailBtn) closeDetailBtn.addEventListener('click', hideProductModal);
+    if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+    
     document.querySelectorAll('.menu-btn, .redeem-btn').forEach(btn => btn.addEventListener('click', handleMenuClick));
-    document.getElementById('exit-redeem').addEventListener('click', () => showPage('rewards'));
-    document.getElementById('save-account').addEventListener('click', saveAccount);
-    document.getElementById('reset-account').addEventListener('click', showResetModal);
-    document.getElementById('confirm-reset').addEventListener('click', handleReset);
-    document.getElementById('cancel-reset').addEventListener('click', hideResetModal);
-    document.getElementById('close-detail').addEventListener('click', hideProductModal);
-    document.getElementById('logout-btn').addEventListener('click', handleLogout);
 
     // Scratch Canvas
-    let isDrawing = false;
-    const ctx = scratchCanvas.getContext('2d');
-    ctx.fillStyle = '#333';
-    ctx.fillRect(0, 0, 300, 150);
-    ctx.font = '16px monospace';
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    ctx.fillText('Scratch here to reveal code', 150, 75);
+    if (scratchCanvas) {
+        let isDrawing = false;
+        const ctx = scratchCanvas.getContext('2d');
+        ctx.fillStyle = '#333';
+        ctx.fillRect(0, 0, 300, 150);
+        ctx.font = '16px monospace';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('Scratch here to reveal code', 150, 75);
 
-    scratchCanvas.addEventListener('mousedown', () => isDrawing = true);
-    scratchCanvas.addEventListener('mouseup', () => isDrawing = false);
-    scratchCanvas.addEventListener('mousemove', handleScratch);
-    scratchCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); isDrawing = true; });
-    scratchCanvas.addEventListener('touchend', () => isDrawing = false);
-    scratchCanvas.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const rect = scratchCanvas.getBoundingClientRect();
-        handleScratch({ clientX: touch.clientX - rect.left, clientY: touch.clientY - rect.top });
-    });
+        scratchCanvas.addEventListener('mousedown', () => isDrawing = true);
+        scratchCanvas.addEventListener('mouseup', () => isDrawing = false);
+        scratchCanvas.addEventListener('mousemove', handleScratch);
+        scratchCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); isDrawing = true; });
+        scratchCanvas.addEventListener('touchend', () => isDrawing = false);
+        scratchCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = scratchCanvas.getBoundingClientRect();
+            handleScratch({ clientX: touch.clientX - rect.left, clientY: touch.clientY - rect.top });
+        });
 
-    function handleScratch(e) {
-        if (!isDrawing) return;
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.beginPath();
-        ctx.arc(e.clientX, e.clientY, 20, 0, Math.PI * 2);
-        ctx.fill();
-        checkScratchComplete();
-    }
-
-    function checkScratchComplete() {
-        const imageData = ctx.getImageData(0, 0, 300, 150);
-        let transparentPixels = 0;
-        for (let i = 3; i < imageData.data.length; i += 4) {
-            if (imageData.data[i] === 0) transparentPixels++;
+        function handleScratch(e) {
+            if (!isDrawing) return;
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.beginPath();
+            ctx.arc(e.clientX, e.clientY, 20, 0, Math.PI * 2);
+            ctx.fill();
+            checkScratchComplete();
         }
-        if (transparentPixels / (300 * 150) > 0.5) {
-            codeReveal.classList.remove('hidden');
+
+        function checkScratchComplete() {
+            const imageData = ctx.getImageData(0, 0, 300, 150);
+            let transparentPixels = 0;
+            for (let i = 3; i < imageData.data.length; i += 4) {
+                if (imageData.data[i] === 0) transparentPixels++;
+            }
+            if (transparentPixels / (300 * 150) > 0.5) {
+                if (codeReveal) codeReveal.classList.remove('hidden');
+            }
         }
     }
 
