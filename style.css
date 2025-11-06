@@ -1112,6 +1112,72 @@ input::placeholder {
     color: #718096;
 }
 
+/* Welcome Card Styles */
+.welcome-card {
+    text-align: center;
+}
+
+.welcome-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    animation: bounceIn 0.8s ease-out;
+}
+
+.welcome-card h2 {
+    color: #2d3748;
+    font-size: 2.2em;
+    margin-bottom: 15px;
+}
+
+.welcome-card h2 #welcome-name {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.welcome-message {
+    color: #718096;
+    font-size: 1.1em;
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.welcome-features {
+    background: #f7fafc;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+}
+
+.welcome-feature-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 0;
+    color: #4a5568;
+    font-size: 1.05em;
+}
+
+.feature-emoji {
+    font-size: 1.5em;
+}
+
+/* Select dropdown styling */
+.modern-input[type="select"],
+select.modern-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234a5568' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+select.modern-input option {
+    padding: 10px;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 968px) {
     .signup-container {

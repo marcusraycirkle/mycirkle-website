@@ -109,6 +109,7 @@
                 <div class="progress-dots">
                     <span class="dot active"></span>
                     <span class="dot active"></span>
+                    <span class="dot"></span>
                 </div>
             </div>
             <div class="signup-right slide-in">
@@ -120,13 +121,105 @@
                         <input type="password" id="user-password" placeholder="Min. 6 characters" class="modern-input">
                         <small class="input-hint">Choose a password with at least 6 characters</small>
                     </div>
-                    <button id="submit-pass" class="btn-modern">Create Account →</button>
+                    <button id="submit-pass" class="btn-modern">Continue →</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Personalization: Location & Timezone -->
+    <section id="create-preferences" class="page signup-flow">
+        <div class="signup-container">
+            <div class="signup-left">
+                <div class="signup-logo">MyCirkle</div>
+                <p class="signup-tagline">Personalize your experience</p>
+                <div class="progress-dots">
+                    <span class="dot active"></span>
+                    <span class="dot active"></span>
+                    <span class="dot active"></span>
+                </div>
+            </div>
+            <div class="signup-right slide-in">
+                <div class="form-card">
+                    <h2>Where are you from?</h2>
+                    <p class="form-subtitle">Help us customize your experience</p>
+                    
+                    <div class="input-group">
+                        <label for="user-country">Country</label>
+                        <select id="user-country" class="modern-input">
+                            <option value="">Select your country</option>
+                            <option value="US">United States</option>
+                            <option value="GB">United Kingdom</option>
+                            <option value="CA">Canada</option>
+                            <option value="AU">Australia</option>
+                            <option value="DE">Germany</option>
+                            <option value="FR">France</option>
+                            <option value="ES">Spain</option>
+                            <option value="IT">Italy</option>
+                            <option value="NL">Netherlands</option>
+                            <option value="SE">Sweden</option>
+                            <option value="NO">Norway</option>
+                            <option value="DK">Denmark</option>
+                            <option value="FI">Finland</option>
+                            <option value="JP">Japan</option>
+                            <option value="KR">South Korea</option>
+                            <option value="CN">China</option>
+                            <option value="IN">India</option>
+                            <option value="BR">Brazil</option>
+                            <option value="MX">Mexico</option>
+                            <option value="AR">Argentina</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="user-timezone">Timezone</label>
+                        <select id="user-timezone" class="modern-input">
+                            <option value="">Select your timezone</option>
+                            <option value="America/New_York">Eastern Time (ET)</option>
+                            <option value="America/Chicago">Central Time (CT)</option>
+                            <option value="America/Denver">Mountain Time (MT)</option>
+                            <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                            <option value="America/Anchorage">Alaska Time (AKT)</option>
+                            <option value="Pacific/Honolulu">Hawaii Time (HT)</option>
+                            <option value="Europe/London">London (GMT)</option>
+                            <option value="Europe/Paris">Paris (CET)</option>
+                            <option value="Europe/Berlin">Berlin (CET)</option>
+                            <option value="Europe/Rome">Rome (CET)</option>
+                            <option value="Europe/Madrid">Madrid (CET)</option>
+                            <option value="Europe/Stockholm">Stockholm (CET)</option>
+                            <option value="Asia/Tokyo">Tokyo (JST)</option>
+                            <option value="Asia/Seoul">Seoul (KST)</option>
+                            <option value="Asia/Shanghai">Shanghai (CST)</option>
+                            <option value="Asia/Dubai">Dubai (GST)</option>
+                            <option value="Australia/Sydney">Sydney (AEST)</option>
+                            <option value="Pacific/Auckland">Auckland (NZST)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="user-language">Preferred Language</label>
+                        <select id="user-language" class="modern-input">
+                            <option value="en">English</option>
+                            <option value="es">Español</option>
+                            <option value="fr">Français</option>
+                            <option value="de">Deutsch</option>
+                            <option value="it">Italiano</option>
+                            <option value="pt">Português</option>
+                            <option value="ja">日本語</option>
+                            <option value="ko">한국어</option>
+                            <option value="zh">中文</option>
+                        </select>
+                    </div>
+                    
+                    <button id="submit-preferences" class="btn-modern">Complete Setup →</button>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Confirmation Screens -->
+        <!-- Confirmation Screens -->
     <section id="confirm" class="page signup-flow">
         <div class="signup-container">
             <div class="signup-left">
@@ -148,6 +241,38 @@
                         <h3>Almost ready!</h3>
                         <p>Thank you for your patience</p>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Welcome Popup -->
+    <section id="welcome-popup" class="page signup-flow">
+        <div class="signup-container">
+            <div class="signup-left">
+                <div class="signup-logo">MyCirkle</div>
+                <p class="signup-tagline">You're all set! 🎉</p>
+            </div>
+            <div class="signup-right">
+                <div class="form-card welcome-card">
+                    <div class="welcome-icon">✨</div>
+                    <h2>Welcome, <span id="welcome-name"></span>!</h2>
+                    <p class="welcome-message">Your MyCirkle portal is ready. Let's explore all the amazing rewards waiting for you!</p>
+                    <div class="welcome-features">
+                        <div class="welcome-feature-item">
+                            <span class="feature-emoji">🎁</span>
+                            <span>Earn points with every purchase</span>
+                        </div>
+                        <div class="welcome-feature-item">
+                            <span class="feature-emoji">⭐</span>
+                            <span>Unlock exclusive perks</span>
+                        </div>
+                        <div class="welcome-feature-item">
+                            <span class="feature-emoji">📊</span>
+                            <span>Track your progress</span>
+                        </div>
+                    </div>
+                    <button id="go-dashboard" class="btn-modern">Go to Dashboard →</button>
                 </div>
             </div>
         </div>
