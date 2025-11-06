@@ -364,54 +364,149 @@
         </div>
     </section>
 
-    <!-- Modern Dashboard -->
+    <!-- Modern Dashboard with Sidebar -->
     <section id="dashboard" class="page">
-        <div class="max-w-6xl mx-auto px-4 py-8">
-            <!-- Header -->
-            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-                <div class="flex items-center mb-6">
-                    <div class="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold mr-4">
-                        <span id="user-initials"></span>
-                    </div>
+        <div class="dashboard-container">
+            <!-- Sidebar -->
+            <aside class="dashboard-sidebar">
+                <div class="sidebar-header">
+                    <div class="logo-icon">✨</div>
                     <div>
-                        <h2 class="text-2xl font-semibold" id="dash-profile-name"></h2>
-                        <p class="text-gray-500 text-sm" id="member-since">Member since: ...</p>
+                        <h1 class="text-xl font-bold">MyCirkle</h1>
+                        <p class="text-xs opacity-75">Loyalty Portal</p>
                     </div>
                 </div>
                 
-                <!-- Menu Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                    <button onclick="showRewards()" class="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg hover:from-green-600 hover:to-green-700 transition duration-300 transform hover:-translate-y-1">
-                        <div class="text-3xl mb-2">🎁</div>
-                        <div class="font-semibold">Rewards & Points</div>
-                    </button>
-                    <button onclick="showFAQ()" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 transform hover:-translate-y-1">
-                        <div class="text-3xl mb-2">❓</div>
-                        <div class="font-semibold">FAQ</div>
-                    </button>
-                    <button onclick="showProducts()" class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition duration-300 transform hover:-translate-y-1">
-                        <div class="text-3xl mb-2">📦</div>
-                        <div class="font-semibold">My Products</div>
-                    </button>
-                    <button onclick="showAccount()" class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-lg hover:from-orange-600 hover:to-orange-700 transition duration-300 transform hover:-translate-y-1">
-                        <div class="text-3xl mb-2">⚙️</div>
-                        <div class="font-semibold">Account Details</div>
-                    </button>
-                    <button onclick="showLoyaltyCard()" class="bg-gradient-to-r from-pink-500 to-pink-600 text-white p-4 rounded-lg hover:from-pink-600 hover:to-pink-700 transition duration-300 transform hover:-translate-y-1">
-                        <div class="text-3xl mb-2">💳</div>
-                        <div class="font-semibold">Loyalty Card</div>
+                <nav class="sidebar-nav">
+                    <a href="#" onclick="showDashboard(); return false;" class="nav-item active" id="nav-dashboard">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-label">Dashboard</span>
+                    </a>
+                    <a href="#" onclick="showRewards(); return false;" class="nav-item" id="nav-rewards">
+                        <span class="nav-icon">🎁</span>
+                        <span class="nav-label">Rewards</span>
+                    </a>
+                    <a href="#" onclick="showProducts(); return false;" class="nav-item" id="nav-products">
+                        <span class="nav-icon">📦</span>
+                        <span class="nav-label">Products</span>
+                    </a>
+                    <a href="#" onclick="showLoyaltyCard(); return false;" class="nav-item" id="nav-loyalty">
+                        <span class="nav-icon">💳</span>
+                        <span class="nav-label">Loyalty Card</span>
+                    </a>
+                    <a href="#" onclick="showFAQ(); return false;" class="nav-item" id="nav-faq">
+                        <span class="nav-icon">❓</span>
+                        <span class="nav-label">FAQ</span>
+                    </a>
+                    <a href="#" onclick="showAccount(); return false;" class="nav-item" id="nav-account">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-label">Settings</span>
+                    </a>
+                </nav>
+                
+                <div class="sidebar-footer">
+                    <div class="user-profile-card">
+                        <div class="user-avatar" id="user-initials"></div>
+                        <div class="user-info">
+                            <p class="user-name" id="dash-profile-name">Loading...</p>
+                            <p class="user-role">Member</p>
+                        </div>
+                    </div>
+                    <button onclick="handleLogout()" class="logout-btn">
+                        <span>🚪</span> Log Out
                     </button>
                 </div>
+            </aside>
+            
+            <!-- Main Content -->
+            <main class="dashboard-main">
+                <!-- Dashboard Overview (Default) -->
+                <div id="dashboard-content" class="dashboard-section">
+                    <div class="content-header">
+                        <div>
+                            <h2 class="content-title">Welcome Back!</h2>
+                            <p class="content-subtitle">Here's your loyalty overview</p>
+                        </div>
+                        <div class="points-display">
+                            <span class="points-label">Points</span>
+                            <span class="points-value" id="available-points">0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card stat-purple">
+                            <div class="stat-icon">🎁</div>
+                            <div class="stat-details">
+                                <p class="stat-value" id="stat-rewards">0</p>
+                                <p class="stat-label">Rewards Available</p>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-blue">
+                            <div class="stat-icon">📦</div>
+                            <div class="stat-details">
+                                <p class="stat-value" id="stat-products">0</p>
+                                <p class="stat-label">Products Owned</p>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-green">
+                            <div class="stat-icon">⭐</div>
+                            <div class="stat-details">
+                                <p class="stat-value" id="stat-tier">Silver</p>
+                                <p class="stat-label">Membership Tier</p>
+                            </div>
+                        </div>
+                        <div class="stat-card stat-orange">
+                            <div class="stat-icon">📅</div>
+                            <div class="stat-details">
+                                <p class="stat-value" id="member-since">-</p>
+                                <p class="stat-label">Member Since</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="section-card">
+                        <h3 class="section-title">Quick Actions</h3>
+                        <div class="action-grid">
+                            <button onclick="showRewards()" class="action-card action-purple">
+                                <span class="action-icon">🎁</span>
+                                <span class="action-label">Claim Rewards</span>
+                            </button>
+                            <button onclick="showProducts()" class="action-card action-blue">
+                                <span class="action-icon">📦</span>
+                                <span class="action-label">View Products</span>
+                            </button>
+                            <button onclick="showLoyaltyCard()" class="action-card action-pink">
+                                <span class="action-icon">💳</span>
+                                <span class="action-label">Loyalty Card</span>
+                            </button>
+                            <button onclick="showAccount()" class="action-card action-orange">
+                                <span class="action-icon">⚙️</span>
+                                <span class="action-label">Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 
-                <button onclick="handleLogout()" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
-                    Log Out
-                </button>
-            </div>
+                <!-- Rewards Content (Hidden by default) -->
+                <div id="rewards-content" class="dashboard-section hidden"></div>
+                
+                <!-- Products Content (Hidden by default) -->
+                <div id="products-content" class="dashboard-section hidden"></div>
+                
+                <!-- Loyalty Card Content (Hidden by default) -->
+                <div id="loyalty-content" class="dashboard-section hidden"></div>
+                
+                <!-- FAQ Content (Hidden by default) -->
+                <div id="faq-content" class="dashboard-section hidden"></div>
+                
+                <!-- Account Content (Hidden by default) -->
+                <div id="account-content" class="dashboard-section hidden"></div>
+            </main>
         </div>
     </section>
 
-    <!-- Modern Rewards Section -->
-    <section id="rewards" class="page hidden min-h-screen">
+    <!-- Modern Rewards Section (Standalone for backward compat) -->
+    <section id="rewards" class="page min-h-screen">
         <div class="max-w-6xl mx-auto px-4 py-8">
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="flex items-center justify-between mb-6">
@@ -420,7 +515,7 @@
                 </div>
                 
                 <div class="mb-8">
-                    <p class="text-lg font-semibold mb-4">Available Points: <span id="available-points" class="text-blue-600">0</span></p>
+                    <p class="text-lg font-semibold mb-4">Available Points: <span id="available-points-alt" class="text-blue-600">0</span></p>
                     <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
                         <div id="progress-fill" class="bg-gradient-to-r from-green-400 to-green-600 h-4 rounded-full transition-all duration-1000" style="width: 0%"></div>
                     </div>
@@ -440,56 +535,45 @@
                 </div>
                 
                 <h3 class="text-xl font-semibold mb-4">Available Rewards</h3>
-                <div class="space-y-4">
-                    <div class="bg-gradient-to-r from-yellow-100 to-yellow-200 border-2 border-yellow-300 p-4 rounded-lg">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <span class="text-3xl mr-3">🎁</span>
-                                <div>
-                                    <h4 class="font-semibold">DAILY REWARD:</h4>
-                                    <p class="text-sm text-gray-600" id="daily-reward-text">Free Shipping Voucher</p>
-                                </div>
-                            </div>
-                            <button onclick="redeemReward('Daily Reward')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105">
-                                Redeem Now!
-                            </button>
-                        </div>
+                <div class="rewards-grid">
+                    <div class="reward-card featured">
+                        <span class="reward-badge">DAILY</span>
+                        <div class="reward-icon">🎁</div>
+                        <h4 class="reward-title">Daily Reward</h4>
+                        <p class="reward-desc" id="daily-reward-text">Free Shipping Voucher</p>
+                        <button onclick="redeemReward('Daily Reward')" class="reward-btn">
+                            Redeem Now!
+                        </button>
                     </div>
                     
-                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="font-semibold">10% off next product</h4>
-                                <p class="text-sm text-gray-600">500 points required</p>
-                            </div>
-                            <button onclick="redeemReward('10% Discount')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105">
-                                Redeem Now!
-                            </button>
-                        </div>
+                    <div class="reward-card">
+                        <span class="reward-badge">500 PTS</span>
+                        <div class="reward-icon">💰</div>
+                        <h4 class="reward-title">10% Discount</h4>
+                        <p class="reward-desc">10% off next product</p>
+                        <button onclick="redeemReward('10% Discount')" class="reward-btn">
+                            Redeem
+                        </button>
                     </div>
                     
-                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="font-semibold">40% off a commission</h4>
-                                <p class="text-sm text-gray-600">750 points required</p>
-                            </div>
-                            <button onclick="redeemReward('Commission Discount')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105">
-                                Redeem Now!
-                            </button>
-                        </div>
+                    <div class="reward-card">
+                        <span class="reward-badge">750 PTS</span>
+                        <div class="reward-icon">🎨</div>
+                        <h4 class="reward-title">Commission Discount</h4>
+                        <p class="reward-desc">40% off a commission</p>
+                        <button onclick="redeemReward('Commission Discount')" class="reward-btn">
+                            Redeem
+                        </button>
                     </div>
                     
-                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="font-semibold">Free Product</h4>
-                                <p class="text-sm text-gray-600">2000 points required</p>
-                            </div>
-                            <button onclick="redeemReward('Free Product')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105">
-                                Redeem Now!
-                            </button>
-                        </div>
+                    <div class="reward-card">
+                        <span class="reward-badge">2000 PTS</span>
+                        <div class="reward-icon">🆓</div>
+                        <h4 class="reward-title">Free Product</h4>
+                        <p class="reward-desc">Get any product for free</p>
+                        <button onclick="redeemReward('Free Product')" class="reward-btn">
+                            Redeem
+                        </button>
                     </div>
                 </div>
             </div>
@@ -497,7 +581,7 @@
     </section>
 
     <!-- Modern Redeem Screen -->
-    <section id="redeem" class="page hidden min-h-screen">
+    <section id="redeem" class="page min-h-screen">
         <div class="max-w-2xl mx-auto px-4 py-8">
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <h2 class="text-2xl font-bold text-center mb-4">It's all yours, <span id="redeem-name"></span>!</h2>
@@ -517,7 +601,7 @@
     </section>
 
     <!-- Modern FAQ Section -->
-    <section id="faq" class="page hidden min-h-screen">
+    <section id="faq" class="page min-h-screen">
         <div class="max-w-4xl mx-auto px-4 py-8">
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="flex items-center justify-between mb-6">
@@ -563,7 +647,7 @@
     </section>
 
     <!-- Modern Products Section -->
-    <section id="products" class="page hidden min-h-screen">
+    <section id="products" class="page min-h-screen">
         <div class="max-w-6xl mx-auto px-4 py-8">
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="flex items-center justify-between mb-6">
@@ -579,7 +663,7 @@
     </section>
 
     <!-- Modern Account Details -->
-    <section id="account" class="page hidden min-h-screen">
+    <section id="account" class="page min-h-screen">
         <div class="max-w-2xl mx-auto px-4 py-8">
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="flex items-center justify-between mb-6">
@@ -623,7 +707,7 @@
     </section>
 
     <!-- Modern Loyalty Card with Flip -->
-    <section id="loyalty" class="page hidden min-h-screen">
+    <section id="loyalty" class="page min-h-screen">
         <div class="max-w-4xl mx-auto px-4 py-8">
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="flex items-center justify-between mb-6">
@@ -711,13 +795,13 @@
     </div>
 
     <!-- Reset Loading -->
-    <section id="reset-loading" class="page hidden min-h-screen bg-black text-white flex flex-col items-center justify-center">
+    <section id="reset-loading" class="page min-h-screen bg-black text-white flex flex-col items-center justify-center">
         <div class="text-2xl mb-8">Resetting. This may take a while...</div>
         <div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
     </section>
 
     <!-- Logout Loading -->
-    <section id="logout-loading" class="page hidden min-h-screen bg-black text-white flex flex-col items-center justify-center">
+    <section id="logout-loading" class="page min-h-screen bg-black text-white flex flex-col items-center justify-center">
         <div class="text-2xl mb-8">Logging you out...</div>
         <div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
     </section>
