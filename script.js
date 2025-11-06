@@ -155,9 +155,12 @@ async function handleDiscordUser(user) {
         // Show loading profile
         showPage('loading-profile');
         setTimeout(async () => {
+            // Hide loading spinner, show profile
+            document.querySelector('#loading-profile .loading-content').classList.add('hidden');
+            document.querySelector('#loading-profile .profile-found-modern').classList.remove('hidden');
+            
             profileIcon.src = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`;
             profileName.textContent = user.global_name || user.username;
-            document.querySelector('#loading-profile .profile-found').classList.remove('hidden');
             
             // Check if user exists in database
             try {
