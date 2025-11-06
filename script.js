@@ -323,20 +323,25 @@ async function handlePreferencesSubmit() {
 
 // Show Dashboard
 function showDashboard() {
-    dashProfileImg.src = `https://cdn.discordapp.com/avatars/${currentUser.id}/${currentUser.avatar}.png?size=128`;
-    dashProfileName.textContent = currentUser.fullName;
-    memberSince.textContent = `Member since: ${currentUser.memberSince}`;
-    welcomeName.textContent = currentUser.fullName;
-    redeemName.textContent = currentUser.fullName;
-    cardName.textContent = currentUser.fullName;
-    backName.textContent = currentUser.fullName;
-    backEmail.textContent = currentUser.email;
-    backPoints.textContent = currentPoints;
-    const accountId = Math.random().toString(36).substring(2, 26).toUpperCase() + Math.random().toString(36).substring(2, 26).toUpperCase().slice(0, -2);
-    accountIdSpan.textContent = accountId;
-    currentUser.accountId = accountId;
-    localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
-    renderProducts();
+    if (!currentUser) return;
+    
+    // Update profile info
+    const fullName = currentUser.fullName || `${currentUser.firstName} ${currentUser.lastName}`;
+    document.getElementById('dash-profile-name').textContent = fullName;
+    document.getElementById('member-since').textContent = `Member since: ${currentUser.memberSince || new Date().toLocaleDateString()}`;
+    
+    // Update initials
+    updateUserInitials();
+    
+    // Generate and save account ID if doesn't exist
+    if (!currentUser.accountId) {
+        currentUser.accountId = generateAccountId();
+        localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+    }
+    
+    // Update all user references
+    updateCardInfo();
+    
     showPage('dashboard');
 }
 
@@ -392,12 +397,63 @@ function rotateDailyReward() {
 }
 
 // Render Products
-function renderProducts() {
+async function renderProducts() {
+    productsList.innerHTML = `<div class="col-span-full text-center py-8">Loading products…</div>`;
+
+    // If we have a logged-in user, query the worker for owned products for the configured product id
+    const productId = 'prod_BwM387gLYcCa8qhERIH1JliOQ'; // product to check ownership for
+    try {
+        if (currentUser && currentUser.id) {
+            const resp = await fetch(`${WORKER_URL}/api/products`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ discordId: currentUser.id, productId })
+            });
+            const data = await resp.json();
+            const products = (data && data.products) ? data.products : [];
+
+            if (!products.length) {
+                productsList.innerHTML = `<div class="col-span-full text-center py-8 text-gray-600">No owned products found for this account.</div>`;
+                return;
+            }
+
+            productsList.innerHTML = products.map(product => `
+                <div class="product-card" data-id="${product.id}">
+                    <img src="${product.img}" alt="${product.name}" class="w-full h-40 object-cover rounded-lg mb-3">
+                    <h4 class="font-semibold mb-1">${product.name}</h4>
+                    <p class="text-sm text-gray-500 mb-2">${product.desc || ''}</p>
+                    <p class="font-bold">${product.price}</p>
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.product-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const product = products.find(p => String(p.id) === String(id));
+                    if (product) {
+                        const imgEl = document.getElementById('detail-img');
+                        if (imgEl) imgEl.src = product.img;
+                        const nameEl = document.getElementById('detail-name'); if (nameEl) nameEl.textContent = product.name;
+                        const priceEl = document.getElementById('detail-price'); if (priceEl) priceEl.textContent = product.price;
+                        const descEl = document.getElementById('detail-desc'); if (descEl) descEl.textContent = product.desc || '';
+                        const paymentEl = document.getElementById('detail-payment'); if (paymentEl) paymentEl.textContent = `Payment: ${product.payment || 'N/A'}`;
+                        const dateEl = document.getElementById('detail-date'); if (dateEl) dateEl.textContent = `Date: ${product.date || ''}`;
+                        showProductModal();
+                    }
+                });
+            });
+            return;
+        }
+    } catch (err) {
+        console.error('Error fetching owned products:', err);
+    }
+
+    // Fallback to mock products if no user or error
     productsList.innerHTML = MOCK_PRODUCTS.map(product => `
         <div class="product-card" data-id="${product.id}">
-            <img src="${product.img}" alt="${product.name}">
-            <h4>${product.name}</h4>
-            <p>${product.price}</p>
+            <img src="${product.img}" alt="${product.name}" class="w-full h-40 object-cover rounded-lg mb-3">
+            <h4 class="font-semibold mb-1">${product.name}</h4>
+            <p class="font-bold">${product.price}</p>
         </div>
     `).join('');
     document.querySelectorAll('.product-card').forEach(card => {
@@ -405,12 +461,12 @@ function renderProducts() {
             const id = e.currentTarget.dataset.id;
             const product = MOCK_PRODUCTS.find(p => p.id == id);
             if (product) {
-                document.getElementById('detail-img').src = product.img;
-                document.getElementById('detail-name').textContent = product.name;
-                document.getElementById('detail-price').textContent = product.price;
-                document.getElementById('detail-desc').textContent = product.desc;
-                document.getElementById('detail-payment').textContent = `Payment: ${product.payment}`;
-                document.getElementById('detail-date').textContent = `Date: ${product.date}`;
+                const imgEl = document.getElementById('detail-img'); if (imgEl) imgEl.src = product.img;
+                const nameEl = document.getElementById('detail-name'); if (nameEl) nameEl.textContent = product.name;
+                const priceEl = document.getElementById('detail-price'); if (priceEl) priceEl.textContent = product.price;
+                const descEl = document.getElementById('detail-desc'); if (descEl) descEl.textContent = product.desc;
+                const paymentEl = document.getElementById('detail-payment'); if (paymentEl) paymentEl.textContent = `Payment: ${product.payment}`;
+                const dateEl = document.getElementById('detail-date'); if (dateEl) dateEl.textContent = `Date: ${product.date}`;
                 showProductModal();
             }
         });
@@ -468,6 +524,247 @@ function handleLogout() {
         currentUser = null;
         showPage('home');
     }, 3000);
+}
+
+// Modern Navigation Functions
+function showRewards() {
+    showPage('rewards');
+    updatePoints();
+}
+
+function showFAQ() {
+    showPage('faq');
+}
+
+function showProducts() {
+    showPage('products');
+    renderProducts();
+}
+
+function showAccount() {
+    showPage('account');
+    document.getElementById('edit-name').value = currentUser.fullName || '';
+    document.getElementById('edit-email').value = currentUser.email || '';
+}
+
+function showLoyaltyCard() {
+    showPage('loyalty');
+    generateBarcode();
+    updateCardInfo();
+}
+
+// Card Flip Function
+function flipCard() {
+    const card = document.getElementById('loyalty-card');
+    const currentRotation = card.style.transform || 'rotateY(0deg)';
+    if (currentRotation.includes('180')) {
+        card.style.transform = 'rotateY(0deg)';
+    } else {
+        card.style.transform = 'rotateY(180deg)';
+    }
+}
+
+// Generate Barcode for Loyalty Card
+function generateBarcode() {
+    const svg = document.getElementById('barcode-svg');
+    if (!svg || !currentUser) return;
+    
+    const accountId = currentUser.accountId || generateAccountId();
+    const barcodeData = accountId.replace(/-/g, '');
+    
+    let barcodeHTML = '<g fill="white">';
+    let x = 0;
+    for (let i = 0; i < barcodeData.length && x < 200; i++) {
+        const char = barcodeData.charCodeAt(i);
+        const width = (char % 3) + 1;
+        const height = 60;
+        barcodeHTML += `<rect x="${x}" y="0" width="${width}" height="${height}"/>`;
+        x += width + 2;
+    }
+    barcodeHTML += '</g>';
+    svg.innerHTML = barcodeHTML;
+}
+
+// Generate Account ID
+function generateAccountId() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let id = '';
+    for (let i = 0; i < 24; i++) {
+        if (i > 0 && i % 4 === 0) id += '-';
+        id += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return id;
+}
+
+// Update Card Info
+function updateCardInfo() {
+    if (!currentUser) return;
+    
+    const accountId = currentUser.accountId || generateAccountId();
+    currentUser.accountId = accountId;
+    
+    document.getElementById('account-id').textContent = accountId;
+    document.getElementById('card-name').textContent = currentUser.fullName || '';
+    document.getElementById('card-member-since').textContent = currentUser.memberSince || new Date().toLocaleDateString();
+    document.getElementById('back-name').textContent = currentUser.fullName || '';
+    document.getElementById('back-email').textContent = currentUser.email || '';
+    document.getElementById('back-points').textContent = currentPoints;
+    
+    localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+}
+
+// Set Points Target
+function setTarget(target) {
+    targetPoints = target;
+    updateProgress();
+}
+
+// Redeem Reward
+function redeemReward(rewardType) {
+    const code = generateRewardCode();
+    document.getElementById('reward-code').textContent = code;
+    document.getElementById('redeem-name').textContent = currentUser.firstName || currentUser.fullName || 'Friend';
+    
+    // Initialize scratch canvas
+    initScratchCanvas();
+    
+    showPage('redeem');
+}
+
+// Generate Reward Code
+function generateRewardCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 24; i++) {
+        if (i > 0 && i % 4 === 0) code += '-';
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
+// Initialize Scratch Canvas
+function initScratchCanvas() {
+    const canvas = document.getElementById('scratch-canvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#999';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    let isScratching = false;
+    let scratchedPixels = 0;
+    
+    const scratch = (e) => {
+        if (!isScratching) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = ((e.clientX || e.touches[0].clientX) - rect.left) * (canvas.width / rect.width);
+        const y = ((e.clientY || e.touches[0].clientY) - rect.top) * (canvas.height / rect.height);
+        
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.fill();
+        
+        scratchedPixels++;
+        if (scratchedPixels > 50) {
+            canvas.style.display = 'none';
+            document.getElementById('code-reveal').classList.remove('hidden');
+        }
+    };
+    
+    canvas.addEventListener('mousedown', () => isScratching = true);
+    canvas.addEventListener('mousemove', scratch);
+    canvas.addEventListener('mouseup', () => isScratching = false);
+    canvas.addEventListener('touchstart', () => isScratching = true);
+    canvas.addEventListener('touchmove', scratch);
+    canvas.addEventListener('touchend', () => isScratching = false);
+}
+
+// Exit Redeem
+function exitRedeem() {
+    showPage('rewards');
+}
+
+// FAQ Toggle
+function toggleFAQ(faqId) {
+    const content = document.getElementById(faqId + '-content');
+    const icon = document.getElementById(faqId + '-icon');
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.textContent = '−';
+        icon.style.transform = 'rotate(45deg)';
+    } else {
+        content.classList.add('hidden');
+        icon.textContent = '+';
+        icon.style.transform = 'rotate(0deg)';
+    }
+}
+
+// Account Updates
+function updateDisplayName() {
+    const newName = document.getElementById('edit-name').value;
+    if (newName.trim()) {
+        const names = newName.split(' ');
+        currentUser.firstName = names[0];
+        currentUser.lastName = names.slice(1).join(' ') || '';
+        currentUser.fullName = newName;
+        localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+        document.getElementById('dash-profile-name').textContent = newName;
+        alert('Display name updated successfully!');
+    }
+}
+
+function updateEmail() {
+    const newEmail = document.getElementById('edit-email').value;
+    if (newEmail.trim() && newEmail.includes('@')) {
+        currentUser.email = newEmail;
+        localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+        alert('Email updated successfully!');
+    } else {
+        alert('Please enter a valid email address.');
+    }
+}
+
+function updatePassword() {
+    const newPassword = document.getElementById('edit-pass').value;
+    if (newPassword.trim() && newPassword.length >= 6) {
+        currentUser.password = newPassword;
+        localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+        document.getElementById('edit-pass').value = '';
+        alert('Password updated successfully!');
+    } else {
+        alert('Password must be at least 6 characters long.');
+    }
+}
+
+// Reset Account
+function resetAccount() {
+    document.getElementById('reset-modal').classList.remove('hidden');
+}
+
+function cancelReset() {
+    document.getElementById('reset-modal').classList.add('hidden');
+}
+
+function confirmReset() {
+    document.getElementById('reset-modal').classList.add('hidden');
+    showPage('reset-loading');
+    setTimeout(() => {
+        localStorage.clear();
+        currentUser = null;
+        currentPoints = 0;
+        showPage('home');
+    }, 20000);
+}
+
+// Update User Initials
+function updateUserInitials() {
+    if (currentUser && currentUser.firstName && currentUser.lastName) {
+        const initials = `${currentUser.firstName[0]}${currentUser.lastName[0]}`;
+        document.getElementById('user-initials').textContent = initials.toUpperCase();
+    }
 }
 
 // Loading Animations
