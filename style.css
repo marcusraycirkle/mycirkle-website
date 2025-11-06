@@ -1178,6 +1178,43 @@ select.modern-input option {
     padding: 10px;
 }
 
+/* Terms Modal */
+.terms-modal {
+    max-width: 800px;
+    max-height: 90vh;
+}
+
+.terms-content {
+    line-height: 1.6;
+}
+
+.terms-content p {
+    margin-bottom: 0.5rem;
+}
+
+.terms-content h3 {
+    color: #2d3748;
+}
+
+/* Scrollbar styling for terms content */
+.terms-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.terms-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.terms-content::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.terms-content::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 968px) {
     .signup-container {

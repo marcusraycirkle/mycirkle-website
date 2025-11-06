@@ -268,9 +268,15 @@ async function handlePreferencesSubmit() {
     const country = document.getElementById('user-country').value;
     const timezone = document.getElementById('user-timezone').value;
     const language = document.getElementById('user-language').value;
+    const acceptedTerms = document.getElementById('accept-terms').checked;
     
     if (!country || !timezone) {
         alert('Please select your country and timezone.');
+        return;
+    }
+    
+    if (!acceptedTerms) {
+        alert('You must agree to the Terms & Conditions to continue.');
         return;
     }
     
@@ -278,6 +284,8 @@ async function handlePreferencesSubmit() {
     currentUser.country = country;
     currentUser.timezone = timezone;
     currentUser.language = language;
+    currentUser.acceptedTerms = true;
+    currentUser.termsAcceptedDate = new Date().toISOString();
     localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
     
     showPage('confirm');
@@ -779,4 +787,13 @@ function handleLoadingAnimations(pageId) {
 // Polyfill for older browsers
 if (!window.location.origin) {
     window.location.origin = window.location.protocol + "//" + window.location.hostname + (window.location.port ? ':' + window.location.port : '');
+}
+
+// Terms Modal Functions
+function showTermsModal() {
+    document.getElementById('terms-modal').classList.remove('hidden');
+}
+
+function closeTermsModal() {
+    document.getElementById('terms-modal').classList.add('hidden');
 }
