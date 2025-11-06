@@ -213,6 +213,15 @@
                         </select>
                     </div>
                     
+                    <div class="input-group">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="accept-terms" class="mt-1 w-4 h-4 border-2 border-gray-300 rounded" required>
+                            <span class="text-sm text-gray-700">
+                                I agree to the <button type="button" onclick="showTermsModal()" class="text-blue-600 hover:text-blue-700 underline">Terms & Conditions</button>
+                            </span>
+                        </label>
+                    </div>
+                    
                     <button id="submit-preferences" class="btn-modern">Complete Setup →</button>
                 </div>
             </div>
@@ -644,6 +653,87 @@
         <div class="text-2xl mb-8">Logging you out...</div>
         <div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
     </section>
+
+    <!-- Terms & Conditions Modal -->
+    <div id="terms-modal" class="modal-overlay hidden">
+        <div class="modal terms-modal">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">MyCirkleDevelopment Account Terms & Conditions</h2>
+                <button onclick="closeTermsModal()" class="text-gray-500 hover:text-gray-700 text-3xl leading-none">&times;</button>
+            </div>
+            <div class="terms-content overflow-y-auto max-h-96 pr-4 text-sm text-gray-700 space-y-4">
+                <p class="font-semibold">By creating and using an account with MyCirkleDevelopment, you agree to the following terms that govern your access, participation, and interactions within the program:</p>
+                
+                <div>
+                    <h3 class="font-bold text-base mb-2">1. Eligibility</h3>
+                    <p>You must be at least 13 years of age, according to Discord regulations, to have an account for MyCirkle. Anyone caught under shall be sanctioned appropriately.</p>
+                    <p>By signing up, you confirm that all provided information is accurate and truthful.</p>
+                    <p>Users under the age of 13 may have limited access or receive future rewards via ROBLOX integration, where applicable.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-base mb-2">2. Account Responsibility</h3>
+                    <p>Your account is for personal use only. Sharing accounts, credentials, or using another user's account is strictly prohibited.</p>
+                    <p>You are solely responsible for maintaining the confidentiality and security of your login information.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-base mb-2">3. Earning and Redeeming Points</h3>
+                    <p>Points may be earned by participating in activities, events, promotions, or making purchases as defined by MyCirkleDevelopment.</p>
+                    <p>Points are non-transferable, non-refundable, and have no cash value.</p>
+                    <p>MyCirkleDevelopment reserves the right to adjust or revoke points at any time in cases of abuse, fraud, or violations of these terms.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-base mb-2">4. Reward System</h3>
+                    <p>Rewards are subject to availability and may be changed or removed without prior notice.</p>
+                    <p>Some rewards may be exclusive to specific platforms (e.g., Discord-based rewards vs. ROBLOX item rewards).</p>
+                    <p>Users found exploiting reward systems or engaging in unauthorized trading will be subject to account suspension or termination.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-base mb-2">5. Communication and Notifications</h3>
+                    <p>By signing up, you agree to receive occasional updates, announcements, or promotional messages via Discord or email.</p>
+                    <p>You can opt out of promotional messages, but certain system-related messages may still be sent for account functionality.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-base mb-2">6. Content and Community Rules</h3>
+                    <p>You must follow Discord's Community Guidelines, Roblox's Terms of Use, and Cirkle Development's internal rules.</p>
+                    <p>Any misuse, harassment, or abuse within the platform may result in temporary or permanent bans from the loyalty program.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-base mb-2">7. Data Usage and Privacy</h3>
+                    <p>We collect basic user information for the purpose of account verification, rewards tracking, and program improvements.</p>
+                    <p>Your information will not be sold or shared with third parties except as required by law or in connection with program operations (e.g., Discord bots or Roblox integration).</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-base mb-2">8. Program Modifications</h3>
+                    <p>MyCirkleDevelopment may modify, pause, or terminate the loyalty program at any time with or without notice.</p>
+                    <p>If terminated, earned points may be forfeited.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-base mb-2">9. Disclaimers and Limitation of Liability</h3>
+                    <p>MyCirkleDevelopment is provided "as-is". We are not responsible for data loss, account loss etc.</p>
+                    <p>We are not liable for any indirect or incidental damages resulting from participation in the loyalty program.</p>
+                </div>
+                
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                    <p class="font-semibold mb-2">NOTE:</p>
+                    <p>MyCirkle is not out yet and is in heavy development stage. To when it comes to the release date, it will still be in heavy development (BETA). Please report any bugs found when logging into your account.</p>
+                    <p class="mt-2">MyCirkleDevelopment Account is not affiliated nor endorsed with the Law, ROBLOX, Discord or any other mentioned platforms. It is a loyalty program specifically designed for Cirkle Development and its customers. We hold no liability against claims or lawsuits.</p>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="closeTermsModal()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script src="./script.js"></script>
 </body>
