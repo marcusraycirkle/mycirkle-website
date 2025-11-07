@@ -285,9 +285,16 @@
                     </div>
                     
                     <div class="input-group">
-                        <label for="user-roblox">Roblox Username <span style="color: red;">*</span></label>
-                        <input type="text" id="user-roblox" class="modern-input" placeholder="Enter your Roblox username" required>
-                        <p class="text-xs text-gray-500 mt-1">⚠️ Required for product verification and rewards access</p>
+                        <label for="roblox-connect">Roblox Account <span style="color: red;">*</span></label>
+                        <button type="button" id="roblox-connect-btn" class="btn-modern" style="background: linear-gradient(135deg, #E31837 0%, #FF4655 100%); width: 100%;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+                                <path d="M18.926 23.998L0.002 18.521 5.479 0.002l18.924 5.477-5.477 18.519zm-7.896-9.094l5.208 1.505 1.506-5.207-5.208-1.505-1.506 5.207z"/>
+                            </svg>
+                            <span id="roblox-status">Connect Roblox Account</span>
+                        </button>
+                        <input type="hidden" id="user-roblox" required>
+                        <input type="hidden" id="user-roblox-id">
+                        <p class="text-xs text-gray-500 mt-1" id="roblox-info">⚠️ Required for product verification and rewards access</p>
                     </div>
                     
                     <div class="input-group">
