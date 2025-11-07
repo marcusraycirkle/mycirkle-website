@@ -129,7 +129,7 @@ After deployment, you'll get a URL like: `https://mycirkle-auth.YOUR_NAME.worker
 2. Add these redirect URIs:
    - `http://localhost:8080` (for testing)
    - `https://mycirkle-auth.YOUR_NAME.workers.dev/auth/callback` (replace with your worker URL)
-   - Your final website URL when deployed
+   - `https://my.cirkledevelopment.co.uk` (your production domain)
 
 ## Step 6: Test Locally
 ```bash
