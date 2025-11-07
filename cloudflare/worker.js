@@ -1,4 +1,4 @@
-// cloudflare/worker.js - MyCirkle Loyalty Program Backend
+// cloudflare/worker.js - MyCirkle Loyalty Program Backend - UPDATED
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
@@ -7,7 +7,7 @@ export default {
         // CORS headers
         const corsHeaders = {
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         };
 
@@ -16,10 +16,11 @@ export default {
             return new Response(null, { headers: corsHeaders });
         }
 
+        // Discord OAuth routes
         if (path === '/auth/discord') {
             const clientId = env.DISCORD_CLIENT_ID;
             if (!clientId) {
-                return new Response(JSON.stringify({ error: 'DISCORD_CLIENT_ID not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return jsonResponse({ error: 'DISCORD_CLIENT_ID not configured' }, 500, corsHeaders);
             }
             const frontendRedirect = url.searchParams.get('redirect_uri') || 'http://localhost:8080';
             const workerCallbackUrl = `${url.protocol}//${url.host}/auth/callback`;
@@ -28,13 +29,15 @@ export default {
                 client_id: clientId,
                 redirect_uri: workerCallbackUrl,
                 response_type: 'code',
-                scope: 'identify guilds',
-                state: frontendRedirect // Pass frontend URL in state
+                scope: 'identify email guilds',
+                state: frontendRedirect
             });
             return Response.redirect(`https://discord.com/api/oauth2/authorize?${params}`, 302);
-        } else if (path === '/auth/callback') {
+        }
+
+        if (path === '/auth/callback') {
             const code = url.searchParams.get('code');
-            const state = url.searchParams.get('state'); // Original redirect URI
+            const state = url.searchParams.get('state');
             
             if (!code) {
                 return new Response('Missing code', { status: 400, headers: corsHeaders });
@@ -43,10 +46,9 @@ export default {
             const clientId = env.DISCORD_CLIENT_ID;
             const clientSecret = env.DISCORD_CLIENT_SECRET;
             if (!clientId || !clientSecret) {
-                return new Response(JSON.stringify({ error: 'Discord credentials not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return jsonResponse({ error: 'Discord credentials not configured' }, 500, corsHeaders);
             }
             
-            // The redirect_uri must match what we sent to Discord (worker callback URL)
             const workerCallbackUrl = `${url.protocol}//${url.host}/auth/callback`;
 
             try {
@@ -64,7 +66,7 @@ export default {
 
                 const tokenData = await tokenResponse.json();
                 if (tokenData.error) {
-                    return new Response(JSON.stringify(tokenData), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                    return jsonResponse(tokenData, 400, corsHeaders);
                 }
 
                 const userResponse = await fetch('https://discord.com/api/users/@me', {
@@ -72,23 +74,24 @@ export default {
                 });
                 const user = await userResponse.json();
 
-                // Redirect back to frontend with user data in URL fragment
                 const frontendUrl = state || 'http://localhost:8080';
                 const userDataEncoded = encodeURIComponent(JSON.stringify(user));
                 return Response.redirect(`${frontendUrl}#discord-callback?user=${userDataEncoded}`, 302);
             } catch (error) {
-                return new Response(JSON.stringify({ error: 'OAuth error', details: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return jsonResponse({ error: 'OAuth error', details: error.message }, 500, corsHeaders);
             }
-        } else if (path === '/auth/check-membership') {
+        }
+
+        if (path === '/auth/check-membership') {
             const userId = url.searchParams.get('user_id');
             if (!userId) {
-                return new Response(JSON.stringify({ error: 'Missing user_id' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return jsonResponse({ error: 'Missing user_id' }, 400, corsHeaders);
             }
             
             const guildId = env.DISCORD_GUILD_ID;
             const botToken = env.DISCORD_BOT_TOKEN;
             if (!guildId || !botToken) {
-                return new Response(JSON.stringify({ error: 'Discord bot credentials not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return jsonResponse({ error: 'Discord bot credentials not configured' }, 500, corsHeaders);
             }
 
             try {
@@ -97,79 +100,329 @@ export default {
                 });
                 
                 if (memberResponse.status === 404) {
-                    return new Response(JSON.stringify({ isMember: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                    return jsonResponse({ isMember: false }, 200, corsHeaders);
                 }
                 
                 const member = await memberResponse.json();
-                return new Response(JSON.stringify({ isMember: !!member.user }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return jsonResponse({ isMember: !!member.user }, 200, corsHeaders);
             } catch (error) {
-                return new Response(JSON.stringify({ error: 'Membership check failed', isMember: false }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return jsonResponse({ error: 'Membership check failed', isMember: false }, 500, corsHeaders);
             }
-        } else if (path === '/api/signup' && request.method === 'POST') {
+        }
+
+        // Roblox OAuth routes
+        if (path === '/auth/roblox') {
+            const clientId = env.ROBLOX_CLIENT_ID;
+            const clientSecret = env.ROBLOX_CLIENT_SECRET;
+            
+            if (!clientId || !clientSecret) {
+                return jsonResponse({ error: 'Roblox OAuth not configured' }, 500, corsHeaders);
+            }
+            
+            const state = url.searchParams.get('state') || 'unknown';
+            // Use the main website domain for redirect
+            const redirectUri = 'https://my.cirkledevelopment.co.uk/auth/roblox/callback';
+            
+            const authUrl = `https://apis.roblox.com/oauth/v1/authorize?` +
+                `client_id=${clientId}` +
+                `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+                `&scope=openid profile` +
+                `&response_type=code` +
+                `&state=${state}`;
+            
+            return Response.redirect(authUrl, 302);
+        }
+
+        if (path === '/auth/roblox/callback') {
+            const code = url.searchParams.get('code');
+            const state = url.searchParams.get('state');
+            
+            if (!code) {
+                return new Response(
+                    `<html><body><script>window.opener.postMessage({type: 'ROBLOX_AUTH_ERROR', error: 'No code'}, '*'); window.close();</script></body></html>`,
+                    { headers: { 'Content-Type': 'text/html' } }
+                );
+            }
+
+            const clientId = env.ROBLOX_CLIENT_ID;
+            const clientSecret = env.ROBLOX_CLIENT_SECRET;
+            // Use the main website domain for redirect
+            const redirectUri = 'https://my.cirkledevelopment.co.uk/auth/roblox/callback';
+
             try {
-                const data = await request.json();
-                const { discordId, discordUsername, firstName, lastName, email, memberSince } = data;
-
-                if (!discordId || !firstName || !lastName) {
-                    return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-                }
-
-                await saveToGoogleSheets(env, {
-                    discordId,
-                    discordUsername,
-                    firstName,
-                    lastName,
-                    email,
-                    memberSince: memberSince || new Date().toISOString(),
-                    signupDate: new Date().toISOString()
+                // Exchange code for token
+                const tokenResponse = await fetch('https://apis.roblox.com/oauth/v1/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`)
+                    },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        code: code,
+                        redirect_uri: redirectUri
+                    })
                 });
 
-                return new Response(JSON.stringify({ success: true, message: 'User registered' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                const tokenData = await tokenResponse.json();
+                
+                if (!tokenData.access_token) {
+                    throw new Error('No access token received');
+                }
+
+                // Get user info
+                const userResponse = await fetch('https://apis.roblox.com/oauth/v1/userinfo', {
+                    headers: {
+                        'Authorization': `Bearer ${tokenData.access_token}`
+                    }
+                });
+
+                const userData = await userResponse.json();
+
+                // Send success back to parent window
+                return new Response(
+                    `<html><body><script>
+                        window.opener.postMessage({
+                            type: 'ROBLOX_AUTH_SUCCESS',
+                            username: '${userData.preferred_username}',
+                            userId: '${userData.sub}'
+                        }, '*');
+                        window.close();
+                    </script></body></html>`,
+                    { headers: { 'Content-Type': 'text/html' } }
+                );
             } catch (error) {
-                return new Response(JSON.stringify({ error: 'Signup failed', details: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return new Response(
+                    `<html><body><script>window.opener.postMessage({type: 'ROBLOX_AUTH_ERROR', error: '${error.message}'}, '*'); window.close();</script></body></html>`,
+                    { headers: { 'Content-Type': 'text/html' } }
+                );
             }
-        } else if (path === '/api/user-data' && request.method === 'POST') {
+        }
+
+        // Roblox OAuth token exchange (called from callback.html)
+        if (path === '/auth/roblox/exchange' && request.method === 'POST') {
+            try {
+                const { code, state } = await request.json();
+                
+                if (!code) {
+                    return jsonResponse({ error: 'No code provided' }, 400, corsHeaders);
+                }
+
+                const clientId = env.ROBLOX_CLIENT_ID;
+                const clientSecret = env.ROBLOX_CLIENT_SECRET;
+                const redirectUri = 'https://my.cirkledevelopment.co.uk/auth/roblox/callback';
+
+                // Exchange code for token
+                const tokenResponse = await fetch('https://apis.roblox.com/oauth/v1/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`)
+                    },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        code: code,
+                        redirect_uri: redirectUri
+                    })
+                });
+
+                const tokenData = await tokenResponse.json();
+                
+                if (!tokenData.access_token) {
+                    return jsonResponse({ error: 'Failed to get access token', details: tokenData }, 400, corsHeaders);
+                }
+
+                // Get user info
+                const userResponse = await fetch('https://apis.roblox.com/oauth/v1/userinfo', {
+                    headers: {
+                        'Authorization': `Bearer ${tokenData.access_token}`
+                    }
+                });
+
+                const userData = await userResponse.json();
+
+                return jsonResponse({
+                    username: userData.preferred_username,
+                    userId: userData.sub
+                }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: 'Token exchange failed', details: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // API: Signup with webhook notification
+        if (path === '/api/signup' && request.method === 'POST') {
+            try {
+                const data = await request.json();
+                const { 
+                    discordId, discordUsername, firstName, lastName, fullName, email, memberSince,
+                    country, timezone, language, robloxUsername, acceptedMarketing, accountNumber
+                } = data;
+
+                if (!discordId || !firstName || !lastName) {
+                    return jsonResponse({ error: 'Missing required fields' }, 400, corsHeaders);
+                }
+
+                // Generate account number if not provided
+                const finalAccountNumber = accountNumber || generateAccountNumber();
+
+                // Save to Google Sheets via webhook (to avoid Cloudflare blocking)
+                const webhookUrl = env.SIGNUP_WEBHOOK_URL;
+                if (webhookUrl) {
+                    await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            content: null,
+                            embeds: [{
+                                title: 'New User Registration',
+                                color: 0x5865F2,
+                                fields: [
+                                    { name: 'Username', value: discordUsername || 'N/A', inline: true },
+                                    { name: 'Email', value: email || 'N/A', inline: true },
+                                    { name: 'Account Type', value: 'Consumer', inline: true },
+                                    { name: 'Account Number', value: finalAccountNumber, inline: false },
+                                    { name: 'Discord Account', value: `<@${discordId}>`, inline: true },
+                                    { name: 'Registered At', value: memberSince || new Date().toISOString(), inline: true },
+                                    { name: 'Roblox Username', value: robloxUsername || 'Not provided', inline: true },
+                                    { name: 'Country', value: country || 'N/A', inline: true },
+                                    { name: 'Timezone', value: timezone || 'N/A', inline: true },
+                                    { name: 'Marketing Emails', value: acceptedMarketing ? 'Yes' : 'No', inline: true }
+                                ],
+                                footer: { text: 'MyCirkle Loyalty Bot' },
+                                timestamp: new Date().toISOString()
+                            }]
+                        })
+                    });
+                }
+
+                // Send welcome DM
+                const dmWebhookUrl = env.WELCOME_DM_WEBHOOK_URL;
+                if (dmWebhookUrl) {
+                    await fetch(dmWebhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            content: `<@${discordId}>`,
+                            embeds: [{
+                                title: '🎉 Welcome to MyCirkle!',
+                                description: `Hi ${firstName}! Your loyalty account has been created successfully.`,
+                                color: 0x00D9FF,
+                                fields: [
+                                    { name: '📧 Email', value: email || 'Not provided', inline: true },
+                                    { name: '🎮 Roblox', value: robloxUsername || 'Not linked', inline: true },
+                                    { name: '🔢 Account Number', value: `\`${finalAccountNumber}\``, inline: false },
+                                    { name: '⭐ Points Balance', value: '0 points', inline: true },
+                                    { name: '🎁 Tier', value: 'Bronze', inline: true },
+                                    { name: '📅 Member Since', value: new Date().toLocaleDateString(), inline: true }
+                                ],
+                                footer: { text: 'Keep this information safe!' },
+                                timestamp: new Date().toISOString()
+                            }]
+                        })
+                    });
+                }
+
+                return jsonResponse({ 
+                    success: true, 
+                    message: 'User registered',
+                    accountNumber: finalAccountNumber
+                }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: 'Signup failed', details: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // API: Get user data (from KV store instead of Sheets to avoid Cloudflare blocking)
+        if (path === '/api/user-data' && request.method === 'POST') {
             try {
                 const { discordId } = await request.json();
                 
                 if (!discordId) {
-                    return new Response(JSON.stringify({ error: 'Missing discordId' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                    return jsonResponse({ error: 'Missing discordId' }, 400, corsHeaders);
                 }
 
-                const userData = await getUserFromSheets(env, discordId);
+                // Try to get from KV first
+                const kvData = await env.USERS_KV?.get(`user:${discordId}`, { type: 'json' });
                 
-                return new Response(JSON.stringify(userData || { found: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                if (kvData) {
+                    return jsonResponse(kvData, 200, corsHeaders);
+                }
+                
+                return jsonResponse({ found: false }, 200, corsHeaders);
             } catch (error) {
-                return new Response(JSON.stringify({ error: 'Failed to fetch user', details: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return jsonResponse({ error: 'Failed to fetch user', details: error.message }, 500, corsHeaders);
             }
-        } else if (path === '/api/update-points' && request.method === 'POST') {
+        }
+
+        // API: Update points
+        if (path === '/api/update-points' && request.method === 'POST') {
             try {
                 const { discordId, points } = await request.json();
                 
                 if (!discordId || points === undefined) {
-                    return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                    return jsonResponse({ error: 'Missing fields' }, 400, corsHeaders);
                 }
 
-                await updateUserPoints(env, discordId, points);
+                // Update in KV
+                const userData = await env.USERS_KV?.get(`user:${discordId}`, { type: 'json' }) || {};
+                userData.points = points;
+                await env.USERS_KV?.put(`user:${discordId}`, JSON.stringify(userData));
                 
-                return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return jsonResponse({ success: true }, 200, corsHeaders);
             } catch (error) {
-                return new Response(JSON.stringify({ error: 'Failed to update points', details: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                return jsonResponse({ error: 'Failed to update points', details: error.message }, 500, corsHeaders);
             }
-        } else if (path === '/api/products' && request.method === 'POST') {
-            try {
-                const body = await request.json();
-                const { discordId, productId } = body || {};
+        }
 
-                if (!discordId) {
-                    return new Response(JSON.stringify({ error: 'Missing discordId' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        // API: Get products from ParcelRoblox
+        if (path === '/api/products') {
+            try {
+                const robloxUsername = url.searchParams.get('robloxUsername');
+                const accountId = url.searchParams.get('accountId');
+
+                if (!robloxUsername) {
+                    return jsonResponse({ error: 'Missing robloxUsername', products: [] }, 400, corsHeaders);
                 }
 
-                const products = await getUserProducts(env, discordId, productId);
+                const PARCEL_API_KEY = env.PARCELROBLOX_API_KEY;
+                const PRODUCT_ID = env.PARCEL_PRODUCT_ID || 'prod_BwM387gLYcCa8qhERIH1JliOQ';
 
-                return new Response(JSON.stringify({ success: true, products }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                if (!PARCEL_API_KEY) {
+                    return jsonResponse({ error: 'ParcelRoblox API not configured', products: [] }, 500, corsHeaders);
+                }
+
+                // Check ownership via ParcelRoblox API
+                const checkUrl = 'https://api.parcelroblox.com/v1/products/ownership';
+                const response = await fetch(checkUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${PARCEL_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        productId: PRODUCT_ID,
+                        robloxUsername: robloxUsername
+                    })
+                });
+
+                if (!response.ok) {
+                    console.error('ParcelRoblox API error:', response.status);
+                    return jsonResponse({ success: true, products: [] }, 200, corsHeaders);
+                }
+
+                const data = await response.json();
+                const products = data.owns ? [{
+                    id: PRODUCT_ID,
+                    name: data.productName || 'MyCirkle Product',
+                    description: 'Verified product ownership',
+                    owned: true
+                }] : [];
+
+                return jsonResponse({ success: true, products }, 200, corsHeaders);
             } catch (error) {
-                return new Response(JSON.stringify({ error: 'Failed to fetch products', details: error.message, products: [] }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+                console.error('Products API error:', error);
+                return jsonResponse({ success: true, products: [] }, 200, corsHeaders);
             }
         }
 
@@ -177,198 +430,22 @@ export default {
     }
 };
 
-async function saveToGoogleSheets(env, userData) {
-    const GOOGLE_SHEETS_API_KEY = env.GOOGLE_SHEETS_API_KEY;
-    const SPREADSHEET_ID = env.SPREADSHEET_ID;
-    if (!GOOGLE_SHEETS_API_KEY || !SPREADSHEET_ID) {
-        throw new Error('Google Sheets credentials not configured');
-    }
-    
-    const range = 'Users!A3:H';
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}:append?valueInputOption=RAW&key=${GOOGLE_SHEETS_API_KEY}`;
-    
-    const values = [[
-        userData.discordId,
-        userData.discordUsername,
-        userData.firstName,
-        userData.lastName,
-        userData.email,
-        userData.memberSince,
-        userData.signupDate,
-        '0'
-    ]];
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values })
+function jsonResponse(data, status = 200, headers = {}) {
+    return new Response(JSON.stringify(data), {
+        status,
+        headers: { ...headers, 'Content-Type': 'application/json' }
     });
-
-    if (!response.ok) {
-        const error = await response.text();
-        throw new Error('Failed to save: ' + error);
-    }
-
-    return await response.json();
 }
 
-async function getUserFromSheets(env, discordId) {
-    const GOOGLE_SHEETS_API_KEY = env.GOOGLE_SHEETS_API_KEY;
-    const SPREADSHEET_ID = env.SPREADSHEET_ID;
-    if (!GOOGLE_SHEETS_API_KEY || !SPREADSHEET_ID) {
-        throw new Error('Google Sheets credentials not configured');
-    }
-    
-    const range = 'Users!A3:H';
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_SHEETS_API_KEY}`;
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-        const error = await response.text();
-        throw new Error('Failed to fetch: ' + error);
-    }
-
-    const data = await response.json();
-    const rows = data.values || [];
-    
-    for (let i = 0; i < rows.length; i++) {
-        if (rows[i] && rows[i][0] === discordId) {
-            return {
-                found: true,
-                discordId: rows[i][0],
-                discordUsername: rows[i][1] || '',
-                firstName: rows[i][2] || '',
-                lastName: rows[i][3] || '',
-                email: rows[i][4] || '',
-                memberSince: rows[i][5] || '',
-                signupDate: rows[i][6] || '',
-                points: parseInt(rows[i][7] || '0'),
-                rowIndex: i + 3
-            };
+function generateAccountNumber() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const segments = [];
+    for (let i = 0; i < 4; i++) {
+        let segment = '';
+        for (let j = 0; j < 4; j++) {
+            segment += chars.charAt(Math.floor(Math.random() * chars.length));
         }
+        segments.push(segment);
     }
-    
-    return { found: false };
-}
-
-async function updateUserPoints(env, discordId, points) {
-    const GOOGLE_SHEETS_API_KEY = env.GOOGLE_SHEETS_API_KEY;
-    const SPREADSHEET_ID = env.SPREADSHEET_ID;
-    if (!GOOGLE_SHEETS_API_KEY || !SPREADSHEET_ID) {
-        throw new Error('Google Sheets credentials not configured');
-    }
-    
-    const userData = await getUserFromSheets(env, discordId);
-    
-    if (!userData.found) {
-        throw new Error('User not found');
-    }
-
-    const updateRange = `Users!H${userData.rowIndex}`;
-    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${updateRange}?valueInputOption=RAW&key=${GOOGLE_SHEETS_API_KEY}`;
-    
-    const response = await fetch(updateUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: [[points.toString()]] })
-    });
-
-    if (!response.ok) {
-        const error = await response.text();
-        throw new Error('Failed to update points: ' + error);
-    }
-
-    return await response.json();
-}
-
-async function getUserProducts(env, discordId, productId) {
-    // Accept either PARCELROBLOX_API_KEY or PARCEL_API_KEY (legacy)
-    const PARCEL_API_KEY = env.PARCELROBLOX_API_KEY || env.PARCEL_API_KEY;
-    if (!PARCEL_API_KEY) {
-        throw new Error('Parcel API key not configured');
-    }
-
-    // Get user data to find their email or identifier
-    const userData = await getUserFromSheets(env, discordId);
-
-    if (!userData.found) {
-        return [];
-    }
-
-    const identifier = userData.email || userData.discordId || '';
-    const identifierType = userData.email ? 'email' : 'discordId';
-
-    try {
-        // If caller requested a single productId, check ownership for that product.
-        if (productId) {
-            // We POST to a Parcel ownership-check endpoint. If your Parcel API differs, update this path.
-            const checkUrl = 'https://api.parcelroblox.com/v1/ownerships/check';
-            const response = await fetch(checkUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${PARCEL_API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    product_id: productId,
-                    identifier: identifier,
-                    identifier_type: identifierType
-                })
-            });
-
-            if (!response.ok) {
-                console.error('Parcel ownership check error:', await response.text());
-                return [];
-            }
-
-            const data = await response.json();
-            // Expecting response shape like { owned: true, product: { ... } }
-            if (data && data.owned) {
-                const p = data.product || { id: productId, name: 'Owned Product' };
-                return [{
-                    id: p.id || productId,
-                    name: p.name || 'Owned Product',
-                    price: p.price ? `$${(p.price / 100).toFixed(2)}` : 'N/A',
-                    img: p.image || p.thumbnail || 'https://via.placeholder.com/200x150?text=Product',
-                    desc: p.description || '',
-                    payment: p.paymentMethod || 'N/A',
-                    date: p.purchaseDate || new Date().toISOString().split('T')[0]
-                }];
-            }
-
-            return [];
-        }
-
-        // Otherwise request all owned products for this identifier
-        const listUrl = `https://api.parcelroblox.com/v1/products/owned?identifier=${encodeURIComponent(identifier)}&identifier_type=${encodeURIComponent(identifierType)}`;
-        const listResp = await fetch(listUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${PARCEL_API_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!listResp.ok) {
-            console.error('Parcel list error:', await listResp.text());
-            return [];
-        }
-
-        const listData = await listResp.json();
-        const products = (listData.products || []).map(product => ({
-            id: product.id || product.productId,
-            name: product.name || 'Unknown Product',
-            price: product.price ? `$${(product.price / 100).toFixed(2)}` : 'N/A',
-            img: product.image || product.thumbnail || 'https://via.placeholder.com/200x150?text=Product',
-            desc: product.description || 'No description available',
-            payment: product.paymentMethod || 'N/A',
-            date: product.purchaseDate || product.createdAt || new Date().toISOString().split('T')[0]
-        }));
-
-        return products;
-    } catch (error) {
-        console.error('Error fetching Parcel products:', error);
-        return [];
-    }
+    return segments.join('-');
 }
