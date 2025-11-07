@@ -1665,7 +1665,7 @@ select.modern-input option {
 }
 
 .dashboard-sidebar {
-    width: 280px;
+    width: clamp(240px, 20vw, 280px);
     background: linear-gradient(180deg, #1a0b2e 0%, #2d1b4e 100%);
     color: white;
     display: flex;
@@ -1695,7 +1695,7 @@ select.modern-input option {
 }
 
 .sidebar-header {
-    padding: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
@@ -1703,12 +1703,13 @@ select.modern-input option {
 }
 
 .logo-icon {
-    font-size: 2rem;
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
 }
 
 .sidebar-nav {
     flex: 1;
     padding: 1.5rem 0;
+    overflow-y: auto;
 }
 
 .nav-item {
@@ -1833,9 +1834,9 @@ select.modern-input option {
 }
 
 .dashboard-main {
-    margin-left: 280px;
+    margin-left: clamp(240px, 20vw, 280px);
     flex: 1;
-    padding: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
     min-height: 100vh;
     animation: fadeInUp 0.6s ease;
 }
@@ -1853,6 +1854,18 @@ select.modern-input option {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.content-title {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.content-subtitle {
+    font-size: clamp(0.813rem, 1.5vw, 0.875rem);
+    color: #6b7280;
 }
 
 .dashboard-header {
@@ -1900,8 +1913,8 @@ select.modern-input option {
 
 .stat-card {
     background: white;
-    padding: 1.5rem;
-    border-radius: 16px;
+    padding: clamp(1rem, 2vw, 1.5rem);
+    border-radius: clamp(12px, 2vw, 16px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     display: flex;
     align-items: center;
@@ -1932,9 +1945,9 @@ select.modern-input option {
 }
 
 .stat-icon {
-    font-size: 2.5rem;
-    width: 60px;
-    height: 60px;
+    font-size: clamp(2rem, 3.5vw, 2.5rem);
+    width: clamp(50px, 8vw, 60px);
+    height: clamp(50px, 8vw, 60px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1963,23 +1976,23 @@ select.modern-input option {
 }
 
 .stat-label {
-    font-size: 0.875rem;
+    font-size: clamp(0.75rem, 1.5vw, 0.875rem);
     color: #6b7280;
     margin-bottom: 0.25rem;
 }
 
 .stat-value {
-    font-size: 1.875rem;
+    font-size: clamp(1.5rem, 3vw, 1.875rem);
     font-weight: 700;
     color: #1f2937;
 }
 
 .section-card {
     background: white;
-    padding: 2rem;
-    border-radius: 16px;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border-radius: clamp(12px, 2vw, 16px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    margin-bottom: 2rem;
+    margin-bottom: clamp(1.5rem, 3vw, 2rem);
     transition: all 0.3s ease;
     animation: fadeInUp 0.5s ease;
 }
@@ -1989,7 +2002,7 @@ select.modern-input option {
 }
 
 .section-title {
-    font-size: 1.5rem;
+    font-size: clamp(1.25rem, 2.5vw, 1.5rem);
     font-weight: 700;
     color: #1f2937;
     margin-bottom: 1.5rem;
@@ -2042,8 +2055,8 @@ select.modern-input option {
 .action-card {
     background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
     border: 2px solid #e5e7eb;
-    padding: 2rem;
-    border-radius: 12px;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border-radius: clamp(10px, 1.5vw, 12px);
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -2062,13 +2075,13 @@ select.modern-input option {
 }
 
 .action-icon {
-    font-size: 3rem;
+    font-size: clamp(2.5rem, 4vw, 3rem);
     display: block;
     margin-bottom: 1rem;
 }
 
 .action-label {
-    font-size: 1rem;
+    font-size: clamp(0.938rem, 1.5vw, 1rem);
     font-weight: 600;
     color: #1f2937;
 }
@@ -2114,20 +2127,20 @@ select.modern-input option {
 }
 
 .action-card h3 {
-    font-size: 1.125rem;
+    font-size: clamp(1rem, 2vw, 1.125rem);
     font-weight: 600;
     color: #1f2937;
     margin-bottom: 0.5rem;
 }
 
 .action-card p {
-    font-size: 0.875rem;
+    font-size: clamp(0.813rem, 1.5vw, 0.875rem);
     color: #6b7280;
 }
 
 .points-display {
     display: flex;
-    gap: 2rem;
+    gap: clamp(1rem, 3vw, 2rem);
     align-items: center;
 }
 
@@ -2136,13 +2149,13 @@ select.modern-input option {
 }
 
 .points-label {
-    font-size: 0.875rem;
+    font-size: clamp(0.813rem, 1.5vw, 0.875rem);
     color: #6b7280;
     margin-bottom: 0.5rem;
 }
 
 .points-value {
-    font-size: 3rem;
+    font-size: clamp(2rem, 4vw, 3rem);
     font-weight: 700;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     -webkit-background-clip: text;
@@ -2184,8 +2197,8 @@ select.modern-input option {
 .reward-card {
     background: white;
     border: 2px solid #e5e7eb;
-    padding: 2rem;
-    border-radius: 16px;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border-radius: clamp(12px, 2vw, 16px);
     text-align: center;
     position: relative;
     transition: all 0.3s ease;
@@ -2234,20 +2247,20 @@ select.modern-input option {
 }
 
 .reward-icon {
-    font-size: 3rem;
+    font-size: clamp(2.5rem, 4vw, 3rem);
     display: block;
     margin-bottom: 1rem;
 }
 
 .reward-title {
-    font-size: 1.25rem;
+    font-size: clamp(1.125rem, 2vw, 1.25rem);
     font-weight: 700;
     color: #1f2937;
     margin-bottom: 0.5rem;
 }
 
 .reward-desc {
-    font-size: 0.875rem;
+    font-size: clamp(0.813rem, 1.5vw, 0.875rem);
     color: #6b7280;
     margin-bottom: 1.5rem;
 }

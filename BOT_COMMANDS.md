@@ -3,6 +3,10 @@
 ## Overview
 This document outlines all Discord bot commands for managing the MyCirkle Loyalty Program.
 
+**Webhook Configuration**: Configure webhook URLs as environment variables in your Cloudflare Worker settings (see DEPLOYMENT.md).
+
+**Important**: All commands must verify that the Discord user exists in the database before executing operations.
+
 ---
 
 ## 📊 Points Management Commands
@@ -17,13 +21,31 @@ Award points to a user
 
 **Example:**
 ```
-/givepoints points:100 user:@AlmightyShow reason:Purchase completion
+/givepoints points:100 user:@_.m4rcu5._ reason:Purchase completion
 ```
 
 **Bot Response:**
-- Updates user's point balance in database
-- Sends confirmation message to channel
-- Logs transaction
+1. Checks if user exists in database (query KV store or database)
+2. If user not found: Returns error message "User not registered in MyCirkle"
+3. If user exists: Updates point balance and sends confirmation
+4. Logs transaction to webhook
+
+**Webhook Format:**
+```json
+{
+  "embeds": [{
+    "title": "✅ Points Awarded",
+    "color": 5763719,
+    "fields": [
+      {"name": "User", "value": "@_.m4rcu5._", "inline": true},
+      {"name": "Points Given", "value": "+100", "inline": true},
+      {"name": "Reason", "value": "Purchase completion", "inline": false},
+      {"name": "New Balance", "value": "1,250 points", "inline": true}
+    ],
+    "timestamp": "2025-01-15T10:30:00Z"
+  }]
+}
+```
 
 ---
 
@@ -37,13 +59,32 @@ Remove points from a user
 
 **Example:**
 ```
-/deductpoints points:500 user:@AlmightyShow reason:Reward redemption - 10% discount
+/deductpoints points:500 user:@_.m4rcu5._ reason:Reward redemption - 10% discount
 ```
 
 **Bot Response:**
-- Updates user's point balance in database
-- Sends confirmation message
-- Logs deduction
+1. Checks if user exists in database
+2. If user not found: Returns error message "User not registered in MyCirkle"
+3. If user exists but insufficient points: Returns error "Insufficient points (has X, needs 500)"
+4. If successful: Updates balance and sends confirmation
+5. Logs deduction to webhook
+
+**Webhook Format:**
+```json
+{
+  "embeds": [{
+    "title": "⚠️ Points Deducted",
+    "color": 15844367,
+    "fields": [
+      {"name": "User", "value": "@_.m4rcu5._", "inline": true},
+      {"name": "Points Deducted", "value": "-500", "inline": true},
+      {"name": "Reason", "value": "Reward redemption - 10% discount", "inline": false},
+      {"name": "New Balance", "value": "750 points", "inline": true}
+    ],
+    "timestamp": "2025-01-15T10:35:00Z"
+  }]
+}
+```
 
 ---
 
@@ -67,14 +108,34 @@ Process a reward redemption
 
 **Example:**
 ```
-/process reward:"20% off product" user:@AlmightyShow coupon:[upload image]
+/process reward:"20% off product" user:@_.m4rcu5._ coupon:[upload image]
 ```
 
 **Bot Response:**
-- Deducts required points from user
-- Sends reward confirmation embed
-- Uploads coupon to user's DMs (if applicable)
-- Logs redemption
+1. Checks if user exists in database
+2. If user not found: Returns error "User not registered in MyCirkle"
+3. Checks if user has sufficient points for selected reward
+4. If insufficient: Returns error with current balance
+5. If successful: Deducts points, sends reward, logs to webhook
+6. For discount rewards: DMs coupon image to user
+
+**Webhook Format:**
+```json
+{
+  "embeds": [{
+    "title": "🎁 Reward Processed",
+    "color": 3066993,
+    "fields": [
+      {"name": "User", "value": "@_.m4rcu5._", "inline": true},
+      {"name": "Reward", "value": "20% off product", "inline": true},
+      {"name": "Points Cost", "value": "500 points", "inline": true},
+      {"name": "Remaining Balance", "value": "250 points", "inline": true}
+    ],
+    "image": {"url": "https://cdn.discordapp.com/attachments/.../coupon.png"},
+    "timestamp": "2025-01-15T11:00:00Z"
+  }]
+}
+```
 
 ---
 
@@ -91,9 +152,26 @@ Set or update the daily reward
 ```
 
 **Bot Response:**
-- Updates daily reward in database
-- Announces new daily reward in rewards channel
-- Notifies all users with marketing consent
+1. Admin-only command (checks user permissions)
+2. Updates daily reward in database/KV store
+3. Announces new reward in rewards channel
+4. Sends webhook notification
+
+**Webhook Format:**
+```json
+{
+  "embeds": [{
+    "title": "📅 Daily Reward Updated",
+    "color": 16776960,
+    "fields": [
+      {"name": "New Reward", "value": "Free Shipping Voucher", "inline": false},
+      {"name": "Points Cost", "value": "0 points (FREE)", "inline": true},
+      {"name": "Updated By", "value": "@Admin", "inline": true}
+    ],
+    "timestamp": "2025-01-15T09:00:00Z"
+  }]
+}
+```
 
 ---
 
@@ -110,28 +188,30 @@ Add a product purchase to a user's account
 
 **Example:**
 ```
-/productadd product:"Premium Script Package" user:@AlmightyShow date:2025-11-07 price:29.99
+/productadd product:"Premium Script Package" user:@_.m4rcu5._ date:2025-11-07 price:29.99
 ```
 
 **Bot Response:**
-1. **Sends webhook to registration channel:**
-   - Embed with purchase details
-   - User mention
-   - Product information
-   - Purchase date and price
+1. Checks if user exists in database
+2. If user not found: Returns error "User not registered in MyCirkle"
+3. If user exists: Adds product to their account history
+4. Sends webhook to registration channel with purchase details
+5. Awards points based on purchase amount (if configured)
    
-2. **Webhook Format:**
+**Webhook Format:**
 ```json
 {
+  "content": null,
   "embeds": [{
     "title": "✨ New Product Purchase",
     "color": 5814783,
     "fields": [
       { "name": "Product", "value": "Premium Script Package", "inline": false },
-      { "name": "Customer", "value": "@AlmightyShow", "inline": true },
+      { "name": "Customer", "value": "@_.m4rcu5._", "inline": true },
       { "name": "Date of Purchase", "value": "2025-11-07", "inline": true },
       { "name": "Price", "value": "$29.99", "inline": true },
-      { "name": "Discord Account", "value": "<@123456789>", "inline": true }
+      { "name": "Discord Account", "value": "<@123456789>", "inline": true },
+      { "name": "Points Earned", "value": "+30 points", "inline": true }
     ],
     "thumbnail": { "url": "https://your-product-image-url.com/image.png" },
     "footer": { "text": "MyCirkle Loyalty Bot • Product Registry" },
@@ -140,7 +220,7 @@ Add a product purchase to a user's account
 }
 ```
 
-3. **Updates user's product list in database**
+**Updates user's product list in database**
 4. **Awards purchase points (configurable, e.g., 1 point per $1 spent)**
 
 ---

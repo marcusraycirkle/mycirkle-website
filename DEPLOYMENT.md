@@ -1,5 +1,42 @@
 # Secure Deployment Instructions
 
+## ⚠️ IMPORTANT: Repository Branch Protection
+
+**This repository has branch protection rules enabled.** Direct pushes to `main` are not allowed. Follow the workflow below:
+
+### Standard Deployment Workflow:
+
+1. **Create a Feature Branch**
+   ```bash
+   git checkout -b feature/your-changes
+   ```
+
+2. **Commit Your Changes**
+   ```bash
+   git add .
+   git commit -m "Description of changes"
+   ```
+
+3. **Push to Feature Branch**
+   ```bash
+   git push origin feature/your-changes
+   ```
+
+4. **Create Pull Request**
+   - Go to GitHub repository
+   - Click "Compare & pull request"
+   - Add description of changes
+   - Request review (if required)
+   - Wait for CI/CD checks to pass
+
+5. **Merge to Main**
+   - After approval, click "Merge pull request"
+   - Select merge strategy (Squash/Merge/Rebase)
+   - Confirm merge
+   - Delete feature branch (optional)
+
+---
+
 ## ⚠️ SECURITY NOTICE
 All sensitive credentials have been removed from the code. You must configure them as Cloudflare secrets before deployment.
 
@@ -24,6 +61,11 @@ wrangler secret put DISCORD_BOT_TOKEN
 wrangler secret put DISCORD_GUILD_ID
 wrangler secret put GOOGLE_SHEETS_API_KEY
 wrangler secret put SPREADSHEET_ID
+
+# Optional: Configure webhook URLs for Discord notifications
+wrangler secret put SIGNUP_WEBHOOK_URL
+wrangler secret put WELCOME_DM_WEBHOOK_URL
+wrangler secret put PRODUCT_WEBHOOK_URL
 ```
 
 ## Step 2: Google Sheet Setup
@@ -67,18 +109,34 @@ python3 -m http.server 8080
 
 ## Step 7: Deploy Website
 
-### Option 1: GitHub Pages
+### Option 1: GitHub Pages (Recommended with Branch Protection)
 ```bash
+# Create feature branch for changes
+git checkout -b feature/website-update
+
+# Commit your changes
 git add .
 git commit -m "Update MyCirkle website"
-git push origin main
+
+# Push feature branch to remote
+git push origin feature/website-update
+
+# Go to GitHub and create Pull Request
+# After approval and merge to main, GitHub Pages auto-deploys
 ```
-Then enable GitHub Pages in repository settings.
+Then enable GitHub Pages in repository settings (Pages → Source: main branch).
 
 ### Option 2: Cloudflare Pages
 1. Go to Cloudflare Dashboard → Pages
 2. Connect your GitHub repository
-3. Deploy
+3. Set production branch to `main`
+4. Cloudflare will auto-deploy on merge to main
+
+### Emergency Direct Push (Admin Override Only)
+⚠️ **Use only if you have admin permissions and need to bypass branch protection:**
+```bash
+git push --force-with-lease origin main
+```
 
 ## How It Works
 1. User clicks "Log In" → Redirects to Discord OAuth
@@ -88,6 +146,10 @@ Then enable GitHub Pages in repository settings.
 5. All data persists in Google Sheets
 
 ## Testing Checklist
+- [ ] Branch protection configured (requires PR for main branch)
+- [ ] Feature branch created and pushed successfully
+- [ ] Pull request created on GitHub
+- [ ] CI/CD checks passing (if configured)
 - [ ] Google Sheet is shared publicly (Anyone with link can edit)
 - [ ] Row 1 has correct headers
 - [ ] Worker deployed successfully
@@ -95,6 +157,9 @@ Then enable GitHub Pages in repository settings.
 - [ ] Frontend WORKER_URL updated
 - [ ] Click "Log In" and test full flow
 - [ ] Check Google Sheet for new entries starting at row 3
+- [ ] Webhook notifications working
+- [ ] Roblox username verification functional
+- [ ] Mobile responsive design tested
 
 ## Troubleshooting
 - **"Missing code" error**: Check Discord redirect URIs match exactly
