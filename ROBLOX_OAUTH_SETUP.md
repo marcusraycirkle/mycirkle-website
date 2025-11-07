@@ -26,11 +26,10 @@ Users now **connect their Roblox account via official OAuth** instead of manuall
    
    **Redirect URIs**: 
    ```
-   https://mycirkle-auth.marcusray.workers.dev/auth/roblox/callback
-   https://my.cirkledevelopment.co.uk/auth/roblox/callback
-   http://localhost:8080/auth/roblox/callback
+   https://my.cirkledevelopment.co.uk/auth/roblox/callback.html
+   http://localhost:8080/auth/roblox/callback.html
    ```
-   *(Add all three: production worker, production site, and local testing)*
+   *(Add both: production and local testing)*
    
    **Requested Scopes**:
    - ✅ `openid` (Required)

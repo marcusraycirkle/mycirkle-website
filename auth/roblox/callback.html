@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Authentication</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h2>Connecting to Roblox...</h2>
+        <p>Please wait while we verify your account.</p>
+    </div>
+
+    <script>
+        // Get the authorization code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+
+        if (!code) {
+            window.opener.postMessage({
+                type: 'ROBLOX_AUTH_ERROR',
+                error: 'No authorization code received'
+            }, '*');
+            window.close();
+        } else {
+            // Send code to worker for token exchange
+            const WORKER_URL = 'https://mycirkle-auth.marcusray.workers.dev';
+            
+            fetch(`${WORKER_URL}/auth/roblox/exchange`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code, state })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    window.opener.postMessage({
+                        type: 'ROBLOX_AUTH_ERROR',
+                        error: data.error
+                    }, '*');
+                } else {
+                    window.opener.postMessage({
+                        type: 'ROBLOX_AUTH_SUCCESS',
+                        username: data.username,
+                        userId: data.userId
+                    }, '*');
+                }
+                window.close();
+            })
+            .catch(error => {
+                window.opener.postMessage({
+                    type: 'ROBLOX_AUTH_ERROR',
+                    error: error.message
+                }, '*');
+                window.close();
+            });
+        }
+    </script>
+</body>
+</html>
