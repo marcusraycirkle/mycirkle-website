@@ -325,10 +325,23 @@ async function handlePreferencesSubmit() {
     const country = document.getElementById('user-country').value;
     const timezone = document.getElementById('user-timezone').value;
     const language = document.getElementById('user-language').value;
+    const robloxUsername = document.getElementById('user-roblox').value;
+    const acceptedAge = document.getElementById('accept-age').checked;
+    const acceptedMarketing = document.getElementById('accept-marketing').checked;
     const acceptedTerms = document.getElementById('accept-terms').checked;
     
     if (!country || !timezone) {
         alert('Please select your country and timezone.');
+        return;
+    }
+    
+    if (!robloxUsername) {
+        alert('Please enter your Roblox username for product verification.');
+        return;
+    }
+    
+    if (!acceptedAge) {
+        alert('You must be over 13 years old to use this service.');
         return;
     }
     
@@ -341,13 +354,16 @@ async function handlePreferencesSubmit() {
     currentUser.country = country;
     currentUser.timezone = timezone;
     currentUser.language = language;
+    currentUser.robloxUsername = robloxUsername;
+    currentUser.acceptedAge = true;
+    currentUser.acceptedMarketing = acceptedMarketing;
     currentUser.acceptedTerms = true;
     currentUser.termsAcceptedDate = new Date().toISOString();
     localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
     
     showPage('confirm');
     
-    // Save to Google Sheets
+    // Save to Google Sheets and send welcome DM
     try {
         const signupResponse = await fetch(`${WORKER_URL}/api/signup`, {
             method: 'POST',
@@ -357,14 +373,25 @@ async function handlePreferencesSubmit() {
                 discordUsername: currentUser.username,
                 firstName: currentUser.firstName,
                 lastName: currentUser.lastName,
+                fullName: currentUser.fullName,
                 email: currentUser.email,
-                memberSince: currentUser.memberSince
+                memberSince: currentUser.memberSince,
+                country: country,
+                timezone: timezone,
+                language: language,
+                robloxUsername: robloxUsername,
+                acceptedMarketing: acceptedMarketing,
+                accountNumber: currentUser.accountId || generateAccountId()
             })
         });
         
         const result = await signupResponse.json();
         if (result.success) {
             console.log('User registered successfully');
+            if (result.accountNumber) {
+                currentUser.accountId = result.accountNumber;
+                localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+            }
         } else {
             console.error('Signup failed:', result.error);
         }
@@ -786,7 +813,19 @@ async function renderProductsToDashboard() {
     if (!productsListDash || !currentUser) return;
 
     try {
-        const response = await fetch(`https://mycirkle-auth.marcusray.workers.dev/api/products?accountId=${encodeURIComponent(currentUser.accountId || currentUser.discordId)}`);
+        const robloxUsername = currentUser.robloxUsername;
+        if (!robloxUsername) {
+            productsListDash.innerHTML = `
+                <div class="text-center py-12 text-gray-500 col-span-full">
+                    <div class="text-6xl mb-4">🎮</div>
+                    <p class="text-lg font-semibold mb-2">Roblox Account Not Linked</p>
+                    <p class="text-sm">Please add your Roblox username in Settings to see your products.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const response = await fetch(`${WORKER_URL}/api/products?robloxUsername=${encodeURIComponent(robloxUsername)}&accountId=${encodeURIComponent(currentUser.accountId || currentUser.discordId)}`);
         
         // Check if response is ok
         if (!response.ok) {
@@ -808,7 +847,7 @@ async function renderProductsToDashboard() {
                 <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition">
                     <div class="text-4xl mb-3 text-center">📦</div>
                     <h3 class="font-semibold text-lg mb-2">${product.name || 'Product'}</h3>
-                    <p class="text-sm text-gray-600 mb-3">${product.description || 'No description'}</p>
+                    <p class="text-sm text-gray-600 mb-3">${product.description || 'Verified ownership'}</p>
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-gray-500">Owned</span>
                         <span class="text-green-600 font-semibold">✓</span>
@@ -820,7 +859,7 @@ async function renderProductsToDashboard() {
                 <div class="text-center py-12 text-gray-500 col-span-full">
                     <div class="text-6xl mb-4">📦</div>
                     <p class="text-lg font-semibold mb-2">No products found</p>
-                    <p class="text-sm">Make a purchase to see your items here!</p>
+                    <p class="text-sm">Purchase products to see them here!</p>
                 </div>
             `;
         }
@@ -846,7 +885,30 @@ function showAccount() {
                 <p class="content-subtitle">Manage your profile and preferences</p>
             </div>
             
+            <div class="section-card mb-4">
+                <h3 class="section-title">Account Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Account Number</p>
+                        <p class="font-mono font-semibold">${currentUser?.accountId || 'N/A'}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Discord Username</p>
+                        <p class="font-semibold">${currentUser?.username || 'N/A'}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Member Since</p>
+                        <p class="font-semibold">${currentUser?.memberSince || 'N/A'}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Points Balance</p>
+                        <p class="font-semibold text-blue-600">${currentUser?.points || 0} points</p>
+                    </div>
+                </div>
+            </div>
+            
             <div class="section-card">
+                <h3 class="section-title">Update Profile</h3>
                 <div class="settings-group">
                     <label class="block text-gray-700 text-sm font-medium mb-2">Display Name</label>
                     <div class="flex gap-2">
@@ -861,6 +923,15 @@ function showAccount() {
                         <input type="email" id="edit-email" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${currentUser?.email || ''}">
                         <button onclick="updateEmail()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
                     </div>
+                </div>
+                
+                <div class="settings-group">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Roblox Username</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="edit-roblox" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${currentUser?.robloxUsername || ''}" placeholder="Enter Roblox username">
+                        <button onclick="updateRoblox()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Required for product verification</p>
                 </div>
                 
                 <div class="settings-group">
@@ -1124,6 +1195,17 @@ function updateEmail() {
         alert('Email updated successfully!');
     } else {
         alert('Please enter a valid email address.');
+    }
+}
+
+function updateRoblox() {
+    const newRoblox = document.getElementById('edit-roblox').value;
+    if (newRoblox.trim()) {
+        currentUser.robloxUsername = newRoblox;
+        localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+        alert('Roblox username updated successfully! Your products will now sync.');
+    } else {
+        alert('Please enter a valid Roblox username.');
     }
 }
 
