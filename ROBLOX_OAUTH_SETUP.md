@@ -14,11 +14,13 @@ Users now **connect their Roblox account via official OAuth** instead of manuall
 
 ### 1. Create Roblox OAuth Application
 
+⚠️ **IMPORTANT**: Roblox OAuth app review can take **up to 5 days**. The app name must be **"MyCirkle"** (exact match).
+
 1. Go to **[Roblox Creator Hub - Credentials](https://create.roblox.com/credentials)**
 2. Click **"Create OAuth2 App"**
 3. Fill in the form:
 
-   **App Name**: `MyCirkle Loyalty Program`
+   **App Name**: `MyCirkle` ⚠️ **Must be exact - already submitted for review**
    
    **Description**: `Loyalty rewards system for Cirkle Development customers`
    
@@ -219,14 +221,16 @@ const response = await fetch('https://api.parcelroblox.com/v1/products/verify', 
 
 ## 📝 Next Steps
 
-1. ✅ **Create Roblox OAuth app** at create.roblox.com/credentials
-2. ✅ **Configure Cloudflare secrets** with client ID and secret
-3. ✅ **Deploy worker** with updated code
+1. ⏳ **Wait for Roblox OAuth app approval** (up to 5 days)
+2. ✅ **Once approved, configure Cloudflare secrets** with client ID and secret
+3. ✅ **Re-enable Roblox button** in index.html (remove `disabled` attribute)
 4. ✅ **Test signup flow** end-to-end
 5. ⏳ **Connect ParcelRoblox** for product verification
 6. ⏳ **Add product rewards** that require Roblox ownership
 
 ---
 
-**Status**: ✅ Roblox OAuth integration complete and deployed!
+**Status**: ⏳ Roblox OAuth app "MyCirkle" submitted for review (November 7, 2025)  
+**Expected Approval**: Within 5 business days  
+**Temporary State**: Signup works without Roblox - users can add it later from dashboard  
 **Last Updated**: November 7, 2025

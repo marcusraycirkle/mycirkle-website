@@ -383,10 +383,11 @@ async function handlePreferencesSubmit() {
         return;
     }
     
-    if (!robloxUsername) {
-        alert('Please enter your Roblox username for product verification.');
-        return;
-    }
+    // Roblox is now optional while OAuth app is under review
+    // if (!robloxUsername) {
+    //     alert('Please enter your Roblox username for product verification.');
+    //     return;
+    // }
     
     if (!acceptedAge) {
         alert('You must be over 13 years old to use this service.');
