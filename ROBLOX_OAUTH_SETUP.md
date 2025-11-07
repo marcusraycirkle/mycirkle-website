@@ -22,14 +22,15 @@ Users now **connect their Roblox account via official OAuth** instead of manuall
    
    **Description**: `Loyalty rewards system for Cirkle Development customers`
    
-   **App Website**: `https://mycirkle-website.pages.dev` (or your domain)
+   **App Website**: `https://my.cirkledevelopment.co.uk`
    
    **Redirect URIs**: 
    ```
    https://mycirkle-auth.marcusray.workers.dev/auth/roblox/callback
+   https://my.cirkledevelopment.co.uk/auth/roblox/callback
    http://localhost:8080/auth/roblox/callback
    ```
-   *(Add both for production and local testing)*
+   *(Add all three: production worker, production site, and local testing)*
    
    **Requested Scopes**:
    - ✅ `openid` (Required)
