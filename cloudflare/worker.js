@@ -64,6 +64,17 @@ export default {
                     })
                 });
 
+                // Handle non-JSON responses (like rate limit errors)
+                const contentType = tokenResponse.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await tokenResponse.text();
+                    return jsonResponse({ 
+                        error: 'Discord API error', 
+                        details: `Status ${tokenResponse.status}: ${text.substring(0, 200)}`,
+                        hint: 'This may be a rate limit or Discord API issue. Please try again in a few moments.'
+                    }, tokenResponse.status, corsHeaders);
+                }
+
                 const tokenData = await tokenResponse.json();
                 if (tokenData.error) {
                     return jsonResponse(tokenData, 400, corsHeaders);
