@@ -385,9 +385,17 @@
 
     <!-- Modern Dashboard with Sidebar -->
     <section id="dashboard" class="page">
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()" style="display: none;">
+            ☰
+        </button>
+        
+        <!-- Mobile Overlay -->
+        <div class="mobile-overlay" onclick="closeMobileMenu()"></div>
+        
         <div class="dashboard-container">
             <!-- Sidebar -->
-            <aside class="dashboard-sidebar">
+            <aside class="dashboard-sidebar" id="dashboard-sidebar">
                 <div class="sidebar-header">
                     <div class="logo-icon">✨</div>
                     <div>

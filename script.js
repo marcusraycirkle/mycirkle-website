@@ -1274,3 +1274,34 @@ function showTermsModal() {
 function closeTermsModal() {
     document.getElementById('terms-modal').classList.add('hidden');
 }
+
+// Mobile Menu Functions
+function toggleMobileMenu() {
+    const sidebar = document.getElementById('dashboard-sidebar');
+    const overlay = document.querySelector('.mobile-overlay');
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('active');
+}
+
+function closeMobileMenu() {
+    const sidebar = document.getElementById('dashboard-sidebar');
+    const overlay = document.querySelector('.mobile-overlay');
+    sidebar.classList.remove('mobile-open');
+    overlay.classList.remove('active');
+}
+
+// Show mobile menu button on mobile devices
+window.addEventListener('resize', () => {
+    const mobileBtn = document.querySelector('.mobile-menu-btn');
+    if (mobileBtn) {
+        mobileBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+    }
+});
+
+// Initialize mobile button visibility
+document.addEventListener('DOMContentLoaded', () => {
+    const mobileBtn = document.querySelector('.mobile-menu-btn');
+    if (mobileBtn) {
+        mobileBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+    }
+});
