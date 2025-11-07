@@ -62,6 +62,10 @@ wrangler secret put DISCORD_GUILD_ID
 wrangler secret put GOOGLE_SHEETS_API_KEY
 wrangler secret put SPREADSHEET_ID
 
+# Roblox OAuth Configuration
+wrangler secret put ROBLOX_CLIENT_ID
+wrangler secret put ROBLOX_CLIENT_SECRET
+
 # Optional: Configure webhook URLs for Discord notifications
 wrangler secret put SIGNUP_WEBHOOK_URL
 wrangler secret put WELCOME_DM_WEBHOOK_URL
@@ -75,6 +79,34 @@ wrangler secret put PRODUCT_WEBHOOK_URL
 4. Data will start from row 3
 5. Click "Share" button → Change to "Anyone with the link can edit"
 6. Copy the Spreadsheet ID from the URL (it's the long string between /d/ and /edit)
+
+## Step 2.5: Roblox OAuth Setup
+**REQUIRED** - Users must connect their Roblox account via OAuth
+
+1. **Create Roblox OAuth App**
+   - Go to [Roblox Creator Hub](https://create.roblox.com/credentials)
+   - Click "Create OAuth2 App"
+   - Fill in the details:
+     - **App Name**: MyCirkle Loyalty
+     - **Redirect URIs**: `https://mycirkle-auth.YOUR_NAME.workers.dev/auth/roblox/callback`
+     - **Scopes**: `openid`, `profile`
+   
+2. **Get Credentials**
+   - Copy the **Client ID**
+   - Copy the **Client Secret**
+   - Run in terminal:
+     ```bash
+     wrangler secret put ROBLOX_CLIENT_ID
+     # Paste your Client ID
+     
+     wrangler secret put ROBLOX_CLIENT_SECRET
+     # Paste your Client Secret
+     ```
+
+3. **Test the Connection**
+   - During signup, users will see "Connect Roblox Account" button
+   - Clicking opens Roblox OAuth popup
+   - After authorization, their username and ID are saved automatically
 
 ## Step 3: Deploy Cloudflare Worker
 ```bash

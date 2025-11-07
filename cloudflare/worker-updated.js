@@ -110,6 +110,93 @@ export default {
             }
         }
 
+        // Roblox OAuth routes
+        if (path === '/auth/roblox') {
+            const clientId = env.ROBLOX_CLIENT_ID;
+            const clientSecret = env.ROBLOX_CLIENT_SECRET;
+            
+            if (!clientId || !clientSecret) {
+                return jsonResponse({ error: 'Roblox OAuth not configured' }, 500, corsHeaders);
+            }
+            
+            const state = url.searchParams.get('state') || 'unknown';
+            const redirectUri = `${url.protocol}//${url.host}/auth/roblox/callback`;
+            
+            const authUrl = `https://apis.roblox.com/oauth/v1/authorize?` +
+                `client_id=${clientId}` +
+                `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+                `&scope=openid profile` +
+                `&response_type=code` +
+                `&state=${state}`;
+            
+            return Response.redirect(authUrl, 302);
+        }
+
+        if (path === '/auth/roblox/callback') {
+            const code = url.searchParams.get('code');
+            const state = url.searchParams.get('state');
+            
+            if (!code) {
+                return new Response(
+                    `<html><body><script>window.opener.postMessage({type: 'ROBLOX_AUTH_ERROR', error: 'No code'}, '*'); window.close();</script></body></html>`,
+                    { headers: { 'Content-Type': 'text/html' } }
+                );
+            }
+
+            const clientId = env.ROBLOX_CLIENT_ID;
+            const clientSecret = env.ROBLOX_CLIENT_SECRET;
+            const redirectUri = `${url.protocol}//${url.host}/auth/roblox/callback`;
+
+            try {
+                // Exchange code for token
+                const tokenResponse = await fetch('https://apis.roblox.com/oauth/v1/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`)
+                    },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        code: code,
+                        redirect_uri: redirectUri
+                    })
+                });
+
+                const tokenData = await tokenResponse.json();
+                
+                if (!tokenData.access_token) {
+                    throw new Error('No access token received');
+                }
+
+                // Get user info
+                const userResponse = await fetch('https://apis.roblox.com/oauth/v1/userinfo', {
+                    headers: {
+                        'Authorization': `Bearer ${tokenData.access_token}`
+                    }
+                });
+
+                const userData = await userResponse.json();
+
+                // Send success back to parent window
+                return new Response(
+                    `<html><body><script>
+                        window.opener.postMessage({
+                            type: 'ROBLOX_AUTH_SUCCESS',
+                            username: '${userData.preferred_username}',
+                            userId: '${userData.sub}'
+                        }, '*');
+                        window.close();
+                    </script></body></html>`,
+                    { headers: { 'Content-Type': 'text/html' } }
+                );
+            } catch (error) {
+                return new Response(
+                    `<html><body><script>window.opener.postMessage({type: 'ROBLOX_AUTH_ERROR', error: '${error.message}'}, '*'); window.close();</script></body></html>`,
+                    { headers: { 'Content-Type': 'text/html' } }
+                );
+            }
+        }
+
         // API: Signup with webhook notification
         if (path === '/api/signup' && request.method === 'POST') {
             try {
