@@ -2,6 +2,31 @@
 
 The Discord bot command handlers are missing from the worker. The worker file is too large to edit in one go. Here's what needs to be added:
 
+## 📊 Webhook Configuration
+
+All commands now log to specific Discord channels:
+
+- **🎉 Welcome Messages**: Public channel with user profile photo
+  - URL: `https://discord.com/api/webhooks/1436827145438629889/...`
+  - Triggered on: New user signup
+  
+- **💰 Points Activity**: Points given/deducted
+  - URL: `https://discord.com/api/webhooks/1436826449150742679/...`
+  - Triggered on: `/givepoints`, `/deductpoints`
+  
+- **🎁 Redemptions**: Reward processing with coupon codes
+  - URL: `https://discord.com/api/webhooks/1436826526883647569/...`
+  - Triggered on: `/process`
+  
+- **⚙️ Admin Logs**: Settings changes, daily reward updates
+  - URL: `https://discord.com/api/webhooks/1436826617853902948/...`
+  - Triggered on: `/dailyreward`, account settings updates
+
+## 🔐 Admin Role Configuration
+
+Admin role ID is set to: `1436825229090623623`
+Commands `/givepoints`, `/deductpoints`, `/process`, `/dailyreward` require this role.
+
 ## Step 1: Add Missing Command Handlers
 
 Add these functions to `/workspaces/mycirkle-website/cloudflare/worker.js` right AFTER the `handleHelpCommand()` function (around line 1198):
@@ -62,6 +87,7 @@ async function handleGivePointsCommand(interaction, env) {
     const points = options.find(opt => opt.name === 'points')?.value;
     const targetUserId = options.find(opt => opt.name === 'user')?.value;
     const reason = options.find(opt => opt.name === 'reason')?.value;
+    const adminUser = interaction.member?.user || interaction.user;
     
     try {
         const userData = await getUserData(targetUserId, env);
@@ -71,6 +97,33 @@ async function handleGivePointsCommand(interaction, env) {
         
         userData.points = (userData.points || 0) + points;
         await saveUserData(userData, env);
+        
+        // Log to points activity webhook
+        const pointsWebhook = 'https://discord.com/api/webhooks/1436826449150742679/ExNLzfnEG3CCemhOpVxNxLrzH4U57ekFKhnm7td_FTNP9El2lJsxA8AsxcJKorziy9gw';
+        try {
+            await fetch(pointsWebhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    embeds: [{
+                        title: '➕ Points Given',
+                        description: `**${points} points** awarded to <@${targetUserId}>`,
+                        color: 0x10b981,
+                        fields: [
+                            { name: '👤 User', value: `<@${targetUserId}>`, inline: true },
+                            { name: '⭐ Points', value: `+${points}`, inline: true },
+                            { name: '💰 New Balance', value: `${userData.points} points`, inline: true },
+                            { name: '📝 Reason', value: reason, inline: false },
+                            { name: '👨‍💼 Admin', value: `<@${adminUser.id}>`, inline: true }
+                        ],
+                        footer: { text: '📊 Points Activity' },
+                        timestamp: new Date().toISOString()
+                    }]
+                })
+            });
+        } catch (webhookError) {
+            console.error('Webhook error:', webhookError);
+        }
         
         return jsonResponse({
             type: 4,
@@ -96,6 +149,7 @@ async function handleDeductPointsCommand(interaction, env) {
     const points = options.find(opt => opt.name === 'points')?.value;
     const targetUserId = options.find(opt => opt.name === 'user')?.value;
     const reason = options.find(opt => opt.name === 'reason')?.value;
+    const adminUser = interaction.member?.user || interaction.user;
     
     try {
         const userData = await getUserData(targetUserId, env);
@@ -105,6 +159,33 @@ async function handleDeductPointsCommand(interaction, env) {
         
         userData.points = Math.max(0, (userData.points || 0) - points);
         await saveUserData(userData, env);
+        
+        // Log to points activity webhook
+        const pointsWebhook = 'https://discord.com/api/webhooks/1436826449150742679/ExNLzfnEG3CCemhOpVxNxLrzH4U57ekFKhnm7td_FTNP9El2lJsxA8AsxcJKorziy9gw';
+        try {
+            await fetch(pointsWebhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    embeds: [{
+                        title: '➖ Points Deducted',
+                        description: `**${points} points** deducted from <@${targetUserId}>`,
+                        color: 0xf59e0b,
+                        fields: [
+                            { name: '👤 User', value: `<@${targetUserId}>`, inline: true },
+                            { name: '⭐ Points', value: `-${points}`, inline: true },
+                            { name: '💰 New Balance', value: `${userData.points} points`, inline: true },
+                            { name: '📝 Reason', value: reason, inline: false },
+                            { name: '👨‍💼 Admin', value: `<@${adminUser.id}>`, inline: true }
+                        ],
+                        footer: { text: '📊 Points Activity' },
+                        timestamp: new Date().toISOString()
+                    }]
+                })
+            });
+        } catch (webhookError) {
+            console.error('Webhook error:', webhookError);
+        }
         
         return jsonResponse({
             type: 4,
@@ -129,6 +210,7 @@ async function handleProcessCommand(interaction, env) {
     const options = interaction.data.options;
     const reward = options.find(opt => opt.name === 'reward')?.value;
     const targetUserId = options.find(opt => opt.name === 'user')?.value;
+    const adminUser = interaction.member?.user || interaction.user;
     
     const rewardInfo = {
         '20_off_product': { name: '20% off product', points: 500, needsCoupon: true, discount: '20%' },
@@ -159,6 +241,41 @@ async function handleProcessCommand(interaction, env) {
         
         const couponCode = `MYC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         
+        // Log to redemption webhook
+        const redemptionWebhook = 'https://discord.com/api/webhooks/1436826526883647569/mpdU8WILa-zH7hd3AI9wN6g2hUmNerpXbcq0WKzQeAEAL3A2MosB-56jvCRZtdYUPgGR';
+        try {
+            const embedData = {
+                title: '🎁 Reward Redeemed',
+                description: `<@${targetUserId}> redeemed **${info.name}**!`,
+                color: 0x10b981,
+                fields: [
+                    { name: '👤 User', value: `<@${targetUserId}>`, inline: true },
+                    { name: '🎁 Reward', value: info.name, inline: true },
+                    { name: '💰 Points Spent', value: `${info.points} points`, inline: true },
+                    { name: '📊 Remaining Balance', value: `${userData.points} points`, inline: true },
+                    { name: '👨‍💼 Processed By', value: `<@${adminUser.id}>`, inline: true }
+                ],
+                footer: { text: '🎉 Redemption Activity' },
+                timestamp: new Date().toISOString()
+            };
+            
+            if (info.needsCoupon) {
+                embedData.fields.push({
+                    name: '🎫 Coupon Code',
+                    value: `\`${couponCode}\``,
+                    inline: false
+                });
+            }
+            
+            await fetch(redemptionWebhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ embeds: [embedData] })
+            });
+        } catch (webhookError) {
+            console.error('Webhook error:', webhookError);
+        }
+        
         const responseEmbed = {
             title: '✅ Reward Processed',
             description: `Processed **${info.name}** for <@${targetUserId}>`,
@@ -187,6 +304,7 @@ async function handleDailyRewardCommand(interaction, env) {
     const options = interaction.data.options;
     const rewardName = options.find(opt => opt.name === 'reward')?.value;
     const points = options.find(opt => opt.name === 'points')?.value;
+    const adminUser = interaction.member?.user || interaction.user;
     
     try {
         const dailyReward = {
@@ -196,6 +314,31 @@ async function handleDailyRewardCommand(interaction, env) {
         };
         
         await env.BOT_CONFIG_KV?.put('daily-reward', JSON.stringify(dailyReward));
+        
+        // Log to admin logs webhook
+        const adminLogsWebhook = 'https://discord.com/api/webhooks/1436826617853902948/ZBLTXr0vbLpZbj-fhEy_EosA64VbyS2P6GQPFnR96qQ6ojg7l9QoZEmI65v7f0PyvXvX';
+        try {
+            await fetch(adminLogsWebhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    embeds: [{
+                        title: '⚙️ Daily Reward Updated',
+                        description: `Daily reward configuration has been changed`,
+                        color: 0x10b981,
+                        fields: [
+                            { name: '🎁 Reward Name', value: rewardName, inline: true },
+                            { name: '⭐ Points Value', value: `${points} points`, inline: true },
+                            { name: '👨‍💼 Updated By', value: `<@${adminUser.id}>`, inline: true }
+                        ],
+                        footer: { text: '🔧 Admin Activity' },
+                        timestamp: new Date().toISOString()
+                    }]
+                })
+            });
+        } catch (webhookError) {
+            console.error('Webhook error:', webhookError);
+        }
         
         return jsonResponse({
             type: 4,

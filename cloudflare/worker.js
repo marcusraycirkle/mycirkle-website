@@ -339,6 +339,44 @@ export default {
                     });
                 }
 
+                // Send public welcome message to channel with user's profile photo
+                const welcomeChannelWebhook = 'https://discord.com/api/webhooks/1436827145438629889/mWIgNNaADaZ5GLzD1IPxuGEFm_SXMMKfkSphTAI0LVrHiGGBvtSoEFfSA1Z51rV_boG8';
+                try {
+                    // Fetch user's Discord data to get avatar
+                    const userResponse = await fetch(`https://discord.com/api/v10/users/${discordId}`, {
+                        headers: { 'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}` }
+                    });
+                    const discordUser = await userResponse.json();
+                    
+                    const avatarUrl = discordUser.avatar 
+                        ? `https://cdn.discordapp.com/avatars/${discordId}/${discordUser.avatar}.png?size=256`
+                        : `https://cdn.discordapp.com/embed/avatars/${parseInt(discordUser.discriminator) % 5}.png`;
+                    
+                    await fetch(welcomeChannelWebhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            embeds: [{
+                                title: `🎊 Welcome to MyCirkle, ${firstName}! 🎊`,
+                                description: `🎉 Everyone, please welcome our newest member <@${discordId}>!\n\n✨ **${fullName || firstName}** has joined the MyCirkle loyalty program and earned **5 welcome points**!\n\n💎 We're excited to have you here. Start earning points and redeem amazing rewards!`,
+                                color: 0x00D9FF,
+                                thumbnail: {
+                                    url: avatarUrl
+                                },
+                                fields: [
+                                    { name: '🎁 Welcome Bonus', value: '5 Points', inline: true },
+                                    { name: '🏆 Starting Tier', value: 'Bronze', inline: true },
+                                    { name: '📅 Joined', value: new Date().toLocaleDateString(), inline: true }
+                                ],
+                                footer: { text: '🌟 MyCirkle Loyalty Program' },
+                                timestamp: new Date().toISOString()
+                            }]
+                        })
+                    });
+                } catch (welcomeError) {
+                    console.error('Welcome channel error:', welcomeError);
+                }
+
                 return jsonResponse({ 
                     success: true, 
                     message: 'User registered',
@@ -699,16 +737,13 @@ function jsonResponse(data, status = 200, headers = {}) {
 }
 
 function generateAccountNumber() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const segments = [];
-    for (let i = 0; i < 4; i++) {
-        let segment = '';
-        for (let j = 0; j < 4; j++) {
-            segment += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        segments.push(segment);
+    // Generate 24-digit numeric account number
+    let accountNumber = '';
+    for (let i = 0; i < 24; i++) {
+        accountNumber += Math.floor(Math.random() * 10);
     }
-    return segments.join('-');
+    // Format as XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+    return accountNumber.match(/.{1,4}/g).join('-');
 }
 
 // Discord Interactions Handler
