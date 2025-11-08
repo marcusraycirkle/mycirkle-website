@@ -1213,6 +1213,32 @@ input::placeholder {
     display: none !important;
 }
 
+/* Ensure readable text on white backgrounds */
+.bg-white h2, 
+.bg-white h3, 
+.bg-white h4,
+.bg-white .text-2xl,
+.bg-white .font-bold {
+    color: #1f2937 !important;
+}
+
+.bg-white label,
+.bg-white .text-sm,
+.bg-white p:not(.text-blue-600):not(.text-red-500):not(.text-green-500) {
+    color: #4b5563 !important;
+}
+
+.bg-white .faq-question span,
+.bg-white .font-semibold:not(.text-blue-600):not(.text-blue-700) {
+    color: #111827 !important;
+}
+
+/* Keep button and link colors */
+.bg-white button,
+.bg-white a {
+    color: inherit !important;
+}
+
 /* ===== SIGNUP FLOW STYLES ===== */
 .signup-flow {
     background: #ffffff;
