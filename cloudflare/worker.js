@@ -636,6 +636,57 @@ export default {
             }
         }
 
+        // API: Bot configuration (GET)
+        if (path === '/api/bot-config' && request.method === 'GET') {
+            try {
+                const config = await env.BOT_CONFIG_KV?.get('bot-config', { type: 'json' });
+                return jsonResponse(config || {
+                    botPower: true,
+                    currentStatus: 'MyCirkle Loyalty',
+                    rotationEnabled: false,
+                    rotationInterval: 60,
+                    statusList: ['Watching MyCirkle Loyalty', 'Playing with loyalty cards', 'Listening to member feedback'],
+                    activityType: 3
+                }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: 'Failed to fetch config' }, 500, corsHeaders);
+            }
+        }
+
+        // API: Bot configuration (POST - requires admin password)
+        if (path === '/api/bot-config' && request.method === 'POST') {
+            try {
+                const authHeader = request.headers.get('Authorization');
+                const adminPassword = env.ADMIN_PASSWORD || 'mycirkle2025'; // Set this in secrets!
+                
+                if (authHeader !== adminPassword) {
+                    return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
+                }
+
+                const config = await request.json();
+                await env.BOT_CONFIG_KV?.put('bot-config', JSON.stringify(config));
+                
+                return jsonResponse({ success: true }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: 'Failed to save config' }, 500, corsHeaders);
+            }
+        }
+
+        // API: Bot status check
+        if (path === '/api/bot-status' && request.method === 'GET') {
+            try {
+                const lastHeartbeat = await env.BOT_CONFIG_KV?.get('bot-last-heartbeat');
+                const isOnline = lastHeartbeat && (Date.now() - parseInt(lastHeartbeat)) < 60000; // Within last minute
+                
+                return jsonResponse({
+                    online: isOnline,
+                    lastSeen: lastHeartbeat ? new Date(parseInt(lastHeartbeat)).toISOString() : null
+                }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ online: false }, 200, corsHeaders);
+            }
+        }
+
         return new Response('Not Found', { status: 404, headers: corsHeaders });
     }
 };
@@ -686,32 +737,42 @@ async function handleDiscordInteraction(request, env) {
     if (interaction.type === 2) {
         const command = interaction.data.name;
         const userId = interaction.member?.user?.id || interaction.user?.id;
+        const options = interaction.data.options || [];
+        
+        // Check if user is admin for admin commands
+        const adminCommands = ['givepoints', 'deductpoints', 'process', 'dailyreward'];
+        if (adminCommands.includes(command)) {
+            const isAdmin = await checkAdminRole(interaction.member, env);
+            if (!isAdmin) {
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ You do not have permission to use this command. Admin role required.',
+                        flags: 64
+                    }
+                });
+            }
+        }
 
         switch (command) {
             case 'balance':
-                return handleBalanceCommand(userId, env);
-            
-            case 'card':
-                return handleCardCommand(userId, env);
-            
-            case 'rewards':
-                return handleRewardsCommand();
-            
-            case 'redeem':
-                const reward = interaction.data.options?.[0]?.value;
-                return handleRedeemCommand(userId, reward, env);
-            
-            case 'history':
-                return handleHistoryCommand(userId, env);
-            
-            case 'profile':
-                return handleProfileCommand(userId, env);
+                const targetUser = options.find(opt => opt.name === 'user')?.value;
+                return handleBalanceCommand(targetUser || userId, env);
             
             case 'leaderboard':
                 return handleLeaderboardCommand(env);
             
-            case 'help':
-                return handleHelpCommand();
+            case 'givepoints':
+                return handleGivePointsCommand(interaction, env);
+            
+            case 'deductpoints':
+                return handleDeductPointsCommand(interaction, env);
+            
+            case 'process':
+                return handleProcessCommand(interaction, env);
+            
+            case 'dailyreward':
+                return handleDailyRewardCommand(interaction, env);
             
             default:
                 return jsonResponse({
@@ -758,10 +819,137 @@ function hexToUint8Array(hex) {
     return bytes;
 }
 
+// Admin check helper
+async function checkAdminRole(member, env) {
+    if (!member || !member.roles) return false;
+    
+    // Check if user has admin/moderator role
+    // You can configure admin role IDs in environment variables
+    const adminRoleId = env.ADMIN_ROLE_ID; // Set this in Cloudflare secrets
+    
+    if (adminRoleId && member.roles.includes(adminRoleId)) {
+        return true;
+    }
+    
+    // Also check for Administrator permission
+    const permissions = parseInt(member.permissions || '0');
+    const ADMINISTRATOR = 0x8;
+    return (permissions & ADMINISTRATOR) === ADMINISTRATOR;
+}
+
+// Get user data from Google Sheets (fix for "not linked" issue)
+async function getUserData(discordId, env) {
+    try {
+        // First try KV store
+        let userData = await env.USERS_KV?.get(`user:${discordId}`, { type: 'json' });
+        
+        if (userData) {
+            return userData;
+        }
+        
+        // Fall back to Google Sheets
+        const spreadsheetId = env.SPREADSHEET_ID;
+        const sheetsApiKey = env.GOOGLE_SHEETS_API_KEY;
+        
+        if (!spreadsheetId || !sheetsApiKey) {
+            return null;
+        }
+        
+        const getResponse = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1?key=${sheetsApiKey}`
+        );
+        const data = await getResponse.json();
+        const rows = data.values || [];
+        
+        // Find user in sheets (Discord ID is in first column)
+        for (let i = 1; i < rows.length; i++) {
+            if (rows[i][0] === discordId) {
+                // Parse user data from sheet
+                userData = {
+                    discordId: rows[i][0],
+                    discordUsername: rows[i][1],
+                    email: rows[i][2],
+                    accountNumber: rows[i][3],
+                    fullName: rows[i][4],
+                    points: parseInt(rows[i][5]) || 0,
+                    robloxUsername: rows[i][6],
+                    memberSince: rows[i][7]
+                };
+                
+                // Cache in KV
+                await env.USERS_KV?.put(`user:${discordId}`, JSON.stringify(userData));
+                return userData;
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+        return null;
+    }
+}
+
+// Save user data to both KV and Google Sheets
+async function saveUserData(userData, env) {
+    try {
+        // Save to KV
+        await env.USERS_KV?.put(`user:${userData.discordId}`, JSON.stringify(userData));
+        
+        // Update Google Sheets
+        const spreadsheetId = env.SPREADSHEET_ID;
+        const sheetsApiKey = env.GOOGLE_SHEETS_API_KEY;
+        
+        if (spreadsheetId && sheetsApiKey) {
+            const getResponse = await fetch(
+                `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1?key=${sheetsApiKey}`
+            );
+            const data = await getResponse.json();
+            const rows = data.values || [];
+            
+            // Find row to update
+            let rowIndex = -1;
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i][0] === userData.discordId) {
+                    rowIndex = i + 1; // +1 for 1-based index
+                    break;
+                }
+            }
+            
+            if (rowIndex > 0) {
+                // Update the row
+                await fetch(
+                    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A${rowIndex}:H${rowIndex}?valueInputOption=RAW&key=${sheetsApiKey}`,
+                    {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            values: [[
+                                userData.discordId,
+                                userData.discordUsername,
+                                userData.email,
+                                userData.accountNumber,
+                                userData.fullName,
+                                userData.points,
+                                userData.robloxUsername,
+                                userData.memberSince
+                            ]]
+                        })
+                    }
+                );
+            }
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Error saving user data:', error);
+        return false;
+    }
+}
+
 // Command Handlers
 async function handleBalanceCommand(userId, env) {
     try {
-        const userData = await env.USERS_KV?.get(`user:${userId}`, { type: 'json' });
+        const userData = await getUserData(userId, env);
         
         if (!userData) {
             return jsonResponse({
@@ -769,7 +957,7 @@ async function handleBalanceCommand(userId, env) {
                 data: {
                     embeds: [{
                         title: '❌ Account Not Found',
-                        description: 'You don\'t have a MyCirkle account yet!\n\nSign up at https://my.cirkledevelopment.co.uk',
+                        description: 'This user doesn\'t have a MyCirkle account yet!\n\nSign up at https://my.cirkledevelopment.co.uk',
                         color: 0xef4444
                     }],
                     flags: 64
@@ -784,7 +972,7 @@ async function handleBalanceCommand(userId, env) {
             type: 4,
             data: {
                 embeds: [{
-                    title: '💰 Your MyCirkle Balance',
+                    title: `💰 ${userData.fullName || userData.discordUsername}'s Balance`,
                     color: 0x10b981,
                     fields: [
                         { name: '⭐ Points', value: `**${points}** points`, inline: true },

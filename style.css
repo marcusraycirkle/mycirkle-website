@@ -698,7 +698,7 @@ input::placeholder {
 
 /* ===== FOOTER ===== */
 .footer {
-    position: fixed;
+    position: relative;
     bottom: 0;
     left: 0;
     width: 100%;
@@ -707,7 +707,7 @@ input::placeholder {
     text-align: center;
     padding: 15px 10px;
     font-size: 0.85em;
-    z-index: 1000;
+    margin-top: auto;
     box-shadow: 0 -2px 20px rgba(0,0,0,0.3);
     border-top: 1px solid rgba(255,255,255,0.1);
 }
@@ -2638,6 +2638,11 @@ select.modern-input option {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    color: #ffffff !important;
+}
+
+.debit-card-front *, .debit-card-back * {
+    color: #ffffff !important;
 }
 
 /* Card gradient variations - assigned based on account ID */

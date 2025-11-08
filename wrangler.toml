@@ -2,6 +2,12 @@ name = "mycirkle-auth"
 main = "cloudflare/worker.js"
 compatibility_date = "2025-10-25"
 
+# KV Namespaces
+kv_namespaces = [
+  { binding = "USERS_KV", id = "your_users_kv_id" },
+  { binding = "BOT_CONFIG_KV", id = "your_bot_config_kv_id" }
+]
+
 # Environment variables (add these via Cloudflare Dashboard or wrangler secret)
 # Run these commands to set secrets:
 # wrangler secret put DISCORD_CLIENT_ID
@@ -10,3 +16,4 @@ compatibility_date = "2025-10-25"
 # wrangler secret put GOOGLE_SHEETS_API_KEY
 # wrangler secret put SPREADSHEET_ID
 # wrangler secret put DISCORD_GUILD_ID
+# wrangler secret put ADMIN_PASSWORD
