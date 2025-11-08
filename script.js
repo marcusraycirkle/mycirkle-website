@@ -966,7 +966,7 @@ function showAccount() {
                 <div class="settings-group">
                     <label class="block text-gray-700 text-sm font-medium mb-2">Display Name</label>
                     <div class="flex gap-2">
-                        <input type="text" id="edit-name" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${currentUser?.fullName || ''}">
+                        <input type="text" id="edit-name" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" value="${currentUser?.fullName || ''}">
                         <button onclick="updateDisplayName()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
                     </div>
                 </div>
@@ -974,26 +974,51 @@ function showAccount() {
                 <div class="settings-group">
                     <label class="block text-gray-700 text-sm font-medium mb-2">Email</label>
                     <div class="flex gap-2">
-                        <input type="email" id="edit-email" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${currentUser?.email || ''}">
+                        <input type="email" id="edit-email" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" value="${currentUser?.email || ''}">
                         <button onclick="updateEmail()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
                     </div>
                 </div>
                 
                 <div class="settings-group">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Roblox Username</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="edit-roblox" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="${currentUser?.robloxUsername || ''}" placeholder="Enter Roblox username">
-                        <button onclick="updateRoblox()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Linked Discord Account</label>
+                    <div class="linked-account-display">
+                        <img src="${currentUser?.avatar ? 'https://cdn.discordapp.com/avatars/' + currentUser.id + '/' + currentUser.avatar + '.png' : 'https://cdn.discordapp.com/embed/avatars/0.png'}" alt="Discord Avatar">
+                        <div class="linked-account-info">
+                            <div class="username">${currentUser?.username || 'Not linked'}</div>
+                            <div class="display-name">${currentUser?.global_name || currentUser?.username || 'N/A'}</div>
+                        </div>
                     </div>
+                    <p class="text-xs text-gray-500 mt-1">Connected via Discord OAuth</p>
+                </div>
+                
+                <div class="settings-group">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Linked Roblox Account</label>
+                    ${currentUser?.robloxUsername ? `
+                        <div class="linked-account-display">
+                            <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${currentUser.robloxUserId || '1'}&width=150&height=150&format=png" alt="Roblox Avatar" onerror="this.src='https://www.roblox.com/headshot-thumbnail/image?userId=1&width=150&height=150&format=png'">
+                            <div class="linked-account-info">
+                                <div class="username">${currentUser.robloxUsername}</div>
+                                <div class="display-name">User ID: ${currentUser.robloxUserId || 'N/A'}</div>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="bg-gray-100 p-4 rounded-lg border-2 border-dashed border-gray-300 text-center">
+                            <p class="text-gray-500 text-sm">🔒 Roblox account not linked yet</p>
+                            <p class="text-xs text-gray-400 mt-1">OAuth coming soon after approval</p>
+                        </div>
+                    `}
                     <p class="text-xs text-gray-500 mt-1">Required for product verification</p>
                 </div>
                 
                 <div class="settings-group">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">New Password</label>
-                    <div class="flex gap-2">
-                        <input type="password" id="edit-pass" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter new password">
-                        <button onclick="updatePassword()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Change Password</label>
+                    <div class="space-y-2">
+                        <input type="password" id="edit-old-pass" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" placeholder="Current password">
+                        <input type="password" id="edit-new-pass" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" placeholder="New password">
+                        <input type="password" id="edit-confirm-pass" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" placeholder="Confirm new password">
+                        <button onclick="updatePassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update Password</button>
                     </div>
+                    <p class="text-xs text-gray-500 mt-1">Requires verification code sent to Discord</p>
                 </div>
                 
                 <div class="danger-zone">
@@ -1264,15 +1289,43 @@ function updateRoblox() {
 }
 
 function updatePassword() {
-    const newPassword = document.getElementById('edit-pass').value;
-    if (newPassword.trim() && newPassword.length >= 6) {
-        currentUser.password = newPassword;
-        localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
-        document.getElementById('edit-pass').value = '';
-        alert('Password updated successfully!');
-    } else {
-        alert('Password must be at least 6 characters long.');
+    const oldPassword = document.getElementById('edit-old-pass').value;
+    const newPassword = document.getElementById('edit-new-pass').value;
+    const confirmPassword = document.getElementById('edit-confirm-pass').value;
+    
+    if (!oldPassword || !newPassword || !confirmPassword) {
+        alert('⚠️ Please fill in all password fields.');
+        return;
     }
+    
+    if (currentUser.password && oldPassword !== currentUser.password) {
+        alert('❌ Current password is incorrect.');
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        alert('⚠️ New password must be at least 6 characters long.');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        alert('❌ New passwords do not match.');
+        return;
+    }
+    
+    // Show verification modal
+    showVerification(
+        '🔐 Verify Password Change',
+        'To change your password, please enter the verification code sent to your Discord.',
+        () => {
+            currentUser.password = newPassword;
+            localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+            document.getElementById('edit-old-pass').value = '';
+            document.getElementById('edit-new-pass').value = '';
+            document.getElementById('edit-confirm-pass').value = '';
+            alert('✅ Password updated successfully!');
+        }
+    );
 }
 
 // Reset Account
