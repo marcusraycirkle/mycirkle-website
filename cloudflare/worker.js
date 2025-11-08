@@ -757,6 +757,119 @@ export default {
             }
         }
 
+        // Admin Email Endpoints
+        if (path === '/api/admin/send-email' && request.method === 'POST') {
+            try {
+                const { recipients, subject, message, adminKey } = await request.json();
+                
+                // Verify admin key
+                if (adminKey !== env.ADMIN_KEY) {
+                    return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
+                }
+
+                // Get all users from Google Sheets
+                const users = await getAllUsers(env);
+                
+                // Filter recipients
+                let targetUsers = [];
+                const now = Date.now();
+                
+                switch (recipients) {
+                    case 'all':
+                        targetUsers = users;
+                        break;
+                    case 'active':
+                        // Users who logged in last 30 days (we'll send to all for now)
+                        targetUsers = users;
+                        break;
+                    case 'high-points':
+                        targetUsers = users.filter(u => (u.points || 0) >= 500);
+                        break;
+                    case 'new':
+                        // Users who joined last 7 days
+                        const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
+                        targetUsers = users.filter(u => {
+                            const joinedDate = new Date(u.memberSince).getTime();
+                            return joinedDate >= sevenDaysAgo;
+                        });
+                        break;
+                    case 'test':
+                        // Send only to first user or admin
+                        targetUsers = users.slice(0, 1);
+                        break;
+                    default:
+                        targetUsers = users;
+                }
+
+                if (targetUsers.length === 0) {
+                    return jsonResponse({ error: 'No recipients found' }, 400, corsHeaders);
+                }
+
+                // Send emails via Resend
+                const sent = await sendBulkEmails(env, targetUsers, subject, message);
+                
+                // Log to history
+                await logEmailHistory(env, {
+                    recipients,
+                    subject,
+                    sent: sent.length,
+                    timestamp: new Date().toISOString()
+                });
+
+                return jsonResponse({ 
+                    success: true, 
+                    sent: sent.length,
+                    failed: targetUsers.length - sent.length
+                }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        if (path === '/api/admin/email-stats' && request.method === 'GET') {
+            try {
+                const users = await getAllUsers(env);
+                const emailsToday = await getEmailsSentToday(env);
+                
+                return jsonResponse({
+                    totalMembers: users.length,
+                    emailsToday
+                }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        if (path === '/api/admin/email-history' && request.method === 'GET') {
+            try {
+                const history = await getEmailHistory(env);
+                return jsonResponse({ emails: history }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // Transactional Emails (Welcome, Account Deletion)
+        if (path === '/api/email/welcome' && request.method === 'POST') {
+            try {
+                const { email, firstName, accountNumber, points } = await request.json();
+                await sendWelcomeEmail(env, email, firstName, accountNumber, points);
+                return jsonResponse({ success: true }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        if (path === '/api/email/account-deleted' && request.method === 'POST') {
+            try {
+                const { email, firstName } = await request.json();
+                await sendAccountDeletedEmail(env, email, firstName);
+                return jsonResponse({ success: true }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
         return new Response('Not Found', { status: 404, headers: corsHeaders });
     }
 };
@@ -1572,3 +1685,137 @@ async function handleDailyRewardCommand(interaction, env) {
     }
 }
 
+
+// ===== EMAIL FUNCTIONS =====
+
+// Send bulk emails via Resend
+async function sendBulkEmails(env, users, subject, message) {
+    const sent = [];
+    
+    for (const user of users) {
+        try {
+            const personalizedMessage = message
+                .replace(/{{firstName}}/g, user.fullName?.split(' ')[0] || 'Friend')
+                .replace(/{{points}}/g, user.points || 5);
+            
+            const personalizedSubject = subject
+                .replace(/{{firstName}}/g, user.fullName?.split(' ')[0] || 'Friend')
+                .replace(/{{points}}/g, user.points || 5);
+            
+            const response = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    from: 'MyCirkle <mycirkle@cirkledevelopment.co.uk>',
+                    to: [user.email],
+                    subject: personalizedSubject,
+                    html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;"><h1 style="color: white; margin: 0;">MyCirkle</h1></div><div style="padding: 30px; background: #f9fafb;"><div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${personalizedMessage.split('\n').map(line => `<p style="color: #374151; line-height: 1.6;">${line}</p>`).join('')}</div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development. All rights reserved.</p></div></div>`
+                })
+            });
+            
+            if (response.ok) sent.push(user.email);
+        } catch (error) {
+            console.error(`Failed to send to ${user.email}:`, error);
+        }
+    }
+    
+    return sent;
+}
+
+// Send welcome email
+async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
+    await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            from: 'MyCirkle <mycirkle@cirkledevelopment.co.uk>',
+            to: [email],
+            subject: '🎉 Welcome to MyCirkle!',
+            html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;"><h1 style="color: white; margin: 0;">🎉 Welcome to MyCirkle!</h1></div><div style="padding: 30px; background: #f9fafb;"><div style="background: white; padding: 30px; border-radius: 10px;"><h2 style="color: #1f2937;">Hi ${firstName}!</h2><p style="color: #374151;">Thank you for joining MyCirkle! We're excited to have you as part of our loyalty family. 💜</p><div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;"><h3 style="color: #1f2937; margin-top: 0;">Your Account Details:</h3><p style="color: #374151;"><strong>Account Number:</strong> ${accountNumber}</p><p style="color: #374151;"><strong>Welcome Bonus:</strong> ${points} points 🎁</p></div><div style="text-align: center; margin: 30px 0;"><a href="https://my.cirkledevelopment.co.uk" style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">View Dashboard</a></div></div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development</p></div></div>`
+        })
+    });
+}
+
+// Send account deleted email
+async function sendAccountDeletedEmail(env, email, firstName) {
+    await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            from: 'MyCirkle <mycirkle@cirkledevelopment.co.uk>',
+            to: [email],
+            subject: '👋 Your MyCirkle Account Has Been Deleted',
+            html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background: #1f2937; padding: 30px; text-align: center;"><h1 style="color: white; margin: 0;">👋 Goodbye from MyCirkle</h1></div><div style="padding: 30px; background: #f9fafb;"><div style="background: white; padding: 30px; border-radius: 10px;"><h2 style="color: #1f2937;">Hi ${firstName},</h2><p style="color: #374151;">Your MyCirkle account has been successfully deleted. All your data has been permanently removed.</p><p style="color: #374151;">We're sad to see you go! You're always welcome to come back. 💜</p></div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development</p></div></div>`
+        })
+    });
+}
+
+// Get all users from Google Sheets
+async function getAllUsers(env) {
+    try {
+        const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${env.SPREADSHEET_ID}/values/Sheet1?key=${env.GOOGLE_SHEETS_API_KEY}`);
+        const data = await response.json();
+        const rows = data.values || [];
+        if (rows.length <= 1) return [];
+        
+        const users = [];
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            users.push({
+                discordId: row[0],
+                discordUsername: row[1],
+                email: row[2],
+                accountNumber: row[3],
+                fullName: row[4],
+                points: parseInt(row[5]) || 0,
+                robloxUsername: row[6],
+                memberSince: row[7]
+            });
+        }
+        return users;
+    } catch (error) {
+        console.error('Error getting users:', error);
+        return [];
+    }
+}
+
+// Log email history to KV
+async function logEmailHistory(env, emailData) {
+    try {
+        const history = await getEmailHistory(env);
+        history.unshift(emailData);
+        await env.USERS_KV?.put('email:history', JSON.stringify(history.slice(0, 50)));
+    } catch (error) {
+        console.error('Error logging email history:', error);
+    }
+}
+
+// Get email history from KV
+async function getEmailHistory(env) {
+    try {
+        const data = await env.USERS_KV?.get('email:history');
+        return data ? JSON.parse(data) : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+// Get emails sent today
+async function getEmailsSentToday(env) {
+    try {
+        const history = await getEmailHistory(env);
+        const today = new Date().toDateString();
+        return history.filter(email => new Date(email.timestamp).toDateString() === today).reduce((sum, email) => sum + email.sent, 0);
+    } catch (error) {
+        return 0;
+    }
+}

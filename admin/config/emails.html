@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Marketing - MyCirkle Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="glass rounded-xl shadow-2xl p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">📧 Email Marketing Dashboard</h1>
+                    <p class="text-gray-600 mt-1">Send marketing emails to your MyCirkle members</p>
+                </div>
+                <a href="../botconfig.html" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+                    ← Back to Admin
+                </a>
+            </div>
+        </div>
+
+        <!-- Email Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="glass rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Total Members</p>
+                        <p id="total-members" class="text-3xl font-bold text-gray-800">0</p>
+                    </div>
+                    <div class="text-4xl">👥</div>
+                </div>
+            </div>
+            <div class="glass rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Emails Sent Today</p>
+                        <p id="emails-today" class="text-3xl font-bold text-purple-600">0</p>
+                    </div>
+                    <div class="text-4xl">📨</div>
+                </div>
+            </div>
+            <div class="glass rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Monthly Quota</p>
+                        <p class="text-3xl font-bold text-green-600">3,000</p>
+                        <p class="text-xs text-gray-500">Free tier</p>
+                    </div>
+                    <div class="text-4xl">✉️</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compose Email -->
+        <div class="glass rounded-xl shadow-2xl p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">📝 Compose Marketing Email</h2>
+            
+            <div class="space-y-4">
+                <!-- Recipients -->
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Send To:</label>
+                    <select id="recipients" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="all">All Members</option>
+                        <option value="active">Active Members (logged in last 30 days)</option>
+                        <option value="high-points">High Point Members (500+ points)</option>
+                        <option value="new">New Members (joined last 7 days)</option>
+                        <option value="test">Test (Admin Only)</option>
+                    </select>
+                </div>
+
+                <!-- Subject -->
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Subject Line:</label>
+                    <input type="text" id="subject" placeholder="e.g., New Rewards Available! 🎁" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+
+                <!-- Email Template -->
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Email Template:</label>
+                    <select id="template" onchange="loadTemplate()" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 mb-3">
+                        <option value="custom">Custom Message</option>
+                        <option value="new-rewards">New Rewards Announcement</option>
+                        <option value="points-reminder">Points Balance Reminder</option>
+                        <option value="event">Event Invitation</option>
+                        <option value="update">Platform Update</option>
+                    </select>
+                </div>
+
+                <!-- Message Body -->
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Message:</label>
+                    <textarea id="message" rows="10" placeholder="Write your email message here... You can use {{firstName}} and {{points}} as placeholders." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"></textarea>
+                    <p class="text-xs text-gray-500 mt-2">💡 Pro tip: Use {{firstName}} to personalize and {{points}} to show their current points</p>
+                </div>
+
+                <!-- Preview -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-700 mb-2">Preview:</h3>
+                    <div id="preview" class="bg-white p-4 rounded border border-gray-300 min-h-[100px]">
+                        <p class="text-gray-400 italic">Your email preview will appear here...</p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-4">
+                    <button onclick="sendEmail()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-lg font-bold text-lg transition">
+                        📨 Send Email
+                    </button>
+                    <button onclick="clearForm()" class="bg-gray-400 hover:bg-gray-500 text-white px-8 py-4 rounded-lg font-semibold transition">
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Send History -->
+        <div class="glass rounded-xl shadow-2xl p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">📋 Recent Emails</h2>
+            <div id="email-history" class="space-y-3">
+                <p class="text-gray-400 italic text-center py-8">No emails sent yet</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loading-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md mx-4 text-center">
+            <div class="text-6xl mb-4">📧</div>
+            <h3 class="text-2xl font-bold mb-4">Sending Emails...</h3>
+            <p class="text-gray-600 mb-6">This may take a moment</p>
+            <div class="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md mx-4 text-center">
+            <div class="text-green-500 text-6xl mb-4">✅</div>
+            <h3 class="text-2xl font-bold mb-4">Emails Sent!</h3>
+            <p class="text-gray-600 mb-6" id="success-message">Your emails have been sent successfully</p>
+            <button onclick="closeSuccessModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const WORKER_URL = 'https://mycirkle-auth.marcusray.workers.dev';
+        
+        // Email templates
+        const templates = {
+            'new-rewards': {
+                subject: '🎁 New Rewards Available in MyCirkle!',
+                message: `Hi {{firstName}},
+
+Exciting news! We've just added brand new rewards to MyCirkle! 🎉
+
+You currently have {{points}} points ready to redeem. Check out our new rewards:
+
+✨ Exclusive discount codes
+🎮 Free gaming items
+🚚 Free shipping vouchers
+⭐ And much more!
+
+Visit your dashboard now to see what you can get:
+https://my.cirkledevelopment.co.uk
+
+Thank you for being part of the MyCirkle family! 💜
+
+- The Cirkle Development Team`
+            },
+            'points-reminder': {
+                subject: '💰 You have {{points}} points waiting in MyCirkle!',
+                message: `Hey {{firstName}},
+
+Just a friendly reminder that you have {{points}} points in your MyCirkle account! 🎯
+
+Don't let them sit there - redeem them for awesome rewards:
+- Discount codes
+- Free shipping
+- Exclusive perks
+- And more!
+
+Login to your dashboard:
+https://my.cirkledevelopment.co.uk
+
+Happy redeeming! 🎁
+
+- The Cirkle Development Team`
+            },
+            'event': {
+                subject: '🎉 You\'re Invited: Special MyCirkle Event!',
+                message: `Hi {{firstName}},
+
+You're invited to our special MyCirkle event! 🎊
+
+Join us for exclusive giveaways, bonus points, and special rewards available only during the event.
+
+📅 Event Details:
+• When: [Add date/time]
+• Where: Discord Server
+• What: Giveaways, Bonus Points, Exclusive Rewards
+
+Your current balance: {{points}} points
+
+Join the event:
+[Add Discord invite link]
+
+See you there! 🚀
+
+- The Cirkle Development Team`
+            },
+            'update': {
+                subject: '📢 MyCirkle Platform Update',
+                message: `Hello {{firstName}},
+
+We've made some exciting updates to MyCirkle! 🔧
+
+What's New:
+• [Feature 1]
+• [Feature 2]
+• [Feature 3]
+
+These improvements make earning and redeeming your {{points}} points even easier!
+
+Check out the updates:
+https://my.cirkledevelopment.co.uk
+
+As always, thank you for your continued support! 💜
+
+- The Cirkle Development Team`
+            }
+        };
+
+        // Load template
+        function loadTemplate() {
+            const templateId = document.getElementById('template').value;
+            if (templateId === 'custom') {
+                document.getElementById('subject').value = '';
+                document.getElementById('message').value = '';
+                return;
+            }
+            
+            const template = templates[templateId];
+            document.getElementById('subject').value = template.subject;
+            document.getElementById('message').value = template.message;
+            updatePreview();
+        }
+
+        // Update preview
+        function updatePreview() {
+            const subject = document.getElementById('subject').value;
+            const message = document.getElementById('message').value;
+            
+            const previewHTML = `
+                <div class="border-b pb-3 mb-3">
+                    <p class="text-xs text-gray-500 mb-1">Subject:</p>
+                    <p class="font-bold">${subject || '(No subject)'}</p>
+                </div>
+                <div class="whitespace-pre-wrap text-sm">${message.replace(/{{firstName}}/g, '<span class="bg-yellow-200 px-1 rounded">John</span>').replace(/{{points}}/g, '<span class="bg-blue-200 px-1 rounded">250</span>') || '(No message)'}</div>
+            `;
+            document.getElementById('preview').innerHTML = previewHTML;
+        }
+
+        // Listen to input changes
+        document.getElementById('subject').addEventListener('input', updatePreview);
+        document.getElementById('message').addEventListener('input', updatePreview);
+
+        // Send email
+        async function sendEmail() {
+            const recipients = document.getElementById('recipients').value;
+            const subject = document.getElementById('subject').value;
+            const message = document.getElementById('message').value;
+
+            if (!subject || !message) {
+                alert('Please fill in both subject and message fields!');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to send this email to: ${recipients}?`)) {
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loading-modal').classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${WORKER_URL}/api/admin/send-email`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        recipients,
+                        subject,
+                        message,
+                        adminKey: localStorage.getItem('adminKey') || prompt('Enter admin key:')
+                    })
+                });
+
+                const result = await response.json();
+
+                document.getElementById('loading-modal').classList.add('hidden');
+
+                if (response.ok) {
+                    document.getElementById('success-message').textContent = `Successfully sent ${result.sent || 0} emails!`;
+                    document.getElementById('success-modal').classList.remove('hidden');
+                    clearForm();
+                    loadHistory();
+                    loadStats();
+                } else {
+                    alert('Error: ' + (result.error || 'Failed to send emails'));
+                }
+            } catch (error) {
+                document.getElementById('loading-modal').classList.add('hidden');
+                alert('Network error: ' + error.message);
+            }
+        }
+
+        // Clear form
+        function clearForm() {
+            document.getElementById('recipients').value = 'all';
+            document.getElementById('subject').value = '';
+            document.getElementById('message').value = '';
+            document.getElementById('template').value = 'custom';
+            updatePreview();
+        }
+
+        // Close success modal
+        function closeSuccessModal() {
+            document.getElementById('success-modal').classList.add('hidden');
+        }
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const response = await fetch(`${WORKER_URL}/api/admin/email-stats`);
+                const stats = await response.json();
+                
+                document.getElementById('total-members').textContent = stats.totalMembers || 0;
+                document.getElementById('emails-today').textContent = stats.emailsToday || 0;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Load history
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${WORKER_URL}/api/admin/email-history`);
+                const history = await response.json();
+                
+                if (history.emails && history.emails.length > 0) {
+                    const historyHTML = history.emails.map(email => `
+                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-gray-800">${email.subject}</p>
+                                    <p class="text-sm text-gray-600 mt-1">To: ${email.recipients} • Sent: ${email.sent} emails</p>
+                                    <p class="text-xs text-gray-400 mt-2">${new Date(email.timestamp).toLocaleString()}</p>
+                                </div>
+                                <span class="text-green-500 text-2xl">✓</span>
+                            </div>
+                        </div>
+                    `).join('');
+                    document.getElementById('email-history').innerHTML = historyHTML;
+                }
+            } catch (error) {
+                console.error('Failed to load history:', error);
+            }
+        }
+
+        // Initialize
+        loadStats();
+        loadHistory();
+    </script>
+</body>
+</html>
