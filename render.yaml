@@ -1,5 +1,5 @@
 services:
-  - type: web
+  - type: worker
     name: MyCirkle Bot
     env: node
     buildCommand: npm install
