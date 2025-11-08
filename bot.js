@@ -4,12 +4,34 @@
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CONFIG_URL = process.env.CONFIG_URL || 'https://mycirkle-auth.marcusray.workers.dev/api/bot-config';
+const PORT = process.env.PORT || 3000;
 
 if (!BOT_TOKEN) {
     console.error('❌ Error: BOT_TOKEN environment variable is required');
     console.log('Usage: BOT_TOKEN=your_token node bot.js');
     process.exit(1);
 }
+
+// Create HTTP server for Render health checks
+const http = require('http');
+const server = http.createServer((req, res) => {
+    if (req.url === '/health' || req.url === '/') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            status: 'online',
+            bot: ws ? 'connected' : 'disconnected',
+            uptime: Math.floor(process.uptime()),
+            lastConfigFetch: lastConfigFetch || 'never'
+        }));
+    } else {
+        res.writeHead(404);
+        res.end('Not Found');
+    }
+});
+
+server.listen(PORT, () => {
+    console.log(`🌐 Health check server running on port ${PORT}`);
+});
 
 // Minimal WebSocket connection to Discord Gateway
 const WebSocket = require('ws');
@@ -19,6 +41,7 @@ let ws = null;
 let heartbeatInterval = null;
 let sessionId = null;
 let resumeGatewayUrl = null;
+let lastConfigFetch = null;
 let currentConfig = {
     botPower: true,
     currentStatus: 'MyCirkle Loyalty',
@@ -43,6 +66,7 @@ async function fetchConfig() {
                     const config = JSON.parse(data);
                     if (config && typeof config === 'object') {
                         currentConfig = { ...currentConfig, ...config };
+                        lastConfigFetch = new Date().toISOString();
                         console.log('📥 Config updated:', {
                             power: currentConfig.botPower ? 'ON' : 'OFF',
                             rotation: currentConfig.rotationEnabled ? 'ON' : 'OFF',
