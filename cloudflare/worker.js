@@ -282,61 +282,92 @@ export default {
                 // Generate account number if not provided
                 const finalAccountNumber = accountNumber || generateAccountNumber();
 
-                // Save to Google Sheets via webhook (to avoid Cloudflare blocking)
-                const webhookUrl = env.SIGNUP_WEBHOOK_URL;
-                if (webhookUrl) {
-                    await fetch(webhookUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            content: null,
-                            embeds: [{
-                                title: 'New User Registration',
-                                color: 0x5865F2,
-                                fields: [
-                                    { name: 'Username', value: discordUsername || 'N/A', inline: true },
-                                    { name: 'Email', value: email || 'N/A', inline: true },
-                                    { name: 'Account Type', value: 'Consumer', inline: true },
-                                    { name: 'Account Number', value: finalAccountNumber, inline: false },
-                                    { name: 'Discord Account', value: `<@${discordId}>`, inline: true },
-                                    { name: 'Registered At', value: memberSince || new Date().toISOString(), inline: true },
-                                    { name: 'Roblox Username', value: robloxUsername || 'Not provided', inline: true },
-                                    { name: 'Country', value: country || 'N/A', inline: true },
-                                    { name: 'Timezone', value: timezone || 'N/A', inline: true },
-                                    { name: 'Marketing Emails', value: acceptedMarketing ? 'Yes' : 'No', inline: true }
-                                ],
-                                footer: { text: 'MyCirkle Loyalty Bot' },
-                                timestamp: new Date().toISOString()
-                            }]
-                        })
-                    });
+                // Create user data object with 5 welcome points
+                const newUserData = {
+                    discordId,
+                    discordUsername,
+                    email,
+                    accountNumber: finalAccountNumber,
+                    fullName: fullName || `${firstName} ${lastName}`,
+                    firstName,
+                    lastName,
+                    points: 5, // START WITH 5 POINTS
+                    robloxUsername: robloxUsername || '',
+                    memberSince: memberSince || new Date().toISOString()
+                };
+
+                // Save to Google Sheets directly
+                const spreadsheetId = env.SPREADSHEET_ID;
+                const sheetsApiKey = env.GOOGLE_SHEETS_API_KEY;
+                
+                if (spreadsheetId && sheetsApiKey) {
+                    await fetch(
+                        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1:append?valueInputOption=RAW&key=${sheetsApiKey}`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                values: [[
+                                    discordId,
+                                    discordUsername,
+                                    email,
+                                    finalAccountNumber,
+                                    newUserData.fullName,
+                                    5, // Initial points
+                                    robloxUsername || '',
+                                    memberSince || new Date().toISOString()
+                                ]]
+                            })
+                        }
+                    );
                 }
 
+                // Also save to KV for caching
+                await env.USERS_KV?.put(`user:${discordId}`, JSON.stringify(newUserData));
+
                 // Send welcome DM
-                const dmWebhookUrl = env.WELCOME_DM_WEBHOOK_URL;
-                if (dmWebhookUrl) {
-                    await fetch(dmWebhookUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            content: `<@${discordId}>`,
-                            embeds: [{
-                                title: '🎉 Welcome to MyCirkle!',
-                                description: `Hi ${firstName}! Your loyalty account has been created successfully.`,
-                                color: 0x00D9FF,
-                                fields: [
-                                    { name: '📧 Email', value: email || 'Not provided', inline: true },
-                                    { name: '🎮 Roblox', value: robloxUsername || 'Not linked', inline: true },
-                                    { name: '🔢 Account Number', value: `\`${finalAccountNumber}\``, inline: false },
-                                    { name: '⭐ Points Balance', value: '**5 points** (Welcome Bonus!)', inline: true },
-                                    { name: '🎁 Tier', value: 'Bronze', inline: true },
-                                    { name: '📅 Member Since', value: new Date().toLocaleDateString(), inline: true }
-                                ],
-                                footer: { text: 'Keep this information safe!' },
-                                timestamp: new Date().toISOString()
-                            }]
-                        })
-                    });
+                const botToken = env.DISCORD_BOT_TOKEN;
+                if (botToken) {
+                    try {
+                        // Create DM channel
+                        const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${botToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ recipient_id: discordId })
+                        });
+                        const channel = await channelResponse.json();
+
+                        // Send welcome DM with account details
+                        await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${botToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                embeds: [{
+                                    title: '🎉 Welcome to MyCirkle!',
+                                    description: `Hi **${firstName}**! Your loyalty account has been created successfully.`,
+                                    color: 0x00D9FF,
+                                    fields: [
+                                        { name: '📧 Email', value: email || 'Not provided', inline: true },
+                                        { name: '🎮 Roblox', value: robloxUsername || 'Not linked', inline: true },
+                                        { name: '🔢 Account Number', value: `\`${finalAccountNumber}\``, inline: false },
+                                        { name: '⭐ Points Balance', value: '**5 points** (Welcome Bonus!)', inline: true },
+                                        { name: '🎁 Tier', value: 'Bronze', inline: true },
+                                        { name: '📅 Member Since', value: new Date().toLocaleDateString(), inline: true }
+                                    ],
+                                    footer: { text: 'Keep this information safe!' },
+                                    timestamp: new Date().toISOString()
+                                }]
+                            })
+                        });
+                    } catch (dmError) {
+                        console.error('DM error:', dmError);
+                    }
                 }
 
                 // Send public welcome message to channel with user's profile photo
@@ -356,9 +387,10 @@ export default {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                            content: `🎊 Everyone, please welcome <@${discordId}>!`,
                             embeds: [{
-                                title: `🎊 Welcome to MyCirkle, ${firstName}! 🎊`,
-                                description: `🎉 Everyone, please welcome our newest member <@${discordId}>!\n\n✨ **${fullName || firstName}** has joined the MyCirkle loyalty program and earned **5 welcome points**!\n\n💎 We're excited to have you here. Start earning points and redeem amazing rewards!`,
+                                title: `� ${firstName} joined MyCirkle!`,
+                                description: `✨ **${firstName}** has joined the MyCirkle loyalty program and earned **5 welcome points**!\n\n💎 Start earning points and redeem amazing rewards!`,
                                 color: 0x00D9FF,
                                 thumbnail: {
                                     url: avatarUrl

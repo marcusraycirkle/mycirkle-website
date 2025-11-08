@@ -1350,12 +1350,25 @@ function confirmReset() {
 
 // Update User Initials
 function updateUserInitials() {
-    if (!currentUser || !currentUser.firstName || !currentUser.lastName) return;
+    if (!currentUser) return;
     
-    const userInitialsEl = document.getElementById('user-initials');
-    if (userInitialsEl) {
-        const initials = `${currentUser.firstName[0]}${currentUser.lastName[0]}`;
-        userInitialsEl.textContent = initials.toUpperCase();
+    const userAvatarEl = document.getElementById('user-avatar-img');
+    if (userAvatarEl && currentUser.discordId) {
+        // Fetch Discord avatar
+        fetch(`https://discord.com/api/v10/users/${currentUser.discordId}`, {
+            headers: { 'Authorization': `Bot ${window.DISCORD_BOT_TOKEN}` }
+        })
+        .then(res => res.json())
+        .then(discordUser => {
+            const avatarUrl = discordUser.avatar 
+                ? `https://cdn.discordapp.com/avatars/${currentUser.discordId}/${discordUser.avatar}.png?size=128`
+                : `https://cdn.discordapp.com/embed/avatars/${parseInt(discordUser.discriminator) % 5}.png`;
+            userAvatarEl.src = avatarUrl;
+        })
+        .catch(err => {
+            // Fallback to default avatar
+            userAvatarEl.src = `https://cdn.discordapp.com/embed/avatars/0.png`;
+        });
     }
 }
 
