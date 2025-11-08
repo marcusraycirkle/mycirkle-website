@@ -323,7 +323,7 @@ export default {
                                     { name: '📧 Email', value: email || 'Not provided', inline: true },
                                     { name: '🎮 Roblox', value: robloxUsername || 'Not linked', inline: true },
                                     { name: '🔢 Account Number', value: `\`${finalAccountNumber}\``, inline: false },
-                                    { name: '⭐ Points Balance', value: '0 points', inline: true },
+                                    { name: '⭐ Points Balance', value: '**5 points** (Welcome Bonus!)', inline: true },
                                     { name: '🎁 Tier', value: 'Bronze', inline: true },
                                     { name: '📅 Member Since', value: new Date().toLocaleDateString(), inline: true }
                                 ],
@@ -434,6 +434,200 @@ export default {
             } catch (error) {
                 console.error('Products API error:', error);
                 return jsonResponse({ success: true, products: [] }, 200, corsHeaders);
+            }
+        }
+
+        // API: Send verification code via Discord DM
+        if (path === '/api/send-verification' && request.method === 'POST') {
+            try {
+                const { discordId, code, action } = await request.json();
+                const botToken = env.DISCORD_BOT_TOKEN;
+                
+                if (!botToken) {
+                    return jsonResponse({ error: 'Bot not configured' }, 500, corsHeaders);
+                }
+
+                // Create DM channel
+                const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ recipient_id: discordId })
+                });
+
+                const channel = await channelResponse.json();
+
+                // Send verification code
+                await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        embeds: [{
+                            title: '🔐 MyCirkle Verification Code',
+                            description: `Your verification code for **${action}**:`,
+                            color: 0x5865F2,
+                            fields: [{
+                                name: 'Code',
+                                value: `\`\`\`${code}\`\`\``,
+                                inline: false
+                            }],
+                            footer: { text: 'This code expires in 10 minutes. Do not share it with anyone.' },
+                            timestamp: new Date().toISOString()
+                        }]
+                    })
+                });
+
+                return jsonResponse({ success: true }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Verification code error:', error);
+                return jsonResponse({ error: 'Failed to send code' }, 500, corsHeaders);
+            }
+        }
+
+        // API: Delete account
+        if (path === '/api/delete-account' && request.method === 'DELETE') {
+            try {
+                const { discordId, accountId } = await request.json();
+                const botToken = env.DISCORD_BOT_TOKEN;
+                const spreadsheetId = env.SPREADSHEET_ID;
+                const sheetsApiKey = env.GOOGLE_SHEETS_API_KEY;
+
+                // Delete from Google Sheets
+                if (spreadsheetId && sheetsApiKey) {
+                    try {
+                        const getResponse = await fetch(
+                            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1?key=${sheetsApiKey}`
+                        );
+                        const data = await getResponse.json();
+                        const rows = data.values || [];
+                        
+                        // Find row index
+                        let rowIndex = -1;
+                        for (let i = 1; i < rows.length; i++) {
+                            if (rows[i][0] === discordId || rows[i][3] === accountId) {
+                                rowIndex = i;
+                                break;
+                            }
+                        }
+
+                        if (rowIndex > 0) {
+                            // Clear the row
+                            await fetch(
+                                `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A${rowIndex + 1}:Z${rowIndex + 1}:clear?key=${sheetsApiKey}`,
+                                { method: 'POST' }
+                            );
+                        }
+                    } catch (err) {
+                        console.error('Sheets deletion error:', err);
+                    }
+                }
+
+                // Send goodbye DM
+                if (botToken && discordId) {
+                    try {
+                        const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${botToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ recipient_id: discordId })
+                        });
+
+                        const channel = await channelResponse.json();
+
+                        await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${botToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                embeds: [{
+                                    title: '👋 Goodbye from MyCirkle',
+                                    description: 'Your account has been successfully deleted.',
+                                    color: 0xf59e0b,
+                                    fields: [{
+                                        name: 'We\'ll miss you!',
+                                        value: 'Thank you for being part of our loyalty program. We hope to see you again soon! ✨',
+                                        inline: false
+                                    }],
+                                    footer: { text: 'Your data has been permanently erased from our systems.' },
+                                    timestamp: new Date().toISOString()
+                                }]
+                            })
+                        });
+                    } catch (err) {
+                        console.error('Goodbye DM error:', err);
+                    }
+                }
+
+                return jsonResponse({ success: true }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Delete account error:', error);
+                return jsonResponse({ error: 'Failed to delete account' }, 500, corsHeaders);
+            }
+        }
+
+        // API: Send welcome DM
+        if (path === '/api/welcome-dm' && request.method === 'POST') {
+            try {
+                const { discordId, name } = await request.json();
+                const botToken = env.DISCORD_BOT_TOKEN;
+                
+                if (!botToken) {
+                    return jsonResponse({ error: 'Bot not configured' }, 500, corsHeaders);
+                }
+
+                const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ recipient_id: discordId })
+                });
+
+                const channel = await channelResponse.json();
+
+                await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        embeds: [{
+                            title: `🎉 Welcome to MyCirkle, ${name}!`,
+                            description: 'Thank you for joining our exclusive loyalty program!',
+                            color: 0x10b981,
+                            fields: [
+                                {
+                                    name: '✨ You\'ve been awarded 5 starter points!',
+                                    value: 'Start earning more by making purchases and engaging with our community.',
+                                    inline: false
+                                },
+                                {
+                                    name: '🎁 What you can do:',
+                                    value: '• Earn points with every purchase\n• Redeem exclusive rewards\n• Track your progress\n• Access member-only perks',
+                                    inline: false
+                                }
+                            ],
+                            footer: { text: 'We\'ll notify you about special offers and updates here!' },
+                            timestamp: new Date().toISOString()
+                        }]
+                    })
+                });
+
+                return jsonResponse({ success: true }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Welcome DM error:', error);
+                return jsonResponse({ error: 'Failed to send welcome' }, 500, corsHeaders);
             }
         }
 

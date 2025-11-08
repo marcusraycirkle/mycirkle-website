@@ -2628,3 +2628,220 @@ select.modern-input option {
     }
 }
 
+/* ===== DEBIT CARD STYLES ===== */
+.debit-card {
+    aspect-ratio: 1.586;
+    min-height: 240px;
+}
+
+.debit-card-front, .debit-card-back {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Card gradient variations - assigned based on account ID */
+.gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.gradient-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.gradient-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.gradient-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+.gradient-5 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+.gradient-6 { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+.gradient-7 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+.gradient-8 { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
+.gradient-9 { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); }
+.gradient-10 { background: linear-gradient(135deg, #ff6e7f 0%, #bfe9ff 100%); }
+
+.debit-card-front.flipped {
+    transform: rotateY(180deg);
+}
+
+/* ===== FOOTER FIX ===== */
+.footer {
+    position: relative !important;
+    bottom: auto !important;
+    margin-top: auto;
+}
+
+/* ===== TEXT COLOR FIXES ===== */
+.faq-question {
+    color: #000 !important;
+}
+
+.settings-group input[type="text"],
+.settings-group input[type="email"],
+.settings-group input[type="password"],
+.settings-group select {
+    color: #000 !important;
+}
+
+.settings-group label {
+    color: #000 !important;
+}
+
+/* Progress bar target visualization */
+.progress-target-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgba(255, 255, 255, 0.4);
+    transition: left 0.3s ease;
+    pointer-events: none;
+}
+
+.progress-current-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #fff;
+    transition: left 0.3s ease;
+    pointer-events: none;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Target buttons */
+.target-btn {
+    color: #000 !important;
+    background: #fff;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.target-btn.active {
+    border-color: #3b82f6;
+    background: #dbeafe;
+}
+
+/* Verification modal */
+.verification-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.verification-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+.verification-input {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1.5rem;
+    text-align: center;
+    letter-spacing: 0.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+}
+
+/* Goodbye animation */
+.goodbye-animation {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.5s ease;
+}
+
+.goodbye-content {
+    text-align: center;
+    color: white;
+    padding: 2rem;
+    animation: slideUp 1s ease;
+}
+
+.goodbye-content h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    animation: pulse 2s ease infinite;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Copy button */
+.copy-btn {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+}
+
+.copy-btn:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.copy-btn:active {
+    transform: translateY(0);
+}
+
+/* Linked account displays */
+.linked-account-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: #f3f4f6;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.linked-account-display img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.linked-account-info {
+    flex: 1;
+}
+
+.linked-account-info .username {
+    font-weight: 600;
+    color: #111827;
+}
+
+.linked-account-info .display-name {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+

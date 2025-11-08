@@ -280,6 +280,11 @@ function showPage(pageId) {
     if (page) {
         page.classList.add('active');
         window.location.hash = pageId;
+        
+        // Update loyalty card when showing loyalty page
+        if (pageId === 'loyalty') {
+            setTimeout(() => updateLoyaltyCard(), 100);
+        }
     }
     if (pageId.includes('loading') || pageId === 'confirm' || pageId === 'reset-loading') {
         handleLoadingAnimations(pageId);
@@ -1354,3 +1359,245 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
     }
 });
+
+// ===== NEW FEATURES FOR MYCIRKLE REDESIGN =====
+
+// Copy reward code to clipboard
+function copyRewardCode() {
+    const codeElement = document.getElementById('reward-code');
+    const code = codeElement.textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        btn.style.background = '#10b981';
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.background = '#3b82f6';
+        }, 2000);
+    }).catch(err => {
+        alert('Failed to copy code');
+    });
+}
+
+// Generate 24-digit card number
+function generate24DigitNumber(accountId) {
+    const hash = accountId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    let number = '';
+    for (let i = 0; i < 24; i++) {
+        number += Math.floor((hash * (i + 1)) % 10);
+    }
+    return number.match(/.{1,4}/g).join(' ');
+}
+
+// Get gradient class based on account ID
+function getCardGradient(accountId) {
+    if (!accountId) return 'gradient-1';
+    const hash = accountId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return `gradient-${(hash % 10) + 1}`;
+}
+
+// Update loyalty card with debit card design
+function updateLoyaltyCard() {
+    if (!currentUser) return;
+    
+    const cardFront = document.getElementById('card-front');
+    const cardBack = document.getElementById('card-back');
+    if (!cardFront || !cardBack) return;
+    
+    const gradientClass = getCardGradient(currentUser.accountId);
+    
+    cardFront.className = `absolute w-full h-full rounded-2xl shadow-2xl p-6 text-white debit-card-front ${gradientClass}`;
+    cardBack.className = `absolute w-full h-full rounded-2xl shadow-2xl p-6 text-white debit-card-back ${gradientClass}`;
+    
+    // Front
+    const cardNameFront = document.getElementById('card-name-front');
+    if (cardNameFront) cardNameFront.textContent = currentUser.fullName || 'Guest Member';
+    
+    // Back
+    const cardNameBack = document.getElementById('card-name-back');
+    if (cardNameBack) cardNameBack.textContent = currentUser.fullName || 'Guest Member';
+    
+    const issueDate = document.getElementById('card-issue-date');
+    if (issueDate) issueDate.textContent = new Date(currentUser.memberSince || Date.now()).toLocaleDateString('en-GB', { month: '2-digit', year: '2-digit' });
+    
+    const cardPoints = document.getElementById('card-points-back');
+    if (cardPoints) cardPoints.textContent = currentUser.points || 5;
+    
+    const cardNumber = document.getElementById('card-number-24');
+    if (cardNumber) cardNumber.textContent = generate24DigitNumber(currentUser.accountId || 'DEFAULT');
+    
+    generateBarcodeBack();
+}
+
+// Generate barcode for card back
+function generateBarcodeBack() {
+    const svg = document.getElementById('barcode-back');
+    if (!svg || !currentUser) return;
+    
+    const accountId = currentUser.accountId || generateAccountId();
+    const barcodeData = accountId.replace(/-/g, '');
+    
+    let barcodeHTML = '<g fill="white">';
+    let x = 10;
+    for (let i = 0; i < barcodeData.length && x < 190; i++) {
+        const char = barcodeData.charCodeAt(i);
+        const width = (char % 3) + 1.5;
+        const height = 60;
+        barcodeHTML += `<rect x="${x}" y="10" width="${width}" height="${height}"/>`;
+        x += width + 2;
+    }
+    barcodeHTML += '</g>';
+    svg.innerHTML = barcodeHTML;
+}
+
+// Progress bar target visualization
+let activeTarget = null;
+
+function setProgressTarget(targetPoints) {
+    activeTarget = targetPoints;
+    updateProgressBarTargets();
+}
+
+function updateProgressBarTargets() {
+    const progressContainers = document.querySelectorAll('.progress-bar-container');
+    if (!progressContainers.length || !currentUser) return;
+    
+    progressContainers.forEach(container => {
+        container.querySelectorAll('.progress-target-line, .progress-current-line').forEach(el => el.remove());
+        
+        if (activeTarget) {
+            const currentPoints = currentUser.points || 5;
+            const maxPoints = Math.max(activeTarget, currentPoints, 100);
+            
+            const currentLine = document.createElement('div');
+            currentLine.className = 'progress-current-line';
+            currentLine.style.left = `${(currentPoints / maxPoints) * 100}%`;
+            container.appendChild(currentLine);
+            
+            const targetLine = document.createElement('div');
+            targetLine.className = 'progress-target-line';
+            targetLine.style.left = `${(activeTarget / maxPoints) * 100}%`;
+            container.appendChild(targetLine);
+        }
+    });
+}
+
+// Verification system
+let verificationCallback = null;
+let verificationCode = null;
+
+function showVerification(title, message, callback) {
+    verificationCallback = callback;
+    verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    sendVerificationCode(verificationCode, message);
+    
+    const modal = document.createElement('div');
+    modal.className = 'verification-modal';
+    modal.innerHTML = `
+        <div class="verification-content">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">${title}</h2>
+            <p class="text-gray-600 mb-4">${message}</p>
+            <p class="text-sm text-blue-600 mb-4">📬 Check your Discord DMs for the verification code</p>
+            <input type="text" id="verification-input" class="verification-input" maxlength="6" placeholder="000000">
+            <div class="flex gap-3 mt-4">
+                <button onclick="cancelVerification()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition">
+                    Cancel
+                </button>
+                <button onclick="submitVerification()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition">
+                    Verify
+                </button>
+            </div>
+        </div>
+    `;
+    modal.id = 'verification-modal';
+    document.body.appendChild(modal);
+    setTimeout(() => document.getElementById('verification-input').focus(), 100);
+}
+
+function cancelVerification() {
+    const modal = document.getElementById('verification-modal');
+    if (modal) modal.remove();
+    verificationCallback = null;
+    verificationCode = null;
+}
+
+function submitVerification() {
+    const input = document.getElementById('verification-input').value;
+    if (input === verificationCode) {
+        cancelVerification();
+        if (verificationCallback) verificationCallback();
+    } else {
+        alert('❌ Invalid verification code. Please check your Discord DMs and try again.');
+    }
+}
+
+async function sendVerificationCode(code, action) {
+    if (!currentUser) return;
+    try {
+        await fetch(`${WORKER_URL}/api/send-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.discordId,
+                code: code,
+                action: action
+            })
+        });
+    } catch (error) {
+        console.error('Failed to send verification code:', error);
+    }
+}
+
+// Enhanced account deletion
+function deleteAccount() {
+    showVerification(
+        '🔐 Verify Account Deletion',
+        'To permanently delete your account, please enter the verification code sent to your Discord.',
+        confirmAccountDeletion
+    );
+}
+
+async function confirmAccountDeletion() {
+    const modal = document.createElement('div');
+    modal.className = 'goodbye-animation';
+    modal.innerHTML = `
+        <div class="goodbye-content">
+            <div class="text-6xl mb-6">⏳</div>
+            <h2 class="text-3xl font-bold mb-4">Deleting your account...</h2>
+            <p class="text-lg opacity-90">Please wait</p>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    try {
+        await fetch(`${WORKER_URL}/api/delete-account`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.discordId,
+                accountId: currentUser.accountId
+            })
+        });
+        
+        setTimeout(() => {
+            modal.innerHTML = `
+                <div class="goodbye-content">
+                    <h1>👋</h1>
+                    <h2 class="text-4xl font-bold mb-4">We'll miss you!</h2>
+                    <p class="text-xl mb-6">Thank you for being part of MyCirkle.</p>
+                    <p class="text-lg opacity-90">Your data has been permanently erased.</p>
+                    <p class="text-lg opacity-90 mt-4">We hope to see you again soon! ✨</p>
+                </div>
+            `;
+        }, 2000);
+        
+        setTimeout(() => {
+            localStorage.removeItem('mycirkle_user');
+            window.location.href = '/';
+        }, 10000);
+    } catch (error) {
+        modal.remove();
+        alert('Failed to delete account. Please try again or contact support.');
+    }
+}
