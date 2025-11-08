@@ -3,11 +3,10 @@ main = "cloudflare/worker.js"
 compatibility_date = "2025-10-25"
 
 # KV Namespaces
-# kv_namespaces = [
-#   { binding = "USERS_KV", id = "your_users_kv_id" },
-#   { binding = "BOT_CONFIG_KV", id = "your_bot_config_kv_id" }
-# ]
-# Note: Create KV namespaces with: wrangler kv:namespace create "USERS_KV"
+kv_namespaces = [
+  { binding = "USERS_KV", id = "cb320b48606345bbbfac29139e5db68f" },
+  { binding = "BOT_CONFIG_KV", id = "dfc4081295604f00a43a3d1eaa4aee7c" }
+]
 
 # Environment variables (add these via Cloudflare Dashboard or wrangler secret)
 # Run these commands to set secrets:
