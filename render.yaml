@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: MyCirkle Bot
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: CONFIG_URL
+        value: https://mycirkle-auth.marcusray.workers.dev/api/bot-config
