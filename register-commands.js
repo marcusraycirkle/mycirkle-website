@@ -13,44 +13,111 @@ if (!BOT_TOKEN) {
 const commands = [
     {
         name: 'balance',
-        description: 'Check your MyCirkle points balance',
-    },
-    {
-        name: 'card',
-        description: 'View your MyCirkle loyalty card',
-    },
-    {
-        name: 'rewards',
-        description: 'Browse available rewards in the MyCirkle store',
-    },
-    {
-        name: 'redeem',
-        description: 'Redeem a reward with your points',
+        description: 'Check MyCirkle points balance',
         options: [
             {
-                name: 'reward',
-                description: 'The reward you want to redeem',
-                type: 3, // STRING type
-                required: true,
-                autocomplete: true
+                name: 'user',
+                description: 'User to check balance for (leave empty for yourself)',
+                type: 6, // USER type
+                required: false
             }
         ]
-    },
-    {
-        name: 'history',
-        description: 'View your points history and transactions',
-    },
-    {
-        name: 'profile',
-        description: 'View your MyCirkle account profile',
     },
     {
         name: 'leaderboard',
         description: 'See the top MyCirkle members by points',
     },
     {
-        name: 'help',
-        description: 'Get help with MyCirkle commands',
+        name: 'givepoints',
+        description: '[ADMIN] Give points to a user',
+        options: [
+            {
+                name: 'points',
+                description: 'Amount of points to give',
+                type: 4, // INTEGER type
+                required: true,
+                min_value: 1
+            },
+            {
+                name: 'user',
+                description: 'User to give points to',
+                type: 6, // USER type
+                required: true
+            },
+            {
+                name: 'reason',
+                description: 'Reason for giving points',
+                type: 3, // STRING type
+                required: true
+            }
+        ]
+    },
+    {
+        name: 'deductpoints',
+        description: '[ADMIN] Deduct points from a user',
+        options: [
+            {
+                name: 'points',
+                description: 'Amount of points to deduct',
+                type: 4, // INTEGER type
+                required: true,
+                min_value: 1
+            },
+            {
+                name: 'user',
+                description: 'User to deduct points from',
+                type: 6, // USER type
+                required: true
+            },
+            {
+                name: 'reason',
+                description: 'Reason for deducting points',
+                type: 3, // STRING type
+                required: true
+            }
+        ]
+    },
+    {
+        name: 'process',
+        description: '[ADMIN] Process a reward redemption',
+        options: [
+            {
+                name: 'reward',
+                description: 'Reward being redeemed',
+                type: 3, // STRING type
+                required: true,
+                choices: [
+                    { name: '20% off product (500pts)', value: '20_off_product' },
+                    { name: '40% off commission (750pts)', value: '40_off_commission' },
+                    { name: 'Free Product (200pts)', value: 'free_product' }
+                ]
+            },
+            {
+                name: 'user',
+                description: 'User redeeming the reward',
+                type: 6, // USER type
+                required: true
+            }
+        ]
+    },
+    {
+        name: 'dailyreward',
+        description: '[ADMIN] Set the daily reward',
+        options: [
+            {
+                name: 'reward',
+                description: 'Name of the daily reward',
+                type: 3, // STRING type
+                required: true
+            },
+            {
+                name: 'points',
+                description: 'Points value for the daily reward',
+                type: 4, // INTEGER type
+                required: true,
+                min_value: 1
+            }
+        ]
     }
 ];
 
@@ -76,9 +143,12 @@ async function registerCommands() {
         const data = await response.json();
         console.log('✅ Successfully registered commands:');
         data.forEach(cmd => {
-            console.log(`   /${cmd.name} - ${cmd.description}`);
+            const isAdmin = ['givepoints', 'deductpoints', 'process', 'dailyreward'].includes(cmd.name);
+            const prefix = isAdmin ? '🔒 [ADMIN] ' : '   ';
+            console.log(`${prefix}/${cmd.name} - ${cmd.description}`);
         });
         console.log(`\n📊 Total: ${data.length} commands registered`);
+        console.log(`\n⚠️  Admin commands require admin role in Discord server`);
     } catch (error) {
         console.error('Error:', error);
         process.exit(1);

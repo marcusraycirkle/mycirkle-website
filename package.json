@@ -1,0 +1,15 @@
+{
+  "name": "mycirkle-bot",
+  "version": "1.0.0",
+  "description": "MyCirkle Discord bot - maintains online presence",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

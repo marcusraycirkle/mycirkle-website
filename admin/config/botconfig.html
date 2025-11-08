@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyCirkle Bot Configuration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">🤖 Bot Configuration</h1>
+            <div id="bot-status" class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-gray-400" id="status-indicator"></div>
+                <span class="text-sm text-gray-600" id="status-text">Checking...</span>
+            </div>
+        </div>
+
+        <!-- Bot Power -->
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h2 class="text-lg font-semibold mb-3">Bot Power</h2>
+            <div class="flex items-center justify-between">
+                <span class="text-gray-700">Bot Status</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="bot-power" class="sr-only peer" checked>
+                    <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
+                </label>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">Turn bot online/offline (requires bot to be running on hosting platform)</p>
+        </div>
+
+        <!-- Current Status -->
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h2 class="text-lg font-semibold mb-3">Current Status</h2>
+            <input type="text" id="current-status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Watching MyCirkle Loyalty">
+        </div>
+
+        <!-- Status Rotation -->
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h2 class="text-lg font-semibold mb-3">Status Rotation</h2>
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-gray-700">Enable Rotation</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="rotation-enabled" class="sr-only peer">
+                    <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-500"></div>
+                </label>
+            </div>
+            
+            <div id="rotation-settings" style="display: none;">
+                <label class="block text-sm text-gray-700 mb-2">Rotation Interval (seconds)</label>
+                <input type="number" id="rotation-interval" value="60" min="30" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4">
+                
+                <label class="block text-sm text-gray-700 mb-2">Status Messages (one per line)</label>
+                <textarea id="status-list" rows="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Watching MyCirkle Loyalty&#10;Playing with loyalty cards&#10;Listening to member feedback&#10;Competing for rewards"></textarea>
+            </div>
+        </div>
+
+        <!-- Status Type -->
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h2 class="text-lg font-semibold mb-3">Activity Type</h2>
+            <select id="activity-type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="0">Playing</option>
+                <option value="1">Streaming</option>
+                <option value="2">Listening to</option>
+                <option value="3" selected>Watching</option>
+                <option value="5">Competing in</option>
+            </select>
+        </div>
+
+        <!-- Hosting Info -->
+        <div class="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+            <h3 class="font-semibold text-blue-900 mb-2">📦 Hosting Required</h3>
+            <p class="text-sm text-blue-800 mb-2">To keep the bot online 24/7, deploy bot.js to one of these free platforms:</p>
+            <ul class="text-sm text-blue-700 space-y-1 ml-4">
+                <li>• <strong>Railway.app</strong> - $5/month free credit (recommended)</li>
+                <li>• <strong>Render.com</strong> - 750 hours/month free</li>
+                <li>• <strong>Fly.io</strong> - Free tier with 3 VMs</li>
+            </ul>
+            <p class="text-xs text-blue-600 mt-2">The bot will automatically fetch this config every 30 seconds.</p>
+        </div>
+
+        <!-- Admin Auth -->
+        <div class="mb-6 p-4 bg-yellow-50 rounded-lg">
+            <label class="block text-sm text-gray-700 mb-2">Admin Password</label>
+            <input type="password" id="admin-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent" placeholder="Enter admin password">
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-4">
+            <button onclick="saveConfig()" class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:shadow-lg transition transform hover:-translate-y-1">
+                💾 Save Configuration
+            </button>
+            <button onclick="loadConfig()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-lg transition">
+                🔄 Reload
+            </button>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="message" class="mt-4 hidden p-4 rounded-lg"></div>
+    </div>
+
+    <script>
+        const WORKER_URL = 'https://mycirkle-auth.marcusray.workers.dev';
+
+        // Toggle rotation settings visibility
+        document.getElementById('rotation-enabled').addEventListener('change', (e) => {
+            document.getElementById('rotation-settings').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        async function saveConfig() {
+            const password = document.getElementById('admin-password').value;
+            
+            if (!password) {
+                showMessage('Please enter admin password', 'error');
+                return;
+            }
+
+            const config = {
+                botPower: document.getElementById('bot-power').checked,
+                currentStatus: document.getElementById('current-status').value,
+                rotationEnabled: document.getElementById('rotation-enabled').checked,
+                rotationInterval: parseInt(document.getElementById('rotation-interval').value),
+                statusList: document.getElementById('status-list').value.split('\n').filter(s => s.trim()),
+                activityType: parseInt(document.getElementById('activity-type').value)
+            };
+
+            try {
+                const response = await fetch(`${WORKER_URL}/api/bot-config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': password
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('✅ Configuration saved successfully!', 'success');
+                    checkBotStatus();
+                } else {
+                    showMessage('❌ ' + (data.error || 'Failed to save'), 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Network error: ' + error.message, 'error');
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${WORKER_URL}/api/bot-config`);
+                const config = await response.json();
+
+                if (response.ok && config) {
+                    document.getElementById('bot-power').checked = config.botPower !== false;
+                    document.getElementById('current-status').value = config.currentStatus || '';
+                    document.getElementById('rotation-enabled').checked = config.rotationEnabled || false;
+                    document.getElementById('rotation-interval').value = config.rotationInterval || 60;
+                    document.getElementById('status-list').value = (config.statusList || []).join('\n');
+                    document.getElementById('activity-type').value = config.activityType || 3;
+                    
+                    // Trigger rotation visibility
+                    document.getElementById('rotation-settings').style.display = config.rotationEnabled ? 'block' : 'none';
+                    
+                    showMessage('✅ Configuration loaded', 'success');
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+            }
+        }
+
+        async function checkBotStatus() {
+            try {
+                const response = await fetch(`${WORKER_URL}/api/bot-status`);
+                const data = await response.json();
+
+                const indicator = document.getElementById('status-indicator');
+                const text = document.getElementById('status-text');
+
+                if (data.online) {
+                    indicator.className = 'w-3 h-3 rounded-full bg-green-500 animate-pulse';
+                    text.textContent = 'Online';
+                } else {
+                    indicator.className = 'w-3 h-3 rounded-full bg-red-500';
+                    text.textContent = 'Offline';
+                }
+            } catch (error) {
+                document.getElementById('status-text').textContent = 'Unknown';
+            }
+        }
+
+        function showMessage(msg, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = msg;
+            messageDiv.className = `mt-4 p-4 rounded-lg ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            messageDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Load config on page load
+        loadConfig();
+        checkBotStatus();
+        
+        // Check bot status every 10 seconds
+        setInterval(checkBotStatus, 10000);
+    </script>
+</body>
+</html>
