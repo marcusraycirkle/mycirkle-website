@@ -10,7 +10,7 @@
 <body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
     <!-- Footer (always visible, positioned fixed) -->
     <footer class="footer">
-        © Cirkle Development 2024 - Followed by MyCirkleDevelopment Account | mycirkle@cirkledevelopment.co.uk
+        © Cirkle Development 2024MTQyNjY4MjcyMDU0NDYyNDcyMA.GBlPFW.4VQj5Q2xBev6ObHJShMDCIseqQB-QLqS8uAHc4 - Followed by MyCirkleDevelopment Account | mycirkle@cirkledevelopment.co.uk
     </footer>
 
     <!-- NEW MODERN HOME PAGE -->
@@ -550,20 +550,21 @@
                 
                 <div class="mb-8">
                     <p class="text-lg font-semibold mb-4">Available Points: <span id="available-points-alt" class="text-blue-600">0</span></p>
-                    <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+                    <div class="relative w-full bg-gray-200 rounded-full h-4 mb-4">
                         <div id="progress-fill" class="bg-gradient-to-r from-green-400 to-green-600 h-4 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                        <div id="target-line" class="absolute top-0 bottom-0 w-0.5 bg-black bg-opacity-40 transition-all duration-500" style="left: 100%;"></div>
                     </div>
                     
                     <div class="mb-6">
                         <p class="text-sm text-gray-600 mb-2">Set Target:</p>
                         <div class="flex flex-wrap gap-2">
-                            <button onclick="setTarget(100)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">100</button>
-                            <button onclick="setTarget(200)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">200</button>
-                            <button onclick="setTarget(500)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">500</button>
-                            <button onclick="setTarget(750)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">750</button>
-                            <button onclick="setTarget(1000)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">1000</button>
-                            <button onclick="setTarget(1500)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">1500</button>
-                            <button onclick="setTarget(2000)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm transition">2000</button>
+                            <button onclick="setTarget(100)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm text-black font-medium transition">100</button>
+                            <button onclick="setTarget(200)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm text-black font-medium transition">200</button>
+                            <button onclick="setTarget(500)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm text-black font-medium transition">500</button>
+                            <button onclick="setTarget(750)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm text-black font-medium transition">750</button>
+                            <button onclick="setTarget(1000)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm text-black font-medium transition">1000</button>
+                            <button onclick="setTarget(1500)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm text-black font-medium transition">1500</button>
+                            <button onclick="setTarget(2000)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-full text-sm text-black font-medium transition">2000</button>
                         </div>
                     </div>
                 </div>
@@ -650,10 +651,103 @@
                 <div class="space-y-4">
                     <div class="border border-gray-200 rounded-lg overflow-hidden">
                         <button onclick="toggleFAQ('faq1')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
-                            <span class="font-semibold text-black">Terms & Conditions</span>
+                            <span class="font-semibold text-black">What is MyCirkle?</span>
                             <span id="faq1-icon" class="text-2xl transition-transform text-black">+</span>
                         </button>
                         <div id="faq1-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                            <p class="text-gray-600 mb-3">MyCirkleDevelopment (commonly referred to as MyCirkle) is an innovative loyalty account program designed to reward both new and returning customers for their continued support and engagement. By participating in simple, interactive activities such as completing tasks, joining events, and taking part in promotions, users can earn points and access exclusive rewards tailored to their preferred platforms.</p>
+                            <p class="text-gray-600 mb-3">The primary goal of MyCirkle is to help customers save money and gain extra benefits while engaging with the brand's community-based services. Whether you're a casual visitor or a dedicated supporter, MyCirkle offers opportunities to receive digital rewards, discounts, and unique perks for your involvement.</p>
+                            <p class="text-gray-600">As a loyalty program still in heavy development and BETA testing, MyCirkle will continue to evolve with user feedback, adding new features, rewards, and integrations over time. MyCirkle is not only a loyalty program, but it is a new family for those returning and new customers.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleFAQ('faq2')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
+                            <span class="font-semibold text-black">How do I earn points?</span>
+                            <span id="faq2-icon" class="text-2xl transition-transform text-black">+</span>
+                        </button>
+                        <div id="faq2-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                            <p class="text-gray-600 mb-2">You can earn points by:</p>
+                            <ul class="list-disc list-inside text-gray-600 space-y-1 ml-4">
+                                <li>Making purchases from Cirkle Development</li>
+                                <li>Completing tasks and challenges</li>
+                                <li>Participating in events and promotions</li>
+                                <li>Engaging with the community</li>
+                                <li>Claiming your daily rewards</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleFAQ('faq3')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
+                            <span class="font-semibold text-black">Where do I redeem my rewards?</span>
+                            <span id="faq3-icon" class="text-2xl transition-transform text-black">+</span>
+                        </button>
+                        <div id="faq3-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                            <p class="text-gray-600 mb-2">To redeem your rewards, please open a ticket in our Discord Server. Our support team will assist you with:</p>
+                            <ul class="list-disc list-inside text-gray-600 space-y-1 ml-4">
+                                <li>Processing reward redemptions</li>
+                                <li>Verifying your scratch card codes</li>
+                                <li>Answering questions about available rewards</li>
+                                <li>Helping with any redemption issues</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleFAQ('faq4')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
+                            <span class="font-semibold text-black">How do I get support?</span>
+                            <span id="faq4-icon" class="text-2xl transition-transform text-black">+</span>
+                        </button>
+                        <div id="faq4-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                            <p class="text-gray-600 mb-2">For general support, enquiries, and redemptions, please open a ticket in the Discord Server.</p>
+                            <p class="text-gray-600">For account loss, details, TOS/&C, and Privacy Policy matters, please email: <a href="mailto:mycirkle@cirkledevelopment.co.uk" class="text-blue-600 hover:underline">mycirkle@cirkledevelopment.co.uk</a></p>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleFAQ('faq5')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
+                            <span class="font-semibold text-black">What can I get with my points?</span>
+                            <span id="faq5-icon" class="text-2xl transition-transform text-black">+</span>
+                        </button>
+                        <div id="faq5-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                            <p class="text-gray-600 mb-2">Your points can be redeemed for:</p>
+                            <ul class="list-disc list-inside text-gray-600 space-y-1 ml-4">
+                                <li>Discount codes for future purchases</li>
+                                <li>Free shipping vouchers</li>
+                                <li>Exclusive digital rewards</li>
+                                <li>Special perks and benefits</li>
+                                <li>Early access to new products and events</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleFAQ('faq6')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
+                            <span class="font-semibold text-black">Lost Account Details?</span>
+                            <span id="faq6-icon" class="text-2xl transition-transform text-black">+</span>
+                        </button>
+                        <div id="faq6-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                            <p class="text-gray-600">If you've lost your account details, please email us at: <a href="mailto:mycirkle@cirkledevelopment.co.uk" class="text-blue-600 hover:underline">mycirkle@cirkledevelopment.co.uk</a> with your Discord username and any information you can provide about your account.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleFAQ('faq7')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
+                            <span class="font-semibold text-black">Is MyCirkle still in development?</span>
+                            <span id="faq7-icon" class="text-2xl transition-transform text-black">+</span>
+                        </button>
+                        <div id="faq7-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                            <p class="text-gray-600">Yes! MyCirkle is currently in heavy development and BETA testing. We're constantly adding new features, rewards, and integrations based on user feedback. If you encounter any bugs or have suggestions, please report them through Discord tickets to help us improve the experience for everyone.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <button onclick="toggleFAQ('faq8')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
+                            <span class="font-semibold text-black">Terms & Conditions</span>
+                            <span id="faq8-icon" class="text-2xl transition-transform text-black">+</span>
+                        </button>
+                        <div id="faq8-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
                             <a href="https://my.cirkledevelopment.co.uk/mycirkle-terms" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 underline">
                                 View our complete Terms & Conditions
                             </a>
@@ -661,31 +755,11 @@
                     </div>
                     
                     <div class="border border-gray-200 rounded-lg overflow-hidden">
-                        <button onclick="toggleFAQ('faq2')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
-                            <span class="font-semibold text-black">Lost Account Details</span>
-                            <span id="faq2-icon" class="text-2xl transition-transform text-black">+</span>
-                        </button>
-                        <div id="faq2-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
-                            <p class="text-gray-600">Contact us at: <a href="mailto:mycirkle@cirkledevelopment.co.uk" class="text-blue-600 hover:underline">mycirkle@cirkledevelopment.co.uk</a></p>
-                        </div>
-                    </div>
-                    
-                    <div class="border border-gray-200 rounded-lg overflow-hidden">
-                        <button onclick="toggleFAQ('faq3')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
-                            <span class="font-semibold text-black">What is MyCirkle?</span>
-                            <span id="faq3-icon" class="text-2xl transition-transform text-black">+</span>
-                        </button>
-                        <div id="faq3-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
-                            <p class="text-gray-600">MyCirkle is an exclusive loyalty program that rewards our valued customers with points for every purchase. Earn rewards, unlock perks, and enjoy member-only benefits!</p>
-                        </div>
-                    </div>
-                    
-                    <div class="border border-gray-200 rounded-lg overflow-hidden">
-                        <button onclick="toggleFAQ('faq4')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
+                        <button onclick="toggleFAQ('faq9')" class="w-full text-left p-4 hover:bg-gray-50 flex justify-between items-center transition faq-question">
                             <span class="font-semibold text-black">Privacy Policy</span>
-                            <span id="faq4-icon" class="text-2xl transition-transform text-black">+</span>
+                            <span id="faq9-icon" class="text-2xl transition-transform text-black">+</span>
                         </button>
-                        <div id="faq4-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                        <div id="faq9-content" class="hidden border-t border-gray-200 p-4 bg-gray-50">
                             <a href="https://my.cirkledevelopment.co.uk/mycirkle-privacy" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 underline">
                                 View our Privacy Policy
                             </a>
@@ -767,44 +841,52 @@
                 
                 <div class="max-w-md mx-auto" style="perspective: 1000px;">
                     <div id="loyalty-card" onclick="flipCard()" class="relative w-full cursor-pointer debit-card" style="transform-style: preserve-3d; transition: transform 0.8s; aspect-ratio: 1.586;">
-                        <!-- Front of card (Debit card style) -->
-                        <div id="card-front" class="absolute w-full h-full rounded-2xl shadow-2xl p-6 text-white debit-card-front" style="backface-visibility: hidden; transform-style: preserve-3d;">
-                            <div class="flex justify-between items-start">
-                                <div class="w-12 h-12"></div>
-                                <div class="text-right flex items-center gap-2">
-                                    <img src="https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png" alt="Logo" class="w-10 h-10 object-contain">
-                                    <h3 class="text-2xl font-bold">MyCirkle</h3>
-                                </div>
+                        <!-- Front of card (Proper Debit card layout) -->
+                        <div id="card-front" class="absolute w-full h-full rounded-2xl shadow-2xl p-8 text-white debit-card-front flex flex-col justify-between" style="backface-visibility: hidden; transform-style: preserve-3d;">
+                            <!-- Top: Logo and MyCirkle text (right aligned) -->
+                            <div class="flex justify-end items-center gap-3">
+                                <img src="https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png" alt="Logo" class="w-12 h-12 object-contain">
+                                <h3 class="text-3xl font-bold tracking-wider">MyCirkle</h3>
                             </div>
-                            <div class="flex-1"></div>
-                            <div class="mt-auto">
-                                <p class="text-sm font-semibold tracking-wide" id="card-name-front"></p>
+                            
+                            <!-- Middle: Chip (optional) -->
+                            <div class="flex items-center">
+                                <div class="w-14 h-11 bg-yellow-400 bg-opacity-80 rounded-md"></div>
+                            </div>
+                            
+                            <!-- Bottom: Cardholder name (left aligned) -->
+                            <div>
+                                <p class="text-xs opacity-75 mb-1">CARDHOLDER</p>
+                                <p class="text-lg font-bold tracking-wide uppercase" id="card-name-front"></p>
                             </div>
                         </div>
                         
                         <!-- Back of card -->
-                        <div id="card-back" class="absolute w-full h-full rounded-2xl shadow-2xl p-6 text-white debit-card-back" style="backface-visibility: hidden; transform: rotateY(180deg); transform-style: preserve-3d;">
-                            <div class="space-y-3">
-                                <div class="grid grid-cols-2 gap-3 text-sm">
-                                    <div>
-                                        <p class="text-xs opacity-75">Name</p>
-                                        <p class="font-semibold" id="card-name-back"></p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs opacity-75">Issue Date</p>
-                                        <p class="font-semibold" id="card-issue-date"></p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs opacity-75">Total Points</p>
-                                        <p class="font-bold text-lg" id="card-points-back">0</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs opacity-75">Card Number</p>
-                                        <p class="font-mono text-xs" id="card-number-24"></p>
-                                    </div>
+                        <div id="card-back" class="absolute w-full h-full rounded-2xl shadow-2xl p-8 text-white debit-card-back flex flex-col justify-between" style="backface-visibility: hidden; transform: rotateY(180deg); transform-style: preserve-3d;">
+                            <!-- Top: Card details grid -->
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <p class="text-xs opacity-75 mb-1">NAME</p>
+                                    <p class="font-semibold" id="card-name-back"></p>
                                 </div>
-                                <div class="bg-white bg-opacity-20 p-3 rounded-lg flex items-center justify-center">
-                                    <svg id="barcode-back" width="100%" height="80"></svg>
+                                <div>
+                                    <p class="text-xs opacity-75 mb-1">ISSUE DATE</p>
+                                    <p class="font-semibold" id="card-issue-date"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs opacity-75 mb-1">TOTAL POINTS</p>
+                                    <p class="font-bold text-xl" id="card-points-back">0</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs opacity-75 mb-1">CARD NUMBER</p>
+                                    <p class="font-mono text-xs" id="card-number-24"></p>
+                                </div>
+                            </div>
+                            
+                            <!-- Bottom: Barcode centered -->
+                            <div class="flex items-center justify-center">
+                                <div class="bg-white p-3 rounded-lg w-full max-w-xs">
+                                    <svg id="barcode-back" width="100%" height="60"></svg>
                                 </div>
                             </div>
                         </div>
@@ -832,17 +914,17 @@
         </div>
     </div>
 
-    <!-- Reset Loading -->
-    <section id="reset-loading" class="page min-h-screen bg-black text-white flex flex-col items-center justify-center" style="display: none;">
+    <!-- Reset Loading (Fixed Overlay) -->
+    <div id="reset-loading" class="hidden fixed inset-0 bg-black text-white flex flex-col items-center justify-center z-[9999]">
         <div class="text-2xl mb-8">Resetting. This may take a while...</div>
         <div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-    </section>
+    </div>
 
-    <!-- Logout Loading -->
-    <section id="logout-loading" class="page min-h-screen bg-black text-white flex flex-col items-center justify-center" style="display: none;">
+    <!-- Logout Loading (Fixed Overlay) -->
+    <div id="logout-loading" class="hidden fixed inset-0 bg-black text-white flex flex-col items-center justify-center z-[9999]">
         <div class="text-2xl mb-8">Logging you out...</div>
         <div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-    </section>
+    </div>
 
     <!-- Terms & Conditions Modal -->
     <div id="terms-modal" class="modal-overlay hidden">
