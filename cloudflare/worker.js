@@ -16,6 +16,11 @@ export default {
             return new Response(null, { headers: corsHeaders });
         }
 
+        // Discord Interactions (Slash Commands)
+        if (path === '/interactions' && request.method === 'POST') {
+            return handleDiscordInteraction(request, env);
+        }
+
         // Discord OAuth routes
         if (path === '/auth/discord') {
             const clientId = env.DISCORD_CLIENT_ID;
@@ -654,3 +659,351 @@ function generateAccountNumber() {
     }
     return segments.join('-');
 }
+
+// Discord Interactions Handler
+async function handleDiscordInteraction(request, env) {
+    const PUBLIC_KEY = '5a0d5985e6ab8109293d10230a99659dbb05587e24b69b72221abfcf3be57d44';
+    
+    // Verify Discord signature
+    const signature = request.headers.get('X-Signature-Ed25519');
+    const timestamp = request.headers.get('X-Signature-Timestamp');
+    const body = await request.text();
+
+    const isValid = await verifyDiscordSignature(signature, timestamp, body, PUBLIC_KEY);
+    
+    if (!isValid) {
+        return new Response('Invalid signature', { status: 401 });
+    }
+
+    const interaction = JSON.parse(body);
+
+    // Handle PING
+    if (interaction.type === 1) {
+        return jsonResponse({ type: 1 });
+    }
+
+    // Handle slash commands
+    if (interaction.type === 2) {
+        const command = interaction.data.name;
+        const userId = interaction.member?.user?.id || interaction.user?.id;
+
+        switch (command) {
+            case 'balance':
+                return handleBalanceCommand(userId, env);
+            
+            case 'card':
+                return handleCardCommand(userId, env);
+            
+            case 'rewards':
+                return handleRewardsCommand();
+            
+            case 'redeem':
+                const reward = interaction.data.options?.[0]?.value;
+                return handleRedeemCommand(userId, reward, env);
+            
+            case 'history':
+                return handleHistoryCommand(userId, env);
+            
+            case 'profile':
+                return handleProfileCommand(userId, env);
+            
+            case 'leaderboard':
+                return handleLeaderboardCommand(env);
+            
+            case 'help':
+                return handleHelpCommand();
+            
+            default:
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ Unknown command',
+                        flags: 64
+                    }
+                });
+        }
+    }
+
+    return jsonResponse({ type: 4, data: { content: 'Unknown interaction type' } });
+}
+
+async function verifyDiscordSignature(signature, timestamp, body, publicKey) {
+    try {
+        const encoder = new TextEncoder();
+        const message = encoder.encode(timestamp + body);
+        
+        const keyData = hexToUint8Array(publicKey);
+        const sigData = hexToUint8Array(signature);
+        
+        const key = await crypto.subtle.importKey(
+            'raw',
+            keyData,
+            { name: 'Ed25519' },
+            false,
+            ['verify']
+        );
+        
+        return await crypto.subtle.verify('Ed25519', key, sigData, message);
+    } catch (error) {
+        console.error('Signature verification error:', error);
+        return false;
+    }
+}
+
+function hexToUint8Array(hex) {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+    }
+    return bytes;
+}
+
+// Command Handlers
+async function handleBalanceCommand(userId, env) {
+    try {
+        const userData = await env.USERS_KV?.get(`user:${userId}`, { type: 'json' });
+        
+        if (!userData) {
+            return jsonResponse({
+                type: 4,
+                data: {
+                    embeds: [{
+                        title: '❌ Account Not Found',
+                        description: 'You don\'t have a MyCirkle account yet!\n\nSign up at https://my.cirkledevelopment.co.uk',
+                        color: 0xef4444
+                    }],
+                    flags: 64
+                }
+            });
+        }
+
+        const points = userData.points || 0;
+        const tier = points < 100 ? '🥉 Bronze' : points < 500 ? '🥈 Silver' : '🥇 Gold';
+
+        return jsonResponse({
+            type: 4,
+            data: {
+                embeds: [{
+                    title: '💰 Your MyCirkle Balance',
+                    color: 0x10b981,
+                    fields: [
+                        { name: '⭐ Points', value: `**${points}** points`, inline: true },
+                        { name: '🎯 Tier', value: tier, inline: true },
+                        { name: '📈 Next Tier', value: points < 100 ? 'Silver at 100 pts' : points < 500 ? 'Gold at 500 pts' : 'Max tier!', inline: false }
+                    ],
+                    footer: { text: 'Use /rewards to see what you can redeem!' }
+                }]
+            }
+        });
+    } catch (error) {
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '❌ Error fetching balance',
+                flags: 64
+            }
+        });
+    }
+}
+
+async function handleCardCommand(userId, env) {
+    try {
+        const userData = await env.USERS_KV?.get(`user:${userId}`, { type: 'json' });
+        
+        if (!userData) {
+            return jsonResponse({
+                type: 4,
+                data: {
+                    content: '❌ No account found. Sign up at https://my.cirkledevelopment.co.uk',
+                    flags: 64
+                }
+            });
+        }
+
+        return jsonResponse({
+            type: 4,
+            data: {
+                embeds: [{
+                    title: '💳 Your MyCirkle Loyalty Card',
+                    description: `View your full card at https://my.cirkledevelopment.co.uk`,
+                    color: 0x5865F2,
+                    fields: [
+                        { name: '👤 Name', value: userData.fullName || 'Member', inline: true },
+                        { name: '🔢 Account', value: userData.accountNumber || 'N/A', inline: true },
+                        { name: '⭐ Points', value: `${userData.points || 0}`, inline: true },
+                        { name: '📅 Member Since', value: userData.memberSince?.split('T')[0] || 'Unknown', inline: true }
+                    ]
+                }]
+            }
+        });
+    } catch (error) {
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '❌ Error fetching card',
+                flags: 64
+            }
+        });
+    }
+}
+
+async function handleRewardsCommand() {
+    return jsonResponse({
+        type: 4,
+        data: {
+            embeds: [{
+                title: '🎁 Available Rewards',
+                description: 'Redeem your points for exclusive rewards!',
+                color: 0xf59e0b,
+                fields: [
+                    { name: '🎮 Roblox Item (50 pts)', value: 'Exclusive in-game item', inline: false },
+                    { name: '💎 Premium Badge (100 pts)', value: 'Special Discord role', inline: false },
+                    { name: '🎉 Mystery Box (200 pts)', value: 'Random premium reward', inline: false },
+                    { name: '👑 VIP Access (500 pts)', value: 'Lifetime VIP status', inline: false }
+                ],
+                footer: { text: 'Use /redeem <reward-name> to claim!' }
+            }]
+        }
+    });
+}
+
+async function handleRedeemCommand(userId, reward, env) {
+    try {
+        const userData = await env.USERS_KV?.get(`user:${userId}`, { type: 'json' });
+        
+        if (!userData) {
+            return jsonResponse({
+                type: 4,
+                data: {
+                    content: '❌ No account found',
+                    flags: 64
+                }
+            });
+        }
+
+        return jsonResponse({
+            type: 4,
+            data: {
+                embeds: [{
+                    title: '🎁 Redeem Rewards',
+                    description: 'Visit https://my.cirkledevelopment.co.uk to redeem rewards!\n\nYou can browse all available rewards and redeem them with your points.',
+                    color: 0x10b981,
+                    fields: [
+                        { name: '⭐ Your Points', value: `${userData.points || 0} points`, inline: true }
+                    ]
+                }]
+            }
+        });
+    } catch (error) {
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '❌ Error processing redemption',
+                flags: 64
+            }
+        });
+    }
+}
+
+async function handleHistoryCommand(userId, env) {
+    return jsonResponse({
+        type: 4,
+        data: {
+            embeds: [{
+                title: '📜 Points History',
+                description: 'View your complete transaction history at https://my.cirkledevelopment.co.uk',
+                color: 0x6366f1,
+                fields: [
+                    { name: '💡 Tip', value: 'Your full transaction history with detailed breakdowns is available on the website dashboard.', inline: false }
+                ]
+            }]
+        }
+    });
+}
+
+async function handleProfileCommand(userId, env) {
+    try {
+        const userData = await env.USERS_KV?.get(`user:${userId}`, { type: 'json' });
+        
+        if (!userData) {
+            return jsonResponse({
+                type: 4,
+                data: {
+                    content: '❌ No account found. Sign up at https://my.cirkledevelopment.co.uk',
+                    flags: 64
+                }
+            });
+        }
+
+        const tier = userData.points < 100 ? '🥉 Bronze' : userData.points < 500 ? '🥈 Silver' : '🥇 Gold';
+
+        return jsonResponse({
+            type: 4,
+            data: {
+                embeds: [{
+                    title: '👤 Your MyCirkle Profile',
+                    color: 0x5865F2,
+                    fields: [
+                        { name: '📛 Name', value: userData.fullName || 'Member', inline: true },
+                        { name: '📧 Email', value: userData.email || 'Not set', inline: true },
+                        { name: '⭐ Points', value: `${userData.points || 0}`, inline: true },
+                        { name: '🎯 Tier', value: tier, inline: true },
+                        { name: '🎮 Roblox', value: userData.robloxUsername || 'Not linked', inline: true },
+                        { name: '📅 Member Since', value: userData.memberSince?.split('T')[0] || 'Unknown', inline: true }
+                    ],
+                    footer: { text: 'Manage your profile at my.cirkledevelopment.co.uk' }
+                }]
+            }
+        });
+    } catch (error) {
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '❌ Error fetching profile',
+                flags: 64
+            }
+        });
+    }
+}
+
+async function handleLeaderboardCommand(env) {
+    return jsonResponse({
+        type: 4,
+        data: {
+            embeds: [{
+                title: '🏆 MyCirkle Leaderboard',
+                description: 'Coming soon! View top members by points.',
+                color: 0xfbbf24,
+                fields: [
+                    { name: '🥇 Top Member', value: 'Coming soon...', inline: false },
+                    { name: '💡 Note', value: 'The full leaderboard will be available on the website dashboard soon!', inline: false }
+                ]
+            }]
+        }
+    });
+}
+
+async function handleHelpCommand() {
+    return jsonResponse({
+        type: 4,
+        data: {
+            embeds: [{
+                title: '❓ MyCirkle Bot Help',
+                description: 'Here are all available commands:',
+                color: 0x5865F2,
+                fields: [
+                    { name: '/balance', value: 'Check your points balance', inline: false },
+                    { name: '/card', value: 'View your loyalty card details', inline: false },
+                    { name: '/rewards', value: 'Browse available rewards', inline: false },
+                    { name: '/redeem', value: 'Redeem a reward', inline: false },
+                    { name: '/history', value: 'View your transaction history', inline: false },
+                    { name: '/profile', value: 'View your account profile', inline: false },
+                    { name: '/leaderboard', value: 'See top members', inline: false },
+                    { name: '/help', value: 'Show this help message', inline: false }
+                ],
+                footer: { text: 'Visit my.cirkledevelopment.co.uk for full features!' }
+            }]
+        }
+    });
+}
+
