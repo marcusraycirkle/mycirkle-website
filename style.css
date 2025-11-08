@@ -1232,6 +1232,15 @@ input::placeholder {
     color: #111827 !important;
 }
 
+/* Ensure input fields have black text */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+    color: #000000 !important;
+}
+
 /* Keep button and link colors */
 .bg-white button,
 .bg-white a {

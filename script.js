@@ -579,6 +579,12 @@ function updateProgress() {
     if (!progressFill) return;
     const percentage = Math.min((currentPoints / targetPoints) * 100, 100);
     progressFill.style.width = percentage + '%';
+    
+    // Update target line position
+    const targetLine = document.getElementById('target-line');
+    if (targetLine && targetPoints > 0) {
+        targetLine.style.left = '100%'; // Always show at 100% (the target)
+    }
 }
 
 // Rotate Daily Reward
@@ -699,21 +705,23 @@ function hideResetModal() {
 
 function handleReset() {
     hideResetModal();
-    showPage('reset-loading');
+    document.getElementById('reset-loading').classList.remove('hidden');
     setTimeout(() => {
         localStorage.clear();
         currentUser = null;
         currentPoints = 0;
+        document.getElementById('reset-loading').classList.add('hidden');
         showPage('home');
     }, 20000);
 }
 
 // Logout
 function handleLogout() {
-    showPage('logout-loading');
+    document.getElementById('logout-loading').classList.remove('hidden');
     setTimeout(() => {
         localStorage.clear();
         currentUser = null;
+        document.getElementById('logout-loading').classList.add('hidden');
         showPage('home');
     }, 3000);
 }
@@ -1339,11 +1347,12 @@ function cancelReset() {
 
 function confirmReset() {
     document.getElementById('reset-modal').classList.add('hidden');
-    showPage('reset-loading');
+    document.getElementById('reset-loading').classList.remove('hidden');
     setTimeout(() => {
         localStorage.clear();
         currentUser = null;
         currentPoints = 0;
+        document.getElementById('reset-loading').classList.add('hidden');
         showPage('home');
     }, 20000);
 }
@@ -1473,8 +1482,8 @@ function updateLoyaltyCard() {
     
     const gradientClass = getCardGradient(currentUser.accountId);
     
-    cardFront.className = `absolute w-full h-full rounded-2xl shadow-2xl p-6 text-white debit-card-front ${gradientClass}`;
-    cardBack.className = `absolute w-full h-full rounded-2xl shadow-2xl p-6 text-white debit-card-back ${gradientClass}`;
+    cardFront.className = `absolute w-full h-full rounded-2xl shadow-2xl p-8 text-white debit-card-front flex flex-col justify-between ${gradientClass}`;
+    cardBack.className = `absolute w-full h-full rounded-2xl shadow-2xl p-8 text-white debit-card-back flex flex-col justify-between ${gradientClass}`;
     
     // Front
     const cardNameFront = document.getElementById('card-name-front');
@@ -1504,13 +1513,13 @@ function generateBarcodeBack() {
     const accountId = currentUser.accountId || generateAccountId();
     const barcodeData = accountId.replace(/-/g, '');
     
-    let barcodeHTML = '<g fill="white">';
+    let barcodeHTML = '<g fill="black">';
     let x = 10;
     for (let i = 0; i < barcodeData.length && x < 190; i++) {
         const char = barcodeData.charCodeAt(i);
         const width = (char % 3) + 1.5;
-        const height = 60;
-        barcodeHTML += `<rect x="${x}" y="10" width="${width}" height="${height}"/>`;
+        const height = 50;
+        barcodeHTML += `<rect x="${x}" y="5" width="${width}" height="${height}"/>`;
         x += width + 2;
     }
     barcodeHTML += '</g>';
