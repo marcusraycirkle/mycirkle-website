@@ -106,8 +106,13 @@ export default {
             
             const guildId = env.DISCORD_GUILD_ID;
             const botToken = env.DISCORD_BOT_TOKEN;
+            
+            // If guild check is not configured, allow access
             if (!guildId || !botToken) {
-                return jsonResponse({ error: 'Discord bot credentials not configured' }, 500, corsHeaders);
+                return jsonResponse({ 
+                    isMember: true, 
+                    note: 'Guild check not configured, access granted' 
+                }, 200, corsHeaders);
             }
 
             try {
@@ -115,14 +120,35 @@ export default {
                     headers: { Authorization: `Bot ${botToken}` }
                 });
                 
+                // If user not found, they're not in the server
                 if (memberResponse.status === 404) {
-                    return jsonResponse({ isMember: false }, 200, corsHeaders);
+                    return jsonResponse({ 
+                        isMember: false,
+                        error: 'You must be a member of the Cirkle Development Discord server to use MyCirkle.',
+                        guildId: guildId
+                    }, 200, corsHeaders);
+                }
+                
+                // If forbidden, bot doesn't have permission - allow access anyway
+                if (memberResponse.status === 403) {
+                    return jsonResponse({ 
+                        isMember: true,
+                        note: 'Bot permission issue, access granted'
+                    }, 200, corsHeaders);
                 }
                 
                 const member = await memberResponse.json();
-                return jsonResponse({ isMember: !!member.user }, 200, corsHeaders);
+                return jsonResponse({ 
+                    isMember: !!member.user,
+                    username: member.user?.username 
+                }, 200, corsHeaders);
             } catch (error) {
-                return jsonResponse({ error: 'Membership check failed', isMember: false }, 500, corsHeaders);
+                // On error, allow access (fail open)
+                return jsonResponse({ 
+                    isMember: true, 
+                    note: 'Membership check failed, access granted',
+                    error: error.message 
+                }, 200, corsHeaders);
             }
         }
 
@@ -277,6 +303,17 @@ export default {
 
                 if (!discordId || !firstName || !lastName) {
                     return jsonResponse({ error: 'Missing required fields' }, 400, corsHeaders);
+                }
+
+                // Check if user already exists
+                const existingUser = await getUserData(discordId, env);
+                if (existingUser) {
+                    return jsonResponse({ 
+                        success: true,
+                        message: 'Welcome back!',
+                        user: existingUser,
+                        isExisting: true
+                    }, 200, corsHeaders);
                 }
 
                 // Generate account number if not provided
