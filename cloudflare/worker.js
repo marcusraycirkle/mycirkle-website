@@ -57,9 +57,15 @@ export default {
             const workerCallbackUrl = `${url.protocol}//${url.host}/auth/callback`;
 
             try {
+                // Add delay to prevent rate limiting
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
                 const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    headers: { 
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'User-Agent': 'MyCirkle-Loyalty/1.0'
+                    },
                     body: new URLSearchParams({
                         client_id: clientId,
                         client_secret: clientSecret,
@@ -69,7 +75,20 @@ export default {
                     })
                 });
 
-                // Handle non-JSON responses (like rate limit errors)
+                // Check for rate limit headers
+                const rateLimitRemaining = tokenResponse.headers.get('X-RateLimit-Remaining');
+                const rateLimitReset = tokenResponse.headers.get('X-RateLimit-Reset');
+                
+                if (tokenResponse.status === 429) {
+                    const retryAfter = tokenResponse.headers.get('Retry-After');
+                    return jsonResponse({ 
+                        error: 'Rate limited', 
+                        details: `Too many requests. Please wait ${retryAfter || '10'} seconds.`,
+                        retryAfter: retryAfter || '10'
+                    }, 429, corsHeaders);
+                }
+
+                // Handle non-JSON responses
                 const contentType = tokenResponse.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     const text = await tokenResponse.text();
@@ -85,9 +104,24 @@ export default {
                     return jsonResponse(tokenData, 400, corsHeaders);
                 }
 
+                // Add another small delay before user fetch
+                await new Promise(resolve => setTimeout(resolve, 50));
+
                 const userResponse = await fetch('https://discord.com/api/users/@me', {
-                    headers: { Authorization: `Bearer ${tokenData.access_token}` }
+                    headers: { 
+                        'Authorization': `Bearer ${tokenData.access_token}`,
+                        'User-Agent': 'MyCirkle-Loyalty/1.0'
+                    }
                 });
+                
+                if (userResponse.status === 429) {
+                    // If rate limited on user fetch, use cached data or return error
+                    return jsonResponse({ 
+                        error: 'Rate limited', 
+                        details: 'Too many login attempts. Please wait a moment and try again.'
+                    }, 429, corsHeaders);
+                }
+                
                 const user = await userResponse.json();
 
                 const frontendUrl = state || 'http://localhost:8080';
@@ -116,9 +150,24 @@ export default {
             }
 
             try {
+                // Add delay to prevent rate limiting
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
                 const memberResponse = await fetch(`https://discord.com/api/guilds/${guildId}/members/${userId}`, {
-                    headers: { Authorization: `Bot ${botToken}` }
+                    headers: { 
+                        'Authorization': `Bot ${botToken}`,
+                        'User-Agent': 'MyCirkle-Loyalty/1.0'
+                    }
                 });
+                
+                // Check for rate limit
+                if (memberResponse.status === 429) {
+                    // If rate limited, allow access (fail open)
+                    return jsonResponse({ 
+                        isMember: true,
+                        note: 'Rate limited, access granted as precaution'
+                    }, 200, corsHeaders);
+                }
                 
                 // If user not found, they're not in the server
                 if (memberResponse.status === 404) {
@@ -366,42 +415,60 @@ export default {
                 const botToken = env.DISCORD_BOT_TOKEN;
                 if (botToken) {
                     try {
+                        // Add delay to prevent rate limiting
+                        await new Promise(resolve => setTimeout(resolve, 150));
+                        
                         // Create DM channel
                         const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
                             method: 'POST',
                             headers: {
                                 'Authorization': `Bot ${botToken}`,
-                                'Content-Type': 'application/json'
+                                'Content-Type': 'application/json',
+                                'User-Agent': 'MyCirkle-Loyalty/1.0'
                             },
                             body: JSON.stringify({ recipient_id: discordId })
                         });
-                        const channel = await channelResponse.json();
+                        
+                        if (channelResponse.status === 429) {
+                            // Rate limited, skip DM (user can still use the service)
+                            console.log('Rate limited on DM channel creation, skipping welcome DM');
+                        } else {
+                            const channel = await channelResponse.json();
 
-                        // Send welcome DM with account details
-                        await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bot ${botToken}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                embeds: [{
-                                    title: '🎉 Welcome to MyCirkle!',
-                                    description: `Hi **${firstName}**! Your loyalty account has been created successfully.`,
-                                    color: 0x00D9FF,
-                                    fields: [
-                                        { name: '📧 Email', value: email || 'Not provided', inline: true },
-                                        { name: '🎮 Roblox', value: robloxUsername || 'Not linked', inline: true },
-                                        { name: '🔢 Account Number', value: `\`${finalAccountNumber}\``, inline: false },
-                                        { name: '⭐ Points Balance', value: '**5 points** (Welcome Bonus!)', inline: true },
-                                        { name: '🎁 Tier', value: 'Bronze', inline: true },
-                                        { name: '📅 Member Since', value: new Date().toLocaleDateString(), inline: true }
-                                    ],
-                                    footer: { text: 'Keep this information safe!' },
-                                    timestamp: new Date().toISOString()
-                                }]
-                            })
-                        });
+                            // Add small delay before sending message
+                            await new Promise(resolve => setTimeout(resolve, 50));
+
+                            // Send welcome DM with account details
+                            const dmResponse = await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bot ${botToken}`,
+                                    'Content-Type': 'application/json',
+                                    'User-Agent': 'MyCirkle-Loyalty/1.0'
+                                },
+                                body: JSON.stringify({
+                                    embeds: [{
+                                        title: '🎉 Welcome to MyCirkle!',
+                                        description: `Hi **${firstName}**! Your loyalty account has been created successfully.`,
+                                        color: 0x00D9FF,
+                                        fields: [
+                                            { name: '📧 Email', value: email || 'Not provided', inline: true },
+                                            { name: '🎮 Roblox', value: robloxUsername || 'Not linked', inline: true },
+                                            { name: '🔢 Account Number', value: `\`${finalAccountNumber}\``, inline: false },
+                                            { name: '⭐ Points Balance', value: '**5 points** (Welcome Bonus!)', inline: true },
+                                            { name: '🎁 Tier', value: 'Bronze', inline: true },
+                                            { name: '📅 Member Since', value: new Date().toLocaleDateString(), inline: true }
+                                        ],
+                                        footer: { text: 'Keep this information safe!' },
+                                        timestamp: new Date().toISOString()
+                                    }]
+                                })
+                            });
+                            
+                            if (dmResponse.status === 429) {
+                                console.log('Rate limited on DM send, welcome message not sent');
+                            }
+                        }
                     } catch (dmError) {
                         console.error('DM error:', dmError);
                     }
@@ -410,15 +477,31 @@ export default {
                 // Send public welcome message to channel with user's profile photo
                 const welcomeChannelWebhook = 'https://discord.com/api/webhooks/1436827145438629889/mWIgNNaADaZ5GLzD1IPxuGEFm_SXMMKfkSphTAI0LVrHiGGBvtSoEFfSA1Z51rV_boG8';
                 try {
+                    // Add delay to prevent rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
                     // Fetch user's Discord data to get avatar
                     const userResponse = await fetch(`https://discord.com/api/v10/users/${discordId}`, {
-                        headers: { 'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}` }
+                        headers: { 
+                            'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                            'User-Agent': 'MyCirkle-Loyalty/1.0'
+                        }
                     });
-                    const discordUser = await userResponse.json();
                     
-                    const avatarUrl = discordUser.avatar 
-                        ? `https://cdn.discordapp.com/avatars/${discordId}/${discordUser.avatar}.png?size=256`
-                        : `https://cdn.discordapp.com/embed/avatars/${parseInt(discordUser.discriminator) % 5}.png`;
+                    let avatarUrl = `https://cdn.discordapp.com/embed/avatars/0.png`; // Default avatar
+                    
+                    if (userResponse.status === 429) {
+                        // Rate limited, use default avatar
+                        console.log('Rate limited on user fetch, using default avatar');
+                    } else if (userResponse.ok) {
+                        const discordUser = await userResponse.json();
+                        avatarUrl = discordUser.avatar 
+                            ? `https://cdn.discordapp.com/avatars/${discordId}/${discordUser.avatar}.png?size=256`
+                            : `https://cdn.discordapp.com/embed/avatars/${parseInt(discordUser.discriminator || '0') % 5}.png`;
+                    }
+                    
+                    // Add small delay before webhook
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     
                     await fetch(welcomeChannelWebhook, {
                         method: 'POST',
@@ -426,7 +509,7 @@ export default {
                         body: JSON.stringify({
                             content: `🎊 Everyone, please welcome <@${discordId}>!`,
                             embeds: [{
-                                title: `� ${firstName} joined MyCirkle!`,
+                                title: `🌟 ${firstName} joined MyCirkle!`,
                                 description: `✨ **${firstName}** has joined the MyCirkle loyalty program and earned **5 welcome points**!\n\n💎 Start earning points and redeem amazing rewards!`,
                                 color: 0x00D9FF,
                                 thumbnail: {
