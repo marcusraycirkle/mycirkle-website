@@ -2844,4 +2844,161 @@ select.modern-input option {
     color: #6b7280;
 }
 
+/* ===== ADDITIONAL MOBILE OPTIMIZATIONS ===== */
+@media (max-width: 768px) {
+    /* Loyalty card mobile sizing */
+    .debit-card {
+        min-height: 200px;
+    }
+    
+    #card-front, #card-back {
+        padding: 1rem !important;
+        font-size: 0.875rem;
+    }
+    
+    #card-front img {
+        width: 32px !important;
+        height: 32px !important;
+    }
+    
+    #card-front h3 {
+        font-size: 1.25rem !important;
+    }
+    
+    /* Verification modal mobile */
+    .verification-content {
+        padding: 1.5rem;
+        max-width: 95%;
+    }
+    
+    .verification-input {
+        font-size: 1.25rem;
+        padding: 0.5rem;
+    }
+    
+    /* Account settings mobile */
+    .linked-account-display {
+        flex-direction: row;
+        text-align: left;
+    }
+    
+    .settings-group .flex {
+        flex-direction: column;
+    }
+    
+    .settings-group button {
+        width: 100%;
+    }
+    
+    .settings-group .space-y-2 input {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    /* Goodbye animation mobile */
+    .goodbye-content h1 {
+        font-size: 4rem;
+    }
+    
+    .goodbye-content h2 {
+        font-size: 2rem;
+    }
+    
+    .goodbye-content p {
+        font-size: 1rem;
+    }
+    
+    /* Copy button mobile */
+    .copy-btn {
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 1rem;
+    }
+    
+    /* Reward code mobile */
+    #reward-code {
+        font-size: 1.5rem !important;
+        word-break: break-all;
+    }
+    
+    /* FAQ mobile */
+    .faq-question span {
+        font-size: 0.875rem;
+    }
+    
+    /* Progress bars mobile */
+    .progress-bar-container {
+        height: 12px;
+    }
+    
+    .progress-target-line,
+    .progress-current-line {
+        width: 3px;
+    }
+    
+    /* Footer mobile fix */
+    .footer {
+        font-size: 0.75rem;
+        padding: 12px 8px;
+        position: relative;
+        margin-top: 2rem;
+    }
+    
+    /* Touch targets */
+    button, .btn-modern, .nav-item {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Sidebar mobile improvements */
+    .sidebar-nav {
+        padding: 1rem 0;
+    }
+    
+    .nav-item {
+        padding: 1rem;
+        font-size: 1rem;
+    }
+    
+    .nav-icon {
+        font-size: 1.5rem;
+    }
+    
+    /* Card animations smoother on mobile */
+    #loyalty-card {
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Extra small mobile devices */
+    .verification-input {
+        font-size: 1.125rem;
+        letter-spacing: 0.25rem;
+    }
+    
+    .debit-card {
+        min-height: 180px;
+    }
+    
+    #card-front, #card-back {
+        padding: 0.75rem !important;
+        font-size: 0.75rem;
+    }
+    
+    #card-number-24 {
+        font-size: 0.625rem;
+    }
+    
+    .goodbye-content h1 {
+        font-size: 3rem;
+    }
+    
+    .goodbye-content h2 {
+        font-size: 1.5rem;
+    }
+    
+    #reward-code {
+        font-size: 1.25rem !important;
+    }
+}
 
