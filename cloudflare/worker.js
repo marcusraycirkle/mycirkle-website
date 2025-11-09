@@ -2059,10 +2059,8 @@ async function handleDailyRewardCommand(interaction, env) {
 async function sendBulkEmails(env, users, subject, message) {
     const sent = [];
     
-    // Use verified domain or fallback to onboarding@resend.dev for testing
-    const fromEmail = env.RESEND_VERIFIED_DOMAIN 
-        ? `MyCirkle <noreply@${env.RESEND_VERIFIED_DOMAIN}>` 
-        : 'MyCirkle <onboarding@resend.dev>';
+    // Use verified Resend domain
+    const fromEmail = 'MyCirkle <mycirkle@notifications.cirkledevelopment.co.uk>';
     
     for (const user of users) {
         try {
@@ -2101,10 +2099,8 @@ async function sendBulkEmails(env, users, subject, message) {
 async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
     const headerImageUrl = 'https://i.postimg.cc/hPdGLf78/cirkledevtest.png'; // MyCirkle header image
     
-    // Use verified domain or fallback to onboarding@resend.dev for testing
-    const fromEmail = env.RESEND_VERIFIED_DOMAIN 
-        ? `MyCirkle <noreply@${env.RESEND_VERIFIED_DOMAIN}>` 
-        : 'MyCirkle <onboarding@resend.dev>';
+    // Use verified Resend domain
+    const fromEmail = 'MyCirkle <mycirkle@notifications.cirkledevelopment.co.uk>';
     
     const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -2263,9 +2259,8 @@ async function removeFromEmailHistory(env, emailToRemove) {
 async function sendAccountDeletedEmail(env, email, firstName) {
     const headerImageUrl = 'https://i.postimg.cc/hPdGLf78/cirkledevtest.png';
     
-    const fromEmail = env.RESEND_VERIFIED_DOMAIN 
-        ? `MyCirkle <noreply@${env.RESEND_VERIFIED_DOMAIN}>` 
-        : 'MyCirkle <onboarding@resend.dev>';
+    // Use verified Resend domain
+    const fromEmail = 'MyCirkle <mycirkle@notifications.cirkledevelopment.co.uk>';
     
     await fetch('https://api.resend.com/emails', {
         method: 'POST',
