@@ -841,6 +841,11 @@ export default {
                 // Delete the verification code
                 await env.USERS_KV?.delete(verificationKey);
                 
+                // DELETE USER DATA FROM KV - THIS IS CRITICAL!
+                const userKvKey = `user:${discordId}`;
+                await env.USERS_KV?.delete(userKvKey);
+                console.log(`🗑️ Deleted user data from KV: ${userKvKey}`);
+                
                 const botToken = env.DISCORD_BOT_TOKEN;
                 const spreadsheetId = env.SPREADSHEET_ID;
                 const sheetsApiKey = env.GOOGLE_SHEETS_API_KEY;
