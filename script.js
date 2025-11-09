@@ -225,22 +225,26 @@ async function handleDiscordUser(user) {
                 const userData = await userDataResponse.json();
                 
                 // Check if user exists (userData will have discordId if they exist, or found: false if new)
-                if (userData.discordId && !userData.found === false) {
-                    // User exists, load their data and go to dashboard
+                if (userData.discordId || (userData.email && userData.accountNumber)) {
+                    // User exists, load their data and go straight to dashboard
                     currentUser = {
                         ...user,
                         ...userData, // Spread all user data from database
-                        discordId: user.id, // Ensure Discord ID is set
+                        id: user.id, // Discord ID
+                        discordId: user.id,
                         discordUsername: user.username,
-                        discordAvatar: user.avatar
+                        discordAvatar: user.avatar,
+                        avatar: user.avatar,
+                        username: user.username
                     };
                     currentPoints = userData.points || 0;
                     localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
                     localStorage.setItem('points', currentPoints);
                     
                     setTimeout(() => {
-                        showPage('welcome-popup');
-                        welcomeName.textContent = currentUser.fullName || currentUser.firstName;
+                        // Go directly to dashboard for existing users
+                        showPage('dashboard');
+                        updateDashboard();
                     }, 2000);
                 } else {
                     // New user, show signup form
