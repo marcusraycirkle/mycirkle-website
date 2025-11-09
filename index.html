@@ -1023,10 +1023,9 @@
     </div>
 
     <script>
-        // Load script.js with random cache busting
-        const scriptTag = document.createElement('script');
-        scriptTag.src = './script.js?v=' + Date.now();
-        document.body.appendChild(scriptTag);
+        // Generate random cache busting version for script
+        const vScript = Date.now();
+        document.write('<script src="./script.js?v=' + vScript + '"><\/script>');
     </script>
 </body>
 </html>
