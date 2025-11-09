@@ -532,13 +532,16 @@ export default {
                 // Send welcome email if they accepted marketing
                 if (acceptedMarketing && email) {
                     try {
+                        console.log('Sending welcome email to:', email, 'Name:', fullName);
                         await sendWelcomeEmail(env, email, firstName, finalAccountNumber, 5);
                         
                         // Add to Resend mailing list
+                        console.log('Adding to mailing list:', email);
                         await addToMailingList(env, email, firstName, lastName);
                         
                         // Log to email dashboard (KV storage)
-                        await logEmailToDashboard(env, email, firstName, 'signup');
+                        console.log('Logging to email dashboard:', email, fullName);
+                        await logEmailToDashboard(env, email, fullName || `${firstName} ${lastName}`, 'signup');
                         
                         // Send marketing webhook notification
                         const marketingWebhook = 'https://discord.com/api/webhooks/1437082041194778754/5iiSF3_4XND_ftVDb3widQlaQ3VwkKS384hWHfnJXCDyjoafJ9L-Bo6CcE4DKtdwOgjU';
@@ -559,9 +562,12 @@ export default {
                                 }]
                             })
                         });
+                        console.log('Marketing email setup completed successfully');
                     } catch (emailError) {
                         console.error('Welcome email/marketing error:', emailError);
                     }
+                } else {
+                    console.log('Skipping marketing emails - acceptedMarketing:', acceptedMarketing, 'email:', email);
                 }
                 
                 // Send account creation webhook
