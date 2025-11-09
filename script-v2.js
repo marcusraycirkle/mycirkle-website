@@ -821,19 +821,19 @@ function showRewards() {
                     </div>
                     
                     <div class="reward-card">
-                        <span class="reward-badge">500 PTS</span>
-                        <div class="reward-icon">💰</div>
-                        <h4 class="reward-title">10% Discount</h4>
-                        <p class="reward-desc">10% off next product</p>
-                        <button onclick="redeemReward('10% Discount')" class="reward-btn">Redeem</button>
+                        <span class="reward-badge">750 PTS</span>
+                        <div class="reward-icon">🎨</div>
+                        <h4 class="reward-title">40% Commission</h4>
+                        <p class="reward-desc">40% off a commission</p>
+                        <button onclick="redeemReward('Commission Discount')" class="reward-btn">Redeem</button>
                     </div>
                     
                     <div class="reward-card">
-                        <span class="reward-badge">750 PTS</span>
-                        <div class="reward-icon">🎨</div>
-                        <h4 class="reward-title">Commission Discount</h4>
-                        <p class="reward-desc">40% off a commission</p>
-                        <button onclick="redeemReward('Commission Discount')" class="reward-btn">Redeem</button>
+                        <span class="reward-badge">1000 PTS</span>
+                        <div class="reward-icon">💰</div>
+                        <h4 class="reward-title">20% Discount</h4>
+                        <p class="reward-desc">20% off next product</p>
+                        <button onclick="redeemReward('20% Discount')" class="reward-btn">Redeem</button>
                     </div>
                     
                     <div class="reward-card">
