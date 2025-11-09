@@ -244,7 +244,6 @@ async function handleDiscordUser(user) {
                     setTimeout(() => {
                         // Go directly to dashboard for existing users
                         showPage('dashboard');
-                        updateDashboard();
                     }, 2000);
                 } else {
                     // New user, show signup form
@@ -283,6 +282,24 @@ function showPage(pageId) {
     if (page) {
         page.classList.add('active');
         window.location.hash = pageId;
+        
+        // Update dashboard when showing dashboard page
+        if (pageId === 'dashboard' && currentUser) {
+            setTimeout(() => {
+                const fullName = currentUser.fullName || `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim();
+                const profileNameEl = document.getElementById('dash-profile-name');
+                if (profileNameEl) profileNameEl.textContent = fullName || currentUser.username || 'User';
+                
+                const memberSinceEl = document.getElementById('member-since');
+                if (memberSinceEl) {
+                    const date = currentUser.memberSince ? new Date(currentUser.memberSince) : new Date();
+                    memberSinceEl.textContent = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                }
+                
+                const availablePointsEl = document.getElementById('available-points');
+                if (availablePointsEl) availablePointsEl.textContent = currentPoints || currentUser.points || 0;
+            }, 100);
+        }
         
         // Update loyalty card when showing loyalty page
         if (pageId === 'loyalty') {
