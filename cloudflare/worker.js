@@ -714,6 +714,10 @@ export default {
                 if (!botToken) {
                     return jsonResponse({ error: 'Bot not configured' }, 500, corsHeaders);
                 }
+                
+                if (!discordId || !action) {
+                    return jsonResponse({ error: 'Missing discordId or action' }, 400, corsHeaders);
+                }
 
                 // Generate 6-digit code
                 const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -745,7 +749,7 @@ export default {
                 // Add small delay before sending message
                 await new Promise(resolve => setTimeout(resolve, 50));
 
-                // Send verification code
+                // Send verification code with action in message
                 const dmResponse = await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
                     method: 'POST',
                     headers: {
@@ -756,11 +760,11 @@ export default {
                     body: JSON.stringify({
                         embeds: [{
                             title: '🔐 MyCirkle Verification Code',
-                            description: `Your verification code for **${action}**:`,
+                            description: `Your verification code for **${action || 'verification'}**:`,
                             color: 0x5865F2,
                             fields: [{
-                                name: 'Code',
-                                value: `\`\`\`${code}\`\`\``,
+                                name: 'Verification Code',
+                                value: `\`\`\`\n${code}\n\`\`\``,
                                 inline: false
                             }],
                             footer: { text: 'This code expires in 10 minutes. Do not share it with anyone.' },
