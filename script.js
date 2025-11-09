@@ -1189,11 +1189,11 @@ function generateBarcode() {
 
 // Generate Account ID
 function generateAccountId() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    // Generate 24-digit numeric account number
     let id = '';
     for (let i = 0; i < 24; i++) {
         if (i > 0 && i % 4 === 0) id += '-';
-        id += chars.charAt(Math.floor(Math.random() * chars.length));
+        id += Math.floor(Math.random() * 10);
     }
     return id;
 }
@@ -1300,11 +1300,11 @@ async function redeemReward(rewardType) {
 
 // Generate Reward Code
 function generateRewardCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    // Generate 24-digit numeric reward code
     let code = '';
     for (let i = 0; i < 24; i++) {
         if (i > 0 && i % 4 === 0) code += '-';
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
+        code += Math.floor(Math.random() * 10);
     }
     return code;
 }
@@ -1725,12 +1725,20 @@ async function submitVerification() {
         
         if (result.success) {
             console.log('✅ Verification successful, calling callback...');
+            
+            // Store callback before clearing
+            const callback = verificationCallback;
+            const code = input;
+            
+            // Close modal
             cancelVerification();
-            if (verificationCallback) {
-                console.log('Executing callback with code:', input);
-                verificationCallback(input); // Pass code to callback
+            
+            // Execute callback AFTER clearing modal
+            if (callback) {
+                console.log('Executing callback with code:', code);
+                callback(code);
             } else {
-                console.error('⚠️ No callback function set!');
+                console.error('⚠️ No callback function was set!');
             }
         } else {
             alert('❌ ' + (result.error || 'Invalid verification code. Please try again.'));
