@@ -1216,6 +1216,24 @@ export default {
             }
         }
 
+        // API: Get daily reward
+        if (path === '/api/daily-reward' && request.method === 'GET') {
+            try {
+                const dailyReward = await env.BOT_CONFIG_KV?.get('daily-reward', { type: 'json' });
+                if (dailyReward) {
+                    return jsonResponse(dailyReward, 200, corsHeaders);
+                }
+                // Return default if not set
+                return jsonResponse({
+                    name: 'Free Shipping Voucher',
+                    points: 10,
+                    setAt: new Date().toISOString()
+                }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
         // Transactional Emails (Welcome, Account Deletion)
         if (path === '/api/email/welcome' && request.method === 'POST') {
             try {

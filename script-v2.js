@@ -860,7 +860,14 @@ function showRewards() {
     hideAllDashboardContent();
     const rewardsContent = document.getElementById('rewards-content');
     if (rewardsContent) {
-        rewardsContent.innerHTML = `
+        // Fetch daily reward from API
+        fetch(`${API_URL}/api/daily-reward`)
+            .then(res => res.json())
+            .then(dailyReward => {
+                const dailyRewardName = dailyReward.name || 'Free Shipping Voucher';
+                const dailyRewardPoints = dailyReward.points || 10;
+                
+                rewardsContent.innerHTML = `
             <div class="content-header">
                 <h2 class="content-title">Rewards & Points</h2>
                 <div class="points-display">
@@ -894,8 +901,8 @@ function showRewards() {
                         <span class="reward-badge">DAILY</span>
                         <div class="reward-icon">🎁</div>
                         <h4 class="reward-title">Daily Reward</h4>
-                        <p class="reward-desc">Free Shipping Voucher</p>
-                        <button onclick="redeemReward('Daily Reward')" class="reward-btn">Redeem Now!</button>
+                        <p class="reward-desc">${dailyRewardName} • ${dailyRewardPoints} points</p>
+                        <button onclick="redeemReward('Daily Reward', ${dailyRewardPoints}, '${dailyRewardName}')" class="reward-btn">Redeem Now!</button>
                     </div>
                     
                     <div class="reward-card">
@@ -903,7 +910,7 @@ function showRewards() {
                         <div class="reward-icon">🎨</div>
                         <h4 class="reward-title">40% Commission</h4>
                         <p class="reward-desc">40% off a commission</p>
-                        <button onclick="redeemReward('Commission Discount')" class="reward-btn">Redeem</button>
+                        <button onclick="redeemReward('Commission Discount', 750)" class="reward-btn">Redeem</button>
                     </div>
                     
                     <div class="reward-card">
@@ -911,7 +918,7 @@ function showRewards() {
                         <div class="reward-icon">💰</div>
                         <h4 class="reward-title">20% Discount</h4>
                         <p class="reward-desc">20% off next product</p>
-                        <button onclick="redeemReward('20% Discount')" class="reward-btn">Redeem</button>
+                        <button onclick="redeemReward('20% Discount', 1000)" class="reward-btn">Redeem</button>
                     </div>
                     
                     <div class="reward-card">
@@ -919,15 +926,93 @@ function showRewards() {
                         <div class="reward-icon">🆓</div>
                         <h4 class="reward-title">Free Product</h4>
                         <p class="reward-desc">Get any product for free</p>
-                        <button onclick="redeemReward('Free Product')" class="reward-btn">Redeem</button>
+                        <button onclick="redeemReward('Free Product', 2000)" class="reward-btn">Redeem</button>
                     </div>
                 </div>
             </div>
         `;
-        rewardsContent.classList.remove('hidden');
-        updatePoints();
+                rewardsContent.classList.remove('hidden');
+                updatePoints();
+            })
+            .catch(error => {
+                console.error('Failed to fetch daily reward:', error);
+                // Fallback to default
+                showRewardsDefault();
+            });
     }
     updateNavActive('rewards');
+}
+
+function showRewardsDefault() {
+    const rewardsContent = document.getElementById('rewards-content');
+    if (!rewardsContent) return;
+    
+    rewardsContent.innerHTML = `
+            <div class="content-header">
+                <h2 class="content-title">Rewards & Points</h2>
+                <div class="points-display">
+                    <span class="points-label">Points</span>
+                    <span class="points-value">${currentUser?.points || 0}</span>
+                </div>
+            </div>
+            
+            <div class="section-card mb-6">
+                <h3 class="section-title">Points Progress</h3>
+                <div class="mb-4">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill-dashboard" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <button onclick="setTarget(100)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">100</button>
+                    <button onclick="setTarget(200)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">200</button>
+                    <button onclick="setTarget(500)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">500</button>
+                    <button onclick="setTarget(750)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">750</button>
+                    <button onclick="setTarget(1000)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">1000</button>
+                    <button onclick="setTarget(1500)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">1500</button>
+                    <button onclick="setTarget(2000)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition">2000</button>
+                </div>
+            </div>
+            
+            <div class="section-card">
+                <h3 class="section-title">Available Rewards</h3>
+                <div class="rewards-grid">
+                    <div class="reward-card featured">
+                        <span class="reward-badge">DAILY</span>
+                        <div class="reward-icon">🎁</div>
+                        <h4 class="reward-title">Daily Reward</h4>
+                        <p class="reward-desc">Free Shipping Voucher • 10 points</p>
+                        <button onclick="redeemReward('Daily Reward', 10, 'Free Shipping Voucher')" class="reward-btn">Redeem Now!</button>
+                    </div>
+                    
+                    <div class="reward-card">
+                        <span class="reward-badge">750 PTS</span>
+                        <div class="reward-icon">🎨</div>
+                        <h4 class="reward-title">40% Commission</h4>
+                        <p class="reward-desc">40% off a commission</p>
+                        <button onclick="redeemReward('Commission Discount', 750)" class="reward-btn">Redeem</button>
+                    </div>
+                    
+                    <div class="reward-card">
+                        <span class="reward-badge">1000 PTS</span>
+                        <div class="reward-icon">💰</div>
+                        <h4 class="reward-title">20% Discount</h4>
+                        <p class="reward-desc">20% off next product</p>
+                        <button onclick="redeemReward('20% Discount', 1000)" class="reward-btn">Redeem</button>
+                    </div>
+                    
+                    <div class="reward-card">
+                        <span class="reward-badge">2000 PTS</span>
+                        <div class="reward-icon">🆓</div>
+                        <h4 class="reward-title">Free Product</h4>
+                        <p class="reward-desc">Get any product for free</p>
+                        <button onclick="redeemReward('Free Product', 2000)" class="reward-btn">Redeem</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    rewardsContent.classList.remove('hidden');
+    updatePoints();
 }
 
 function showFAQ() {
@@ -1414,13 +1499,13 @@ function setTarget(target) {
 }
 
 // Redeem Reward
-async function redeemReward(rewardType) {
-    // Define reward costs
+async function redeemReward(rewardType, customCost, customName) {
+    // Define reward costs (can be overridden by parameters)
     const rewards = {
-        'Daily Reward': { cost: 10, name: 'Daily Reward' },
-        '20% Discount': { cost: 1000, name: '20% Product Discount' },
-        'Commission Discount': { cost: 750, name: '40% Commission Discount' },
-        'Free Product': { cost: 2000, name: 'Free Product' }
+        'Daily Reward': { cost: customCost || 10, name: customName || 'Daily Reward' },
+        '20% Discount': { cost: customCost || 1000, name: customName || '20% Product Discount' },
+        'Commission Discount': { cost: customCost || 750, name: customName || '40% Commission Discount' },
+        'Free Product': { cost: customCost || 2000, name: customName || 'Free Product' }
     };
     
     const reward = rewards[rewardType];
