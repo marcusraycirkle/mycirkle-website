@@ -1472,22 +1472,15 @@ function updateUserInitials() {
     if (!currentUser) return;
     
     const userAvatarEl = document.getElementById('user-avatar-img');
-    if (userAvatarEl && currentUser.discordId) {
-        // Fetch Discord avatar
-        fetch(`https://discord.com/api/v10/users/${currentUser.discordId}`, {
-            headers: { 'Authorization': `Bot ${window.DISCORD_BOT_TOKEN}` }
-        })
-        .then(res => res.json())
-        .then(discordUser => {
-            const avatarUrl = discordUser.avatar 
-                ? `https://cdn.discordapp.com/avatars/${currentUser.discordId}/${discordUser.avatar}.png?size=128`
-                : `https://cdn.discordapp.com/embed/avatars/${parseInt(discordUser.discriminator) % 5}.png`;
-            userAvatarEl.src = avatarUrl;
-        })
-        .catch(err => {
-            // Fallback to default avatar
-            userAvatarEl.src = `https://cdn.discordapp.com/embed/avatars/0.png`;
-        });
+    if (userAvatarEl && currentUser.avatar) {
+        // Use avatar URL from OAuth data (already stored in currentUser)
+        const avatarUrl = currentUser.avatar 
+            ? `https://cdn.discordapp.com/avatars/${currentUser.id || currentUser.discordId}/${currentUser.avatar}.png?size=128`
+            : `https://cdn.discordapp.com/embed/avatars/0.png`;
+        userAvatarEl.src = avatarUrl;
+    } else if (userAvatarEl) {
+        // Fallback to default avatar
+        userAvatarEl.src = `https://cdn.discordapp.com/embed/avatars/0.png`;
     }
 }
 
@@ -1732,8 +1725,14 @@ async function submitVerification() {
         const result = await response.json();
         
         if (result.success) {
+            console.log('✅ Verification successful, calling callback...');
             cancelVerification();
-            if (verificationCallback) verificationCallback(input); // Pass code to callback
+            if (verificationCallback) {
+                console.log('Executing callback with code:', input);
+                verificationCallback(input); // Pass code to callback
+            } else {
+                console.error('⚠️ No callback function set!');
+            }
         } else {
             alert('❌ ' + (result.error || 'Invalid verification code. Please try again.'));
         }
