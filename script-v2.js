@@ -895,7 +895,7 @@ function showFAQ() {
                 <div class="space-y-4">
                     <div class="settings-group">
                         <details class="p-4 bg-gray-50 rounded-lg">
-                            <summary class="font-semibold cursor-pointer">What is MyCirkle?</summary>
+                            <summary class="font-semibold cursor-pointer text-black">What is MyCirkle?</summary>
                             <div class="mt-3 text-gray-600">
                                 <p class="mb-3">MyCirkleDevelopment (commonly referred to as MyCirkle) is an innovative loyalty account program designed to reward both new and returning customers for their continued support and engagement.</p>
                                 <p class="mb-3">The primary goal of MyCirkle is to help customers save money and gain extra benefits while engaging with the brand's community-based services.</p>
@@ -906,7 +906,7 @@ function showFAQ() {
                     
                     <div class="settings-group">
                         <details class="p-4 bg-gray-50 rounded-lg">
-                            <summary class="font-semibold cursor-pointer">How do I earn points?</summary>
+                            <summary class="font-semibold cursor-pointer text-black">How do I earn points?</summary>
                             <div class="mt-3 text-gray-600">
                                 <p class="mb-2">You can earn points by:</p>
                                 <ul class="list-disc list-inside space-y-1 ml-4">
@@ -922,7 +922,7 @@ function showFAQ() {
                     
                     <div class="settings-group">
                         <details class="p-4 bg-gray-50 rounded-lg">
-                            <summary class="font-semibold cursor-pointer">Where do I redeem my rewards?</summary>
+                            <summary class="font-semibold cursor-pointer text-black">Where do I redeem my rewards?</summary>
                             <div class="mt-3 text-gray-600">
                                 <p class="mb-2">To redeem your rewards, please open a ticket in our Discord Server. Our support team will assist you with redemption processing and code verification.</p>
                             </div>
@@ -931,7 +931,7 @@ function showFAQ() {
                     
                     <div class="settings-group">
                         <details class="p-4 bg-gray-50 rounded-lg">
-                            <summary class="font-semibold cursor-pointer">How do I get support?</summary>
+                            <summary class="font-semibold cursor-pointer text-black">How do I get support?</summary>
                             <div class="mt-3 text-gray-600">
                                 <p class="mb-2">For general support and redemptions, open a ticket in the Discord Server.</p>
                                 <p>For account loss and privacy matters, email: <a href="mailto:mycirkle@cirkledevelopment.co.uk" class="text-blue-600 hover:underline">mycirkle@cirkledevelopment.co.uk</a></p>
@@ -941,7 +941,7 @@ function showFAQ() {
                     
                     <div class="settings-group">
                         <details class="p-4 bg-gray-50 rounded-lg">
-                            <summary class="font-semibold cursor-pointer">What can I get with my points?</summary>
+                            <summary class="font-semibold cursor-pointer text-black">What can I get with my points?</summary>
                             <div class="mt-3 text-gray-600">
                                 <p class="mb-2">Your points can be redeemed for:</p>
                                 <ul class="list-disc list-inside space-y-1 ml-4">
@@ -957,7 +957,7 @@ function showFAQ() {
                     
                     <div class="settings-group">
                         <details class="p-4 bg-gray-50 rounded-lg">
-                            <summary class="font-semibold cursor-pointer">Lost Account Details?</summary>
+                            <summary class="font-semibold cursor-pointer text-black">Lost Account Details?</summary>
                             <div class="mt-3 text-gray-600">
                                 If you've lost your account details, email us at: <a href="mailto:mycirkle@cirkledevelopment.co.uk" class="text-blue-600 hover:underline">mycirkle@cirkledevelopment.co.uk</a> with your Discord username.
                             </div>
@@ -966,7 +966,7 @@ function showFAQ() {
                     
                     <div class="settings-group">
                         <details class="p-4 bg-gray-50 rounded-lg">
-                            <summary class="font-semibold cursor-pointer">Is MyCirkle still in development?</summary>
+                            <summary class="font-semibold cursor-pointer text-black">Is MyCirkle still in development?</summary>
                             <div class="mt-3 text-gray-600">
                                 Yes! MyCirkle is constantly evolving with new features, rewards, and improvements based on user feedback.
                             </div>
@@ -975,7 +975,7 @@ function showFAQ() {
                     
                     <div class="settings-group">
                         <details class="p-4 bg-gray-50 rounded-lg">
-                            <summary class="font-semibold cursor-pointer">How secure is my account?</summary>
+                            <summary class="font-semibold cursor-pointer text-black">How secure is my account?</summary>
                             <div class="mt-3 text-gray-600">
                                 Your account is secured with Discord OAuth authentication and encrypted data storage. We never store sensitive information.
                             </div>
@@ -984,7 +984,7 @@ function showFAQ() {
                     
                     <div class="settings-group">
                         <details class="p-4 bg-gray-50 rounded-lg">
-                            <summary class="font-semibold cursor-pointer">Terms & Conditions</summary>
+                            <summary class="font-semibold cursor-pointer text-black">Terms & Conditions</summary>
                             <div class="mt-3 text-gray-600">
                                 <a href="https://shop.cirkledevelopment.co.uk/mycirkle" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 underline">
                                     View our complete Terms & Conditions
