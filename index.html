@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Version: 2025-11-09 15:45:00 - FAQ fix, tier updates, verification fix, loyalty card gradients -->
+    <!-- Version: 2025-11-09 16:00:00 - Updated rewards & tiers -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <meta name="last-modified" content="2025-11-09T15:45:00Z">
+    <meta name="last-modified" content="2025-11-09T16:00:00Z">
     <title>MyCirkle - Loyalty Programme</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="./style.css?v=20251109154500">
+    <link rel="stylesheet" href="./style.css?v=20251109160000">
 </head>
 <body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
     <!-- Footer (always visible, positioned fixed) -->
@@ -580,28 +580,28 @@
                         <span class="reward-badge">DAILY</span>
                         <div class="reward-icon">🎁</div>
                         <h4 class="reward-title">Daily Reward</h4>
-                        <p class="reward-desc" id="daily-reward-text">Free Shipping Voucher</p>
-                        <button onclick="redeemReward('Daily Reward')" class="reward-btn">
-                            Redeem Now!
-                        </button>
-                    </div>
-                    
-                    <div class="reward-card">
-                        <span class="reward-badge">500 PTS</span>
-                        <div class="reward-icon">💰</div>
-                        <h4 class="reward-title">20% Discount</h4>
-                        <p class="reward-desc">20% off next product</p>
-                        <button onclick="redeemReward('20% Discount')" class="reward-btn">
-                            Redeem
+                        <p class="reward-desc" id="daily-reward-text">Claim via Discord bot</p>
+                        <button onclick="alert('Use the Discord bot command to claim your daily reward!')" class="reward-btn">
+                            Info
                         </button>
                     </div>
                     
                     <div class="reward-card">
                         <span class="reward-badge">750 PTS</span>
                         <div class="reward-icon">🎨</div>
-                        <h4 class="reward-title">Commission Discount</h4>
+                        <h4 class="reward-title">40% Commission</h4>
                         <p class="reward-desc">40% off a commission</p>
                         <button onclick="redeemReward('Commission Discount')" class="reward-btn">
+                            Redeem
+                        </button>
+                    </div>
+                    
+                    <div class="reward-card">
+                        <span class="reward-badge">1000 PTS</span>
+                        <div class="reward-icon">💰</div>
+                        <h4 class="reward-title">20% Discount</h4>
+                        <p class="reward-desc">20% off next product</p>
+                        <button onclick="redeemReward('20% Discount')" class="reward-btn">
                             Redeem
                         </button>
                     </div>
@@ -1012,6 +1012,6 @@
         </div>
     </div>
 
-    <script src="./script.js?v=20251109154500"></script>
+    <script src="./script.js?v=20251109160000"></script>
 </body>
 </html>

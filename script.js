@@ -560,10 +560,9 @@ function showDashboard() {
     if (statProducts) statProducts.textContent = '0';
     if (statTier) {
         const points = currentUser.points || 0;
-        if (points >= 2000) statTier.textContent = 'Legendary';
-        else if (points >= 1250) statTier.textContent = 'Diamond';
-        else if (points >= 750) statTier.textContent = 'Gold';
-        else if (points >= 500) statTier.textContent = 'Silver';
+        if (points >= 2000) statTier.textContent = 'Diamond';
+        else if (points >= 1000) statTier.textContent = 'Gold';
+        else if (points >= 750) statTier.textContent = 'Silver';
         else statTier.textContent = 'Bronze';
     }
     
@@ -1233,10 +1232,9 @@ function setTarget(target) {
 async function redeemReward(rewardType) {
     // Define reward costs
     const rewards = {
-        'Daily Reward': { cost: 10, name: 'Daily Reward' },
-        '20% Discount': { cost: 50, name: '20% Product Discount' },
-        'Commission Discount': { cost: 100, name: '20% Commission Discount' },
-        'Free Product': { cost: 200, name: 'Free Product' }
+        '20% Discount': { cost: 1000, name: '20% Product Discount' },
+        'Commission Discount': { cost: 750, name: '40% Commission Discount' },
+        'Free Product': { cost: 2000, name: 'Free Product' }
     };
     
     const reward = rewards[rewardType];
