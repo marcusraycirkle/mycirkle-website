@@ -581,6 +581,70 @@ export default {
             }
         }
 
+        // API: Redeem reward
+        if (path === '/api/redeem' && request.method === 'POST') {
+            try {
+                const { discordId, rewardType, pointsCost } = await request.json();
+                
+                if (!discordId || !rewardType || !pointsCost) {
+                    return jsonResponse({ error: 'Missing required fields' }, 400, corsHeaders);
+                }
+
+                // Get user data
+                const userData = await getUserData(discordId, env);
+                if (!userData) {
+                    return jsonResponse({ error: 'User not found' }, 404, corsHeaders);
+                }
+
+                // Check if user has enough points
+                if (userData.points < pointsCost) {
+                    return jsonResponse({ error: 'Insufficient points', currentPoints: userData.points, required: pointsCost }, 400, corsHeaders);
+                }
+
+                // Deduct points
+                userData.points -= pointsCost;
+                await saveUserData(userData, env);
+
+                // Generate redemption code
+                const code = generateRedemptionCode();
+
+                // Log to redemption webhook
+                const redemptionWebhook = env.REDEMPTION_WEBHOOK || 'https://discord.com/api/webhooks/1436826526883647569/mpdU8WILa-zH7hd3AI9wN6g2hUmNerpXbcq0WKzQeAEAL3A2MosB-56jvCRZtdYUPgGR';
+                try {
+                    await fetch(redemptionWebhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            embeds: [{
+                                title: '🎁 Reward Redeemed',
+                                description: `<@${discordId}> redeemed **${rewardType}**!`,
+                                color: 0x10b981,
+                                fields: [
+                                    { name: '👤 User', value: `<@${discordId}>`, inline: true },
+                                    { name: '🎁 Reward', value: rewardType, inline: true },
+                                    { name: '💰 Points Spent', value: `${pointsCost} points`, inline: true },
+                                    { name: '📊 Remaining Balance', value: `${userData.points} points`, inline: true },
+                                    { name: '🎫 Redemption Code', value: `\`${code}\``, inline: false }
+                                ],
+                                footer: { text: '🎉 Redemption Activity' },
+                                timestamp: new Date().toISOString()
+                            }]
+                        })
+                    });
+                } catch (webhookError) {
+                    console.error('Webhook error:', webhookError);
+                }
+
+                return jsonResponse({ 
+                    success: true, 
+                    code,
+                    newPoints: userData.points
+                }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: 'Redemption failed', details: error.message }, 500, corsHeaders);
+            }
+        }
+
         // API: Get products from ParcelRoblox
         if (path === '/api/products') {
             try {
@@ -1009,6 +1073,17 @@ function generateAccountNumber() {
     }
     // Format as XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
     return accountNumber.match(/.{1,4}/g).join('-');
+}
+
+function generateRedemptionCode() {
+    // Generate redemption code in format: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 24; i++) {
+        if (i > 0 && i % 4 === 0) code += '-';
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
 }
 
 // Discord Interactions Handler

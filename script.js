@@ -224,16 +224,15 @@ async function handleDiscordUser(user) {
                 });
                 const userData = await userDataResponse.json();
                 
-                if (userData.found) {
+                // Check if user exists (userData will have discordId if they exist, or found: false if new)
+                if (userData.discordId && !userData.found === false) {
                     // User exists, load their data and go to dashboard
                     currentUser = {
                         ...user,
-                        firstName: userData.firstName,
-                        lastName: userData.lastName,
-                        fullName: `${userData.firstName} ${userData.lastName}`,
-                        email: userData.email,
-                        memberSince: userData.memberSince,
-                        signupDate: userData.signupDate
+                        ...userData, // Spread all user data from database
+                        discordId: user.id, // Ensure Discord ID is set
+                        discordUsername: user.username,
+                        discordAvatar: user.avatar
                     };
                     currentPoints = userData.points || 0;
                     localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
@@ -241,7 +240,7 @@ async function handleDiscordUser(user) {
                     
                     setTimeout(() => {
                         showPage('welcome-popup');
-                        welcomeName.textContent = currentUser.fullName;
+                        welcomeName.textContent = currentUser.fullName || currentUser.firstName;
                     }, 2000);
                 } else {
                     // New user, show signup form
@@ -1178,15 +1177,73 @@ function setTarget(target) {
 }
 
 // Redeem Reward
-function redeemReward(rewardType) {
-    const code = generateRewardCode();
-    document.getElementById('reward-code').textContent = code;
-    document.getElementById('redeem-name').textContent = currentUser.firstName || currentUser.fullName || 'Friend';
+async function redeemReward(rewardType) {
+    // Define reward costs
+    const rewards = {
+        'Daily Reward': { cost: 10, name: 'Daily Reward' },
+        '10% Discount': { cost: 50, name: '10% Product Discount' },
+        'Commission Discount': { cost: 100, name: '20% Commission Discount' },
+        'Free Product': { cost: 200, name: 'Free Product' }
+    };
     
-    // Initialize scratch canvas
-    initScratchCanvas();
+    const reward = rewards[rewardType];
+    if (!reward) {
+        alert('Invalid reward type');
+        return;
+    }
     
-    showPage('redeem');
+    // Check if user has enough points
+    if (currentPoints < reward.cost) {
+        alert(`You need ${reward.cost} points to redeem this reward. You currently have ${currentPoints} points.`);
+        return;
+    }
+    
+    // Show loading
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    loadingOverlay.innerHTML = '<div class="bg-white p-8 rounded-lg"><div class="loading-spinner"></div><p class="mt-4">Processing redemption...</p></div>';
+    document.body.appendChild(loadingOverlay);
+    
+    try {
+        // Call API to redeem
+        const response = await fetch(`${WORKER_URL}/api/redeem`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.id || currentUser.discordId,
+                rewardType: reward.name,
+                pointsCost: reward.cost
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update local points
+            currentPoints = data.newPoints;
+            localStorage.setItem('points', currentPoints);
+            updatePointsDisplay();
+            
+            // Show reward code
+            document.getElementById('reward-code').textContent = data.code;
+            document.getElementById('redeem-name').textContent = currentUser.firstName || currentUser.fullName || 'Friend';
+            
+            // Initialize scratch canvas
+            initScratchCanvas();
+            
+            // Remove loading
+            document.body.removeChild(loadingOverlay);
+            
+            showPage('redeem');
+        } else {
+            document.body.removeChild(loadingOverlay);
+            alert(data.error || 'Redemption failed. Please try again.');
+        }
+    } catch (error) {
+        document.body.removeChild(loadingOverlay);
+        console.error('Redemption error:', error);
+        alert('Failed to process redemption. Please try again.');
+    }
 }
 
 // Generate Reward Code
