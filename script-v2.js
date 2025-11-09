@@ -1709,7 +1709,27 @@ async function submitVerification() {
         return;
     }
     
-    // Verify code with server
+    // For account deletion, skip verification API and let the delete endpoint verify
+    if (verificationAction === 'account deletion') {
+        console.log('✅ Code entered, calling deletion callback...');
+        
+        const callback = verificationCallback;
+        const code = input;
+        
+        // Close modal
+        cancelVerification();
+        
+        // Execute callback with code
+        if (callback) {
+            console.log('Executing deletion with code:', code);
+            callback(code);
+        } else {
+            console.error('⚠️ No callback function was set!');
+        }
+        return;
+    }
+    
+    // For other actions, verify code with server first
     try {
         const response = await fetch(`${WORKER_URL}/api/verify-code`, {
             method: 'POST',
