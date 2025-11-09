@@ -442,6 +442,20 @@ async function handlePreferencesSubmit() {
     currentUser.termsAcceptedDate = new Date().toISOString();
     localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
     
+    // VERIFICATION REQUIRED BEFORE ACCOUNT CREATION
+    showVerification(
+        '🔐 Verify Your Account',
+        'Please enter the verification code sent to your Discord to complete signup.',
+        'account creation',
+        async (verificationCode) => {
+            // Code verified, now proceed with signup
+            await completeSignup(country, timezone, language, robloxUsername, acceptedMarketing);
+        }
+    );
+}
+
+// Complete signup after verification
+async function completeSignup(country, timezone, language, robloxUsername, acceptedMarketing) {
     showPage('confirm');
     
     // Save to Google Sheets and send welcome DM
@@ -1647,10 +1661,12 @@ function updateProgressBarTargets() {
 let verificationCallback = null;
 let verificationCode = null;
 
-function showVerification(title, message, callback) {
+function showVerification(title, message, action, callback) {
     verificationCallback = callback;
-    verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    sendVerificationCode(verificationCode, message);
+    verificationAction = action; // Store the action type
+    
+    // Send request to generate and send code
+    sendVerificationCode(action);
     
     const modal = document.createElement('div');
     modal.className = 'verification-modal';
@@ -1679,33 +1695,62 @@ function cancelVerification() {
     const modal = document.getElementById('verification-modal');
     if (modal) modal.remove();
     verificationCallback = null;
-    verificationCode = null;
+    verificationAction = null;
 }
 
-function submitVerification() {
+async function submitVerification() {
     const input = document.getElementById('verification-input').value;
-    if (input === verificationCode) {
-        cancelVerification();
-        if (verificationCallback) verificationCallback();
-    } else {
-        alert('❌ Invalid verification code. Please check your Discord DMs and try again.');
+    
+    if (!input || input.length !== 6) {
+        alert('❌ Please enter a 6-digit verification code.');
+        return;
     }
-}
-
-async function sendVerificationCode(code, action) {
-    if (!currentUser) return;
+    
+    // Verify code with server
     try {
-        await fetch(`${WORKER_URL}/api/send-verification`, {
+        const response = await fetch(`${WORKER_URL}/api/verify-code`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                discordId: currentUser.discordId,
-                code: code,
+                discordId: currentUser.discordId || currentUser.id,
+                action: verificationAction,
+                code: input
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            cancelVerification();
+            if (verificationCallback) verificationCallback(input); // Pass code to callback
+        } else {
+            alert('❌ ' + (result.error || 'Invalid verification code. Please try again.'));
+        }
+    } catch (error) {
+        console.error('Verification error:', error);
+        alert('❌ Failed to verify code. Please try again.');
+    }
+}
+
+async function sendVerificationCode(action) {
+    if (!currentUser) return;
+    try {
+        const response = await fetch(`${WORKER_URL}/api/send-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.discordId || currentUser.id,
                 action: action
             })
         });
+        
+        const result = await response.json();
+        if (!result.success) {
+            alert('Failed to send verification code. Please try again.');
+        }
     } catch (error) {
         console.error('Failed to send verification code:', error);
+        alert('Failed to send verification code. Please check your connection.');
     }
 }
 
@@ -1714,11 +1759,12 @@ function deleteAccount() {
     showVerification(
         '🔐 Verify Account Deletion',
         'To permanently delete your account, please enter the verification code sent to your Discord.',
+        'account deletion',
         confirmAccountDeletion
     );
 }
 
-async function confirmAccountDeletion() {
+async function confirmAccountDeletion(verificationCode) {
     const modal = document.createElement('div');
     modal.className = 'goodbye-animation';
     modal.innerHTML = `
@@ -1731,14 +1777,21 @@ async function confirmAccountDeletion() {
     document.body.appendChild(modal);
     
     try {
-        await fetch(`${WORKER_URL}/api/delete-account`, {
+        const response = await fetch(`${WORKER_URL}/api/delete-account`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                discordId: currentUser.discordId,
-                accountId: currentUser.accountId
+                discordId: currentUser.discordId || currentUser.id,
+                accountId: currentUser.accountId,
+                verificationCode: verificationCode
             })
         });
+        
+        const result = await response.json();
+        
+        if (!result.success && result.error) {
+            throw new Error(result.error);
+        }
         
         setTimeout(() => {
             modal.innerHTML = `
@@ -1753,11 +1806,11 @@ async function confirmAccountDeletion() {
         }, 2000);
         
         setTimeout(() => {
-            localStorage.removeItem('mycirkle_user');
+            localStorage.clear();
             window.location.href = '/';
         }, 10000);
     } catch (error) {
         modal.remove();
-        alert('Failed to delete account. Please try again or contact support.');
+        alert('Failed to delete account: ' + error.message);
     }
 }

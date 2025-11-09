@@ -708,31 +708,50 @@ export default {
         // API: Send verification code via Discord DM
         if (path === '/api/send-verification' && request.method === 'POST') {
             try {
-                const { discordId, code, action } = await request.json();
+                const { discordId, action } = await request.json();
                 const botToken = env.DISCORD_BOT_TOKEN;
                 
                 if (!botToken) {
                     return jsonResponse({ error: 'Bot not configured' }, 500, corsHeaders);
                 }
 
+                // Generate 6-digit code
+                const code = Math.floor(100000 + Math.random() * 900000).toString();
+                
+                // Store code in KV with 10 minute expiration
+                const verificationKey = `verify:${discordId}:${action}`;
+                await env.USERS_KV?.put(verificationKey, code, { expirationTtl: 600 }); // 10 minutes
+
+                // Add delay to prevent rate limiting
+                await new Promise(resolve => setTimeout(resolve, 150));
+
                 // Create DM channel
                 const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bot ${botToken}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'MyCirkle-Loyalty/1.0'
                     },
                     body: JSON.stringify({ recipient_id: discordId })
                 });
+                
+                if (channelResponse.status === 429) {
+                    return jsonResponse({ error: 'Rate limited. Please try again in a moment.' }, 429, corsHeaders);
+                }
 
                 const channel = await channelResponse.json();
 
+                // Add small delay before sending message
+                await new Promise(resolve => setTimeout(resolve, 50));
+
                 // Send verification code
-                await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                const dmResponse = await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bot ${botToken}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'MyCirkle-Loyalty/1.0'
                     },
                     body: JSON.stringify({
                         embeds: [{
@@ -749,6 +768,10 @@ export default {
                         }]
                     })
                 });
+                
+                if (dmResponse.status === 429) {
+                    return jsonResponse({ error: 'Rate limited sending DM. Code saved, please wait and try again.' }, 429, corsHeaders);
+                }
 
                 return jsonResponse({ success: true }, 200, corsHeaders);
             } catch (error) {
@@ -757,10 +780,63 @@ export default {
             }
         }
 
+        // API: Verify code
+        if (path === '/api/verify-code' && request.method === 'POST') {
+            try {
+                const { discordId, action, code } = await request.json();
+                
+                if (!discordId || !action || !code) {
+                    return jsonResponse({ error: 'Missing required fields' }, 400, corsHeaders);
+                }
+
+                // Get stored code from KV
+                const verificationKey = `verify:${discordId}:${action}`;
+                const storedCode = await env.USERS_KV?.get(verificationKey);
+                
+                if (!storedCode) {
+                    return jsonResponse({ 
+                        success: false, 
+                        error: 'Verification code expired or not found. Please request a new code.' 
+                    }, 400, corsHeaders);
+                }
+                
+                if (storedCode !== code.trim()) {
+                    return jsonResponse({ 
+                        success: false, 
+                        error: 'Invalid verification code. Please check and try again.' 
+                    }, 400, corsHeaders);
+                }
+                
+                // Code is valid, delete it so it can't be reused
+                await env.USERS_KV?.delete(verificationKey);
+                
+                return jsonResponse({ success: true, message: 'Code verified successfully' }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Verification error:', error);
+                return jsonResponse({ error: 'Verification failed', details: error.message }, 500, corsHeaders);
+            }
+        }
+
         // API: Delete account
         if (path === '/api/delete-account' && request.method === 'DELETE') {
             try {
-                const { discordId, accountId } = await request.json();
+                const { discordId, accountId, verificationCode } = await request.json();
+                
+                // Verify the code first
+                if (!verificationCode) {
+                    return jsonResponse({ error: 'Verification code required' }, 400, corsHeaders);
+                }
+                
+                const verificationKey = `verify:${discordId}:account deletion`;
+                const storedCode = await env.USERS_KV?.get(verificationKey);
+                
+                if (!storedCode || storedCode !== verificationCode.trim()) {
+                    return jsonResponse({ error: 'Invalid or expired verification code' }, 400, corsHeaders);
+                }
+                
+                // Delete the verification code
+                await env.USERS_KV?.delete(verificationKey);
+                
                 const botToken = env.DISCORD_BOT_TOKEN;
                 const spreadsheetId = env.SPREADSHEET_ID;
                 const sheetsApiKey = env.GOOGLE_SHEETS_API_KEY;
