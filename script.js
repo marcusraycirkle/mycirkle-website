@@ -308,6 +308,16 @@ function showPage(pageId) {
             }, 100);
         }
         
+        // Update rewards page when showing it
+        if (pageId === 'rewards' && currentUser) {
+            setTimeout(() => {
+                currentPoints = currentUser.points || 0;
+                const availablePointsAlt = document.getElementById('available-points-alt');
+                if (availablePointsAlt) availablePointsAlt.textContent = currentPoints;
+                updateProgress();
+            }, 100);
+        }
+        
         // Update loyalty card when showing loyalty page
         if (pageId === 'loyalty') {
             setTimeout(() => updateLoyaltyCard(), 100);
@@ -550,8 +560,9 @@ function showDashboard() {
     if (statProducts) statProducts.textContent = '0';
     if (statTier) {
         const points = currentUser.points || 0;
-        if (points >= 2000) statTier.textContent = 'Platinum';
-        else if (points >= 1000) statTier.textContent = 'Gold';
+        if (points >= 2000) statTier.textContent = 'Legendary';
+        else if (points >= 1250) statTier.textContent = 'Diamond';
+        else if (points >= 750) statTier.textContent = 'Gold';
         else if (points >= 500) statTier.textContent = 'Silver';
         else statTier.textContent = 'Bronze';
     }
@@ -1223,7 +1234,7 @@ async function redeemReward(rewardType) {
     // Define reward costs
     const rewards = {
         'Daily Reward': { cost: 10, name: 'Daily Reward' },
-        '10% Discount': { cost: 50, name: '10% Product Discount' },
+        '20% Discount': { cost: 50, name: '20% Product Discount' },
         'Commission Discount': { cost: 100, name: '20% Commission Discount' },
         'Free Product': { cost: 200, name: 'Free Product' }
     };
@@ -1596,7 +1607,7 @@ function updateLoyaltyCard() {
     if (issueDate) issueDate.textContent = new Date(currentUser.memberSince || Date.now()).toLocaleDateString('en-GB', { month: '2-digit', year: '2-digit' });
     
     const cardPoints = document.getElementById('card-points-back');
-    if (cardPoints) cardPoints.textContent = currentUser.points || 5;
+    if (cardPoints) cardPoints.textContent = currentPoints || currentUser.points || 5;
     
     const cardNumber = document.getElementById('card-number-24');
     if (cardNumber) cardNumber.textContent = generate24DigitNumber(currentUser.accountId || 'DEFAULT');
