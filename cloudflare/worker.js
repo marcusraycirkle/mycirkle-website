@@ -573,8 +573,8 @@ export default {
                 // Send account creation webhook
                 const accountWebhook = 'https://discord.com/api/webhooks/1436826449150742679/P7Z3v2HpDpZxINW8OWF5YDM4_MJRtSYDpWcgK_yOu2JcW63JJVVmWNPi62f5vYRy_xLI';
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 250));
-                    await fetch(accountWebhook, {
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    const webhookResponse = await fetch(accountWebhook, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -593,6 +593,11 @@ export default {
                             }]
                         })
                     });
+                    
+                    if (!webhookResponse.ok) {
+                        const errorText = await webhookResponse.text();
+                        console.error('Account webhook failed:', webhookResponse.status, errorText);
+                    }
                 } catch (webhookError) {
                     console.error('Account webhook error:', webhookError);
                 }
@@ -900,10 +905,35 @@ export default {
                 // Delete the verification code
                 await env.USERS_KV?.delete(verificationKey);
                 
-                // DELETE USER DATA FROM KV - THIS IS CRITICAL!
+                // GET USER DATA BEFORE DELETION to access email
                 const userKvKey = `user:${discordId}`;
+                const userData = await env.USERS_KV?.get(userKvKey, { type: 'json' });
+                const userEmail = userData?.email;
+                const userFirstName = userData?.firstName;
+                
+                // DELETE USER DATA FROM KV - THIS IS CRITICAL!
                 await env.USERS_KV?.delete(userKvKey);
                 console.log(`🗑️ Deleted user data from KV: ${userKvKey}`);
+                
+                // Remove from mailing list if they have an email
+                if (userEmail) {
+                    try {
+                        await removeFromMailingList(env, userEmail);
+                        console.log(`📧 Removed from mailing list: ${userEmail}`);
+                    } catch (err) {
+                        console.error('Mailing list removal error:', err);
+                    }
+                }
+                
+                // Remove from email history dashboard
+                if (userEmail) {
+                    try {
+                        await removeFromEmailHistory(env, userEmail);
+                        console.log(`📊 Removed from email history: ${userEmail}`);
+                    } catch (err) {
+                        console.error('Email history removal error:', err);
+                    }
+                }
                 
                 const botToken = env.DISCORD_BOT_TOKEN;
                 const spreadsheetId = env.SPREADSHEET_ID;
@@ -1191,16 +1221,6 @@ export default {
             try {
                 const { email, firstName, accountNumber, points } = await request.json();
                 await sendWelcomeEmail(env, email, firstName, accountNumber, points);
-                return jsonResponse({ success: true }, 200, corsHeaders);
-            } catch (error) {
-                return jsonResponse({ error: error.message }, 500, corsHeaders);
-            }
-        }
-
-        if (path === '/api/email/account-deleted' && request.method === 'POST') {
-            try {
-                const { email, firstName } = await request.json();
-                await sendAccountDeletedEmail(env, email, firstName);
                 return jsonResponse({ success: true }, 200, corsHeaders);
             } catch (error) {
                 return jsonResponse({ error: error.message }, 500, corsHeaders);
@@ -2076,6 +2096,11 @@ async function sendBulkEmails(env, users, subject, message) {
 async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
     const headerImageUrl = 'https://i.postimg.cc/hPdGLf78/cirkledevtest.png'; // MyCirkle header image
     
+    // Use verified domain or fallback to onboarding@resend.dev for testing
+    const fromEmail = env.RESEND_VERIFIED_DOMAIN 
+        ? `MyCirkle <noreply@${env.RESEND_VERIFIED_DOMAIN}>` 
+        : 'MyCirkle <onboarding@resend.dev>';
+    
     const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -2083,7 +2108,7 @@ async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            from: 'MyCirkle <mycirkle@cirkledevelopment.co.uk>',
+            from: fromEmail,
             to: [email],
             subject: '🎉 Welcome to MyCirkle!',
             html: `
@@ -2164,6 +2189,29 @@ async function addToMailingList(env, email, firstName, lastName) {
     }
 }
 
+// Remove email from Resend mailing list
+async function removeFromMailingList(env, email) {
+    try {
+        const audienceId = '78618937-ef3f-45f7-a1ce-8549070384a5';
+        const response = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts/${email}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const result = await response.json();
+            console.error('Failed to remove from mailing list:', result);
+        } else {
+            console.log('Successfully removed from mailing list:', email);
+        }
+    } catch (error) {
+        console.error('Failed to remove from mailing list:', error);
+    }
+}
+
 // Log email to dashboard (KV storage)
 async function logEmailToDashboard(env, email, name, action) {
     try {
@@ -2189,9 +2237,30 @@ async function logEmailToDashboard(env, email, name, action) {
     }
 }
 
+// Remove email from dashboard history
+async function removeFromEmailHistory(env, emailToRemove) {
+    try {
+        const historyKey = 'email:history';
+        const existingHistory = await env.USERS_KV?.get(historyKey, { type: 'json' });
+        
+        if (existingHistory) {
+            // Filter out all entries with this email
+            const updatedHistory = existingHistory.filter(entry => entry.email !== emailToRemove);
+            await env.USERS_KV?.put(historyKey, JSON.stringify(updatedHistory));
+            console.log(`Removed ${existingHistory.length - updatedHistory.length} entries for ${emailToRemove}`);
+        }
+    } catch (error) {
+        console.error('Failed to remove from email history:', error);
+    }
+}
+
 // Send account deleted email
 async function sendAccountDeletedEmail(env, email, firstName) {
     const headerImageUrl = 'https://i.postimg.cc/hPdGLf78/cirkledevtest.png';
+    
+    const fromEmail = env.RESEND_VERIFIED_DOMAIN 
+        ? `MyCirkle <noreply@${env.RESEND_VERIFIED_DOMAIN}>` 
+        : 'MyCirkle <onboarding@resend.dev>';
     
     await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -2200,7 +2269,7 @@ async function sendAccountDeletedEmail(env, email, firstName) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            from: 'MyCirkle <mycirkle@cirkledevelopment.co.uk>',
+            from: fromEmail,
             to: [email],
             subject: '👋 Your MyCirkle Account Has Been Deleted',
             html: `

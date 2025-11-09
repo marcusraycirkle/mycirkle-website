@@ -525,8 +525,12 @@ async function completeSignup(country, timezone, language, robloxUsername, accep
             console.log('User registered successfully');
             if (result.accountNumber) {
                 currentUser.accountId = result.accountNumber;
-                localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
             }
+            // Set welcome bonus points
+            currentUser.points = 5;
+            currentPoints = 5;
+            localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+            localStorage.setItem('points', '5');
         } else {
             console.error('Signup failed:', result.error);
         }
@@ -1104,15 +1108,15 @@ function showAccount() {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <p class="text-xs text-gray-500 mb-1">Account Number</p>
-                        <p class="font-mono font-semibold">${currentUser?.accountId || 'N/A'}</p>
+                        <p class="font-mono font-semibold text-black">${currentUser?.accountId || 'N/A'}</p>
                     </div>
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <p class="text-xs text-gray-500 mb-1">Discord Username</p>
-                        <p class="font-semibold">${currentUser?.username || 'N/A'}</p>
+                        <p class="font-semibold text-black">${currentUser?.username || 'N/A'}</p>
                     </div>
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <p class="text-xs text-gray-500 mb-1">Member Since</p>
-                        <p class="font-semibold">${currentUser?.memberSince || 'N/A'}</p>
+                        <p class="font-semibold text-black">${currentUser?.memberSince || 'N/A'}</p>
                     </div>
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <p class="text-xs text-gray-500 mb-1">Points Balance</p>
@@ -1203,8 +1207,8 @@ function showLoyaltyCard() {
                 <p class="content-subtitle">Your digital membership card</p>
             </div>
             
-            <div class="max-w-md mx-auto" style="perspective: 1000px;">
-                <div id="loyalty-card" onclick="flipCard()" class="relative w-full cursor-pointer debit-card" style="transform-style: preserve-3d; transition: transform 0.8s; aspect-ratio: 1.586;">
+            <div class="max-w-2xl mx-auto px-4" style="perspective: 1500px;">
+                <div id="loyalty-card" onclick="flipCard()" class="relative w-full cursor-pointer debit-card mx-auto" style="transform-style: preserve-3d; transition: transform 0.8s; aspect-ratio: 1.586; max-width: 500px;">
                     <!-- Front of card -->
                     <div id="card-front" class="absolute w-full h-full rounded-2xl shadow-2xl p-8 text-white debit-card-front flex flex-col justify-between" style="backface-visibility: hidden; transform-style: preserve-3d;">
                         <div class="flex justify-end items-center gap-3">
@@ -1245,7 +1249,7 @@ function showLoyaltyCard() {
                         
                         <div class="flex items-center justify-center">
                             <div class="bg-white p-3 rounded-lg w-full max-w-xs">
-                                <svg id="barcode-back" width="100%" height="60"></svg>
+                                <canvas id="qr-code-canvas" class="mx-auto"></canvas>
                             </div>
                         </div>
                     </div>
@@ -1261,7 +1265,7 @@ function showLoyaltyCard() {
     // Update the loyalty card with user data
     setTimeout(() => updateLoyaltyCard(), 100);
 }
-
+Perfect. T
 function hideAllDashboardContent() {
     const contents = ['dashboard-content', 'rewards-content', 'products-content', 'loyalty-content', 'account-content', 'faq-content'];
     contents.forEach(id => {
@@ -1741,28 +1745,56 @@ function updateLoyaltyCard() {
     const cardNumber = document.getElementById('card-number-24');
     if (cardNumber) cardNumber.textContent = generate24DigitNumber(currentUser.accountId || 'DEFAULT');
     
-    generateBarcodeBack();
+    generateQRCodeBack();
 }
 
 // Generate barcode for card back
-function generateBarcodeBack() {
-    const svg = document.getElementById('barcode-back');
-    if (!svg || !currentUser) return;
+function generateQRCodeBack() {
+    const canvas = document.getElementById('qr-code-canvas');
+    if (!canvas || !currentUser) return;
     
     const accountId = currentUser.accountId || generateAccountId();
-    const barcodeData = accountId.replace(/-/g, '');
+    const qrData = `MYCIRKLE:${accountId}:${currentUser.discordId || currentUser.id}`;
     
-    let barcodeHTML = '<g fill="black">';
-    let x = 10;
-    for (let i = 0; i < barcodeData.length && x < 190; i++) {
-        const char = barcodeData.charCodeAt(i);
-        const width = (char % 3) + 1.5;
-        const height = 50;
-        barcodeHTML += `<rect x="${x}" y="5" width="${width}" height="${height}"/>`;
-        x += width + 2;
+    // Simple QR code generation using a library-free approach
+    // For production, you'd want to use a proper QR library
+    const ctx = canvas.getContext('2d');
+    const size = 150;
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Generate simple QR-like pattern (placeholder - use real QR library for production)
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = 'black';
+    
+    // Create a simple data matrix pattern
+    const cellSize = 5;
+    const gridSize = Math.floor(size / cellSize);
+    
+    // Use account ID to generate unique pattern
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            const hash = (accountId.charCodeAt(i % accountId.length) + i * j) % 2;
+            if (hash === 0) {
+                ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+            }
+        }
     }
-    barcodeHTML += '</g>';
-    svg.innerHTML = barcodeHTML;
+    
+    // Add finder patterns (corners)
+    const drawFinderPattern = (x, y) => {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(x, y, cellSize * 7, cellSize * 7);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(x + cellSize, y + cellSize, cellSize * 5, cellSize * 5);
+        ctx.fillStyle = 'black';
+        ctx.fillRect(x + cellSize * 2, y + cellSize * 2, cellSize * 3, cellSize * 3);
+    };
+    
+    drawFinderPattern(0, 0); // Top-left
+    drawFinderPattern(size - cellSize * 7, 0); // Top-right
+    drawFinderPattern(0, size - cellSize * 7); // Bottom-left
 }
 
 // Progress bar target visualization
