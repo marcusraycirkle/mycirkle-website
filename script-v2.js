@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     const continueNameBtn = document.getElementById('continue-name');
+    const continueEmailBtn = document.getElementById('continue-email');
     const submitPassBtn = document.getElementById('submit-pass');
     const submitPrefsBtn = document.getElementById('submit-preferences');
     const goDashboardBtn = document.getElementById('go-dashboard');
@@ -100,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const robloxConnectBtn = document.getElementById('roblox-connect-btn');
     
     if (continueNameBtn) continueNameBtn.addEventListener('click', handleNameSubmit);
+    if (continueEmailBtn) continueEmailBtn.addEventListener('click', handleEmailSubmit);
     if (submitPassBtn) submitPassBtn.addEventListener('click', handlePassSubmit);
     if (submitPrefsBtn) submitPrefsBtn.addEventListener('click', handlePreferencesSubmit);
     if (goDashboardBtn) goDashboardBtn.addEventListener('click', () => showDashboard());
@@ -344,12 +346,40 @@ function handleNameSubmit() {
     const last = document.getElementById('last-name').value;
     if (first && last) {
         const discordUser = JSON.parse(localStorage.getItem('discordUser'));
-        currentUser = { ...discordUser, firstName: first, lastName: last, fullName: `${first} ${last}`, email: `${first.toLowerCase()}.${last.toLowerCase()}@example.com`, memberSince: new Date().toDateString() };
+        currentUser = { ...discordUser, firstName: first, lastName: last, fullName: `${first} ${last}`, memberSince: new Date().toDateString() };
         localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
-        showPage('create-pass');
+        showPage('create-email');
     } else {
         alert('Please enter both names.');
     }
+}
+
+// Email Submit with validation
+function handleEmailSubmit() {
+    const email = document.getElementById('user-email').value.trim();
+    
+    // Validate email format: must have @ and a domain
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!email) {
+        alert('❌ Please enter your email address.');
+        return;
+    }
+    
+    if (!email.includes('@')) {
+        alert('❌ Email must contain an @ symbol.');
+        return;
+    }
+    
+    if (!emailRegex.test(email)) {
+        alert('❌ Please enter a valid email address (e.g., name@example.com).');
+        return;
+    }
+    
+    // Email is valid, save and continue
+    currentUser.email = email;
+    localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+    showPage('create-pass');
 }
 
 // Password Submit
