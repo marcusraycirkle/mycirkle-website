@@ -1165,12 +1165,11 @@ function generateAccountNumber() {
 }
 
 function generateRedemptionCode() {
-    // Generate redemption code in format: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    // Generate redemption code in format: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX (numbers only)
     let code = '';
     for (let i = 0; i < 24; i++) {
         if (i > 0 && i % 4 === 0) code += '-';
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
+        code += Math.floor(Math.random() * 10);
     }
     return code;
 }
