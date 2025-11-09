@@ -552,6 +552,31 @@ async function completeSignup(country, timezone, language, robloxUsername, accep
     }, 5000);
 }
 
+// Refresh user data from API
+async function refreshUserData() {
+    if (!currentUser || !currentUser.discordId) {
+        console.warn('No current user to refresh');
+        return false;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/api/get-user?discordId=${currentUser.discordId}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.discordId) {
+                // Update currentUser with fresh data from API
+                currentUser = { ...currentUser, ...data };
+                localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+                console.log('✅ User data refreshed:', currentUser.points, 'points');
+                return true;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to refresh user data:', error);
+    }
+    return false;
+}
+
 // Show Dashboard
 function showDashboard() {
     if (!currentUser) {
@@ -560,6 +585,25 @@ function showDashboard() {
     }
     
     console.log('Showing dashboard for user:', currentUser);
+    
+    // Refresh user data from API in background
+    refreshUserData().then(refreshed => {
+        if (refreshed) {
+            // Update points display after refresh
+            const availablePointsEl = document.getElementById('available-points');
+            if (availablePointsEl) availablePointsEl.textContent = currentUser.points || 0;
+            
+            // Update tier
+            const statTier = document.getElementById('stat-tier');
+            if (statTier) {
+                const points = currentUser.points || 0;
+                if (points >= 2000) statTier.textContent = 'Diamond';
+                else if (points >= 1000) statTier.textContent = 'Gold';
+                else if (points >= 750) statTier.textContent = 'Silver';
+                else statTier.textContent = 'Bronze';
+            }
+        }
+    });
     
     // Get time-based greeting
     const hour = new Date().getHours();
@@ -1249,7 +1293,7 @@ function showLoyaltyCard() {
                         
                         <div class="flex items-center justify-center">
                             <div class="bg-white p-3 rounded-lg w-full max-w-xs">
-                                <canvas id="qr-code-canvas" class="mx-auto"></canvas>
+                                <div id="qr-code-canvas" class="mx-auto" style="width: 150px; height: 150px;"></div>
                             </div>
                         </div>
                     </div>
@@ -1748,22 +1792,50 @@ function updateLoyaltyCard() {
     generateQRCodeBack();
 }
 
-// Generate barcode for card back
+// Generate QR code for card back
 function generateQRCodeBack() {
-    const canvas = document.getElementById('qr-code-canvas');
-    if (!canvas || !currentUser) return;
+    const qrContainer = document.getElementById('qr-code-canvas');
+    if (!qrContainer || !currentUser) return;
+    
+    // Clear previous QR code
+    qrContainer.innerHTML = '';
     
     const accountId = currentUser.accountId || generateAccountId();
     const qrData = `MYCIRKLE:${accountId}:${currentUser.discordId || currentUser.id}`;
     
-    // Simple QR code generation using a library-free approach
-    // For production, you'd want to use a proper QR library
+    // Check if QRCode library is loaded
+    if (typeof QRCode !== 'undefined') {
+        try {
+            // Generate real scannable QR code
+            new QRCode(qrContainer, {
+                text: qrData,
+                width: 150,
+                height: 150,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+            console.log('✅ QR Code generated:', qrData);
+        } catch (error) {
+            console.error('QR Code generation error:', error);
+            fallbackQRCode(qrContainer, accountId);
+        }
+    } else {
+        console.warn('QRCode library not loaded, using fallback');
+        fallbackQRCode(qrContainer, accountId);
+    }
+}
+
+// Fallback QR pattern if library fails
+function fallbackQRCode(container, accountId) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 150;
+    canvas.height = 150;
+    canvas.id = 'qr-fallback';
+    container.appendChild(canvas);
+    
     const ctx = canvas.getContext('2d');
     const size = 150;
-    canvas.width = size;
-    canvas.height = size;
-    
-    // Generate simple QR-like pattern (placeholder - use real QR library for production)
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, size, size);
     ctx.fillStyle = 'black';
@@ -1772,7 +1844,6 @@ function generateQRCodeBack() {
     const cellSize = 5;
     const gridSize = Math.floor(size / cellSize);
     
-    // Use account ID to generate unique pattern
     for (let i = 0; i < gridSize; i++) {
         for (let j = 0; j < gridSize; j++) {
             const hash = (accountId.charCodeAt(i % accountId.length) + i * j) % 2;
@@ -1782,7 +1853,7 @@ function generateQRCodeBack() {
         }
     }
     
-    // Add finder patterns (corners)
+    // Add finder patterns
     const drawFinderPattern = (x, y) => {
         ctx.fillStyle = 'black';
         ctx.fillRect(x, y, cellSize * 7, cellSize * 7);
@@ -1792,9 +1863,9 @@ function generateQRCodeBack() {
         ctx.fillRect(x + cellSize * 2, y + cellSize * 2, cellSize * 3, cellSize * 3);
     };
     
-    drawFinderPattern(0, 0); // Top-left
-    drawFinderPattern(size - cellSize * 7, 0); // Top-right
-    drawFinderPattern(0, size - cellSize * 7); // Bottom-left
+    drawFinderPattern(0, 0);
+    drawFinderPattern(size - cellSize * 7, 0);
+    drawFinderPattern(0, size - cellSize * 7);
 }
 
 // Progress bar target visualization
