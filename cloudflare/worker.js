@@ -2076,7 +2076,7 @@ async function sendBulkEmails(env, users, subject, message) {
 async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
     const headerImageUrl = 'https://i.postimg.cc/hPdGLf78/cirkledevtest.png'; // MyCirkle header image
     
-    await fetch('https://api.resend.com/emails', {
+    const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${env.RESEND_API_KEY}`,
@@ -2125,12 +2125,20 @@ async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
             `
         })
     });
+    
+    const result = await response.json();
+    if (!response.ok) {
+        console.error('Failed to send welcome email:', result);
+    } else {
+        console.log('Welcome email sent successfully to:', email);
+    }
+    return result;
 }
 
 // Add email to Resend mailing list
 async function addToMailingList(env, email, firstName, lastName) {
     try {
-        await fetch('https://api.resend.com/audiences/78618937-ef3f-45f7-a1ce-8549070384a5/contacts', {
+        const response = await fetch('https://api.resend.com/audiences/78618937-ef3f-45f7-a1ce-8549070384a5/contacts', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${env.RESEND_API_KEY}`,
@@ -2143,6 +2151,14 @@ async function addToMailingList(env, email, firstName, lastName) {
                 unsubscribed: false
             })
         });
+        
+        const result = await response.json();
+        if (!response.ok) {
+            console.error('Failed to add to mailing list:', result);
+        } else {
+            console.log('Successfully added to mailing list:', email);
+        }
+        return result;
     } catch (error) {
         console.error('Failed to add to mailing list:', error);
     }

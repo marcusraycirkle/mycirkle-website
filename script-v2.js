@@ -1197,12 +1197,69 @@ function showLoyaltyCard() {
     hideAllDashboardContent();
     const loyaltyContent = document.getElementById('loyalty-content');
     if (loyaltyContent) {
+        loyaltyContent.innerHTML = `
+            <div class="content-header">
+                <h2 class="content-title">My Loyalty Card</h2>
+                <p class="content-subtitle">Your digital membership card</p>
+            </div>
+            
+            <div class="max-w-md mx-auto" style="perspective: 1000px;">
+                <div id="loyalty-card" onclick="flipCard()" class="relative w-full cursor-pointer debit-card" style="transform-style: preserve-3d; transition: transform 0.8s; aspect-ratio: 1.586;">
+                    <!-- Front of card -->
+                    <div id="card-front" class="absolute w-full h-full rounded-2xl shadow-2xl p-8 text-white debit-card-front flex flex-col justify-between" style="backface-visibility: hidden; transform-style: preserve-3d;">
+                        <div class="flex justify-end items-center gap-3">
+                            <img src="https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png" alt="Logo" class="w-12 h-12 object-contain">
+                            <h3 class="text-3xl font-bold tracking-wider">MyCirkle</h3>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <div class="w-14 h-11 bg-yellow-400 bg-opacity-80 rounded-md"></div>
+                        </div>
+                        
+                        <div>
+                            <p class="text-xs opacity-75 mb-1">CARDHOLDER</p>
+                            <p class="text-lg font-bold tracking-wide uppercase" id="card-name-front"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Back of card -->
+                    <div id="card-back" class="absolute w-full h-full rounded-2xl shadow-2xl p-8 text-white debit-card-back flex flex-col justify-between" style="backface-visibility: hidden; transform: rotateY(180deg); transform-style: preserve-3d;">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p class="text-xs opacity-75 mb-1">NAME</p>
+                                <p class="font-semibold" id="card-name-back"></p>
+                            </div>
+                            <div>
+                                <p class="text-xs opacity-75 mb-1">ISSUE DATE</p>
+                                <p class="font-semibold" id="card-issue-date"></p>
+                            </div>
+                            <div>
+                                <p class="text-xs opacity-75 mb-1">TOTAL POINTS</p>
+                                <p class="font-bold text-xl" id="card-points-back">0</p>
+                            </div>
+                            <div>
+                                <p class="text-xs opacity-75 mb-1">CARD NUMBER</p>
+                                <p class="font-mono text-xs" id="card-number-24"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-center">
+                            <div class="bg-white p-3 rounded-lg w-full max-w-xs">
+                                <svg id="barcode-back" width="100%" height="60"></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="text-center text-sm text-gray-500 mt-6">💳 Click card to flip</p>
+            </div>
+        `;
         loyaltyContent.classList.remove('hidden');
     }
     updateNavActive('loyalty');
     
     // Update the loyalty card with user data
-    setTimeout(() => updateLoyaltyCard(), 50);
+    setTimeout(() => updateLoyaltyCard(), 100);
 }
 
 function hideAllDashboardContent() {
