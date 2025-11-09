@@ -19,6 +19,7 @@ body {
     line-height: 1.6;
     padding: 0;
     margin: 0;
+    padding-bottom: 60px; /* Space for fixed footer */
 }
 
 /* ===== NEW MODERN HERO SECTION ===== */
@@ -698,17 +699,18 @@ input::placeholder {
 
 /* ===== FOOTER ===== */
 .footer {
-    position: relative;
+    position: fixed;
     bottom: 0;
     left: 0;
     width: 100%;
-    background: #000000;
+    background: transparent;
+    opacity: 1;
     text-align: center;
-    padding: 20px 10px;
-    font-size: 0.9em;
-    margin-top: auto;
+    padding: 15px 10px;
+    font-size: 0.85em;
     color: #ffffff;
-    border-top: 2px solid #333333;
+    border: none;
+    z-index: 999;
 }
 
 /* ===== PROFILE SECTION ===== */
@@ -2696,10 +2698,11 @@ select.modern-input option {
 }
 
 /* ===== FOOTER FIX ===== */
+/* Footer stays at bottom */
 .footer {
-    position: relative !important;
-    bottom: auto !important;
-    margin-top: auto;
+    position: fixed !important;
+    bottom: 0 !important;
+    opacity: 1 !important;
 }
 
 /* ===== TEXT COLOR FIXES ===== */
