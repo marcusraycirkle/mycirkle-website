@@ -1232,6 +1232,7 @@ function setTarget(target) {
 async function redeemReward(rewardType) {
     // Define reward costs
     const rewards = {
+        'Daily Reward': { cost: 10, name: 'Daily Reward' },
         '20% Discount': { cost: 1000, name: '20% Product Discount' },
         'Commission Discount': { cost: 750, name: '40% Commission Discount' },
         'Free Product': { cost: 2000, name: 'Free Product' }
