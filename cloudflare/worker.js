@@ -533,9 +533,62 @@ export default {
                 if (acceptedMarketing && email) {
                     try {
                         await sendWelcomeEmail(env, email, firstName, finalAccountNumber, 5);
+                        
+                        // Add to Resend mailing list
+                        await addToMailingList(env, email, firstName, lastName);
+                        
+                        // Log to email dashboard (KV storage)
+                        await logEmailToDashboard(env, email, firstName, 'signup');
+                        
+                        // Send marketing webhook notification
+                        const marketingWebhook = 'https://discord.com/api/webhooks/1437082041194778754/5iiSF3_4XND_ftVDb3widQlaQ3VwkKS384hWHfnJXCDyjoafJ9L-Bo6CcE4DKtdwOgjU';
+                        await fetch(marketingWebhook, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                embeds: [{
+                                    title: '📧 New Marketing Signup',
+                                    description: `**${firstName} ${lastName}** has signed up for marketing emails!`,
+                                    color: 0x10b981,
+                                    fields: [
+                                        { name: '📧 Email', value: email, inline: true },
+                                        { name: '👤 Name', value: `${firstName} ${lastName}`, inline: true },
+                                        { name: '📅 Date', value: new Date().toLocaleString(), inline: false }
+                                    ],
+                                    timestamp: new Date().toISOString()
+                                }]
+                            })
+                        });
                     } catch (emailError) {
-                        console.error('Welcome email error:', emailError);
+                        console.error('Welcome email/marketing error:', emailError);
                     }
+                }
+                
+                // Send account creation webhook
+                const accountWebhook = 'https://discord.com/api/webhooks/1436826449150742679/P7Z3v2HpDpZxINW8OWF5YDM4_MJRtSYDpWcgK_yOu2JcW63JJVVmWNPi62f5vYRy_xLI';
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 250));
+                    await fetch(accountWebhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            embeds: [{
+                                title: '🆕 New Account Created',
+                                description: `**${firstName} ${lastName}** just created a MyCirkle account!`,
+                                color: 0x3b82f6,
+                                fields: [
+                                    { name: '👤 Discord', value: `<@${discordId}>`, inline: true },
+                                    { name: '📧 Email', value: email || 'Not provided', inline: true },
+                                    { name: '🔢 Account Number', value: `\`${finalAccountNumber}\``, inline: false },
+                                    { name: '⭐ Starting Points', value: '5 points', inline: true },
+                                    { name: '📬 Marketing Emails', value: acceptedMarketing ? 'Yes ✅' : 'No ❌', inline: true }
+                                ],
+                                timestamp: new Date().toISOString()
+                            }]
+                        })
+                    });
+                } catch (webhookError) {
+                    console.error('Account webhook error:', webhookError);
                 }
 
                 return jsonResponse({ 
@@ -2015,6 +2068,8 @@ async function sendBulkEmails(env, users, subject, message) {
 
 // Send welcome email
 async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
+    const headerImageUrl = 'https://i.postimg.cc/hPdGLf78/cirkledevtest.png'; // MyCirkle header image
+    
     await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -2025,13 +2080,97 @@ async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
             from: 'MyCirkle <mycirkle@cirkledevelopment.co.uk>',
             to: [email],
             subject: '🎉 Welcome to MyCirkle!',
-            html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;"><h1 style="color: white; margin: 0;">🎉 Welcome to MyCirkle!</h1></div><div style="padding: 30px; background: #f9fafb;"><div style="background: white; padding: 30px; border-radius: 10px;"><h2 style="color: #1f2937;">Hi ${firstName}!</h2><p style="color: #374151;">Thank you for joining MyCirkle! We're excited to have you as part of our loyalty family. 💜</p><div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;"><h3 style="color: #1f2937; margin-top: 0;">Your Account Details:</h3><p style="color: #374151;"><strong>Account Number:</strong> ${accountNumber}</p><p style="color: #374151;"><strong>Welcome Bonus:</strong> ${points} points 🎁</p></div><div style="text-align: center; margin: 30px 0;"><a href="https://my.cirkledevelopment.co.uk" style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">View Dashboard</a></div></div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development</p></div></div>`
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+                    <!-- Header Image -->
+                    <div style="text-align: center; padding: 0; margin: 0;">
+                        <img src="${headerImageUrl}" alt="MyCirkle" style="width: 100%; max-width: 600px; display: block; margin: 0;" />
+                    </div>
+                    
+                    <!-- Spacing -->
+                    <div style="height: 20px;"></div>
+                    
+                    <!-- Content -->
+                    <div style="padding: 30px; background: #f9fafb;">
+                        <div style="background: white; padding: 30px; border-radius: 10px;">
+                            <h2 style="color: #1f2937; margin-top: 0;">Hi ${firstName}!</h2>
+                            <p style="color: #374151; line-height: 1.6;">Thank you for joining MyCirkle! We're excited to have you as part of our loyalty family. 💜</p>
+                            
+                            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                <h3 style="color: #1f2937; margin-top: 0;">Your Account Details:</h3>
+                                <p style="color: #374151; margin: 5px 0;"><strong>Account Number:</strong> ${accountNumber}</p>
+                                <p style="color: #374151; margin: 5px 0;"><strong>Welcome Bonus:</strong> ${points} points 🎁</p>
+                            </div>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="https://my.cirkledevelopment.co.uk" style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">View Dashboard</a>
+                            </div>
+                            
+                            <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">Start earning points and redeeming amazing rewards today!</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div style="background: #1f2937; padding: 20px; text-align: center;">
+                        <p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development</p>
+                        <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 11px;">You're receiving this because you signed up for MyCirkle.</p>
+                    </div>
+                </div>
+            `
         })
     });
 }
 
+// Add email to Resend mailing list
+async function addToMailingList(env, email, firstName, lastName) {
+    try {
+        await fetch('https://api.resend.com/audiences/78618937-ef3f-45f7-a1ce-8549070384a5/contacts', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: email,
+                first_name: firstName,
+                last_name: lastName,
+                unsubscribed: false
+            })
+        });
+    } catch (error) {
+        console.error('Failed to add to mailing list:', error);
+    }
+}
+
+// Log email to dashboard (KV storage)
+async function logEmailToDashboard(env, email, name, action) {
+    try {
+        const historyKey = 'email:history';
+        let history = [];
+        
+        const existingHistory = await env.USERS_KV?.get(historyKey, { type: 'json' });
+        if (existingHistory) {
+            history = existingHistory;
+        }
+        
+        history.unshift({
+            email,
+            name,
+            action,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Keep last 100 emails
+        await env.USERS_KV?.put(historyKey, JSON.stringify(history.slice(0, 100)));
+    } catch (error) {
+        console.error('Failed to log email to dashboard:', error);
+    }
+}
+
 // Send account deleted email
 async function sendAccountDeletedEmail(env, email, firstName) {
+    const headerImageUrl = 'https://i.postimg.cc/hPdGLf78/cirkledevtest.png';
+    
     await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -2042,7 +2181,31 @@ async function sendAccountDeletedEmail(env, email, firstName) {
             from: 'MyCirkle <mycirkle@cirkledevelopment.co.uk>',
             to: [email],
             subject: '👋 Your MyCirkle Account Has Been Deleted',
-            html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background: #1f2937; padding: 30px; text-align: center;"><h1 style="color: white; margin: 0;">👋 Goodbye from MyCirkle</h1></div><div style="padding: 30px; background: #f9fafb;"><div style="background: white; padding: 30px; border-radius: 10px;"><h2 style="color: #1f2937;">Hi ${firstName},</h2><p style="color: #374151;">Your MyCirkle account has been successfully deleted. All your data has been permanently removed.</p><p style="color: #374151;">We're sad to see you go! You're always welcome to come back. 💜</p></div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development</p></div></div>`
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+                    <!-- Header Image -->
+                    <div style="text-align: center; padding: 0; margin: 0;">
+                        <img src="${headerImageUrl}" alt="MyCirkle" style="width: 100%; max-width: 600px; display: block; margin: 0;" />
+                    </div>
+                    
+                    <!-- Spacing -->
+                    <div style="height: 20px;"></div>
+                    
+                    <!-- Content -->
+                    <div style="padding: 30px; background: #f9fafb;">
+                        <div style="background: white; padding: 30px; border-radius: 10px;">
+                            <h2 style="color: #1f2937;">Hi ${firstName},</h2>
+                            <p style="color: #374151;">Your MyCirkle account has been successfully deleted. All your data has been permanently removed.</p>
+                            <p style="color: #374151;">We're sad to see you go! You're always welcome to come back. 💜</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div style="background: #1f2937; padding: 20px; text-align: center;">
+                        <p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development</p>
+                    </div>
+                </div>
+            `
         })
     });
 }

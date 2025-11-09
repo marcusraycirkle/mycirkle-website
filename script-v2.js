@@ -895,29 +895,100 @@ function showFAQ() {
                 <div class="space-y-4">
                     <div class="settings-group">
                         <details class="p-4 bg-gray-50 rounded-lg">
+                            <summary class="font-semibold cursor-pointer">What is MyCirkle?</summary>
+                            <div class="mt-3 text-gray-600">
+                                <p class="mb-3">MyCirkleDevelopment (commonly referred to as MyCirkle) is an innovative loyalty account program designed to reward both new and returning customers for their continued support and engagement.</p>
+                                <p class="mb-3">The primary goal of MyCirkle is to help customers save money and gain extra benefits while engaging with the brand's community-based services.</p>
+                                <p>As a loyalty program still in heavy development and BETA testing, MyCirkle will continue to evolve with user feedback, adding new features, rewards, and integrations over time.</p>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <details class="p-4 bg-gray-50 rounded-lg">
+                            <summary class="font-semibold cursor-pointer">How do I earn points?</summary>
+                            <div class="mt-3 text-gray-600">
+                                <p class="mb-2">You can earn points by:</p>
+                                <ul class="list-disc list-inside space-y-1 ml-4">
+                                    <li>Making purchases from Cirkle Development</li>
+                                    <li>Completing tasks and challenges</li>
+                                    <li>Participating in events and promotions</li>
+                                    <li>Engaging with the community</li>
+                                    <li>Claiming your daily rewards</li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <details class="p-4 bg-gray-50 rounded-lg">
+                            <summary class="font-semibold cursor-pointer">Where do I redeem my rewards?</summary>
+                            <div class="mt-3 text-gray-600">
+                                <p class="mb-2">To redeem your rewards, please open a ticket in our Discord Server. Our support team will assist you with redemption processing and code verification.</p>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <details class="p-4 bg-gray-50 rounded-lg">
+                            <summary class="font-semibold cursor-pointer">How do I get support?</summary>
+                            <div class="mt-3 text-gray-600">
+                                <p class="mb-2">For general support and redemptions, open a ticket in the Discord Server.</p>
+                                <p>For account loss and privacy matters, email: <a href="mailto:mycirkle@cirkledevelopment.co.uk" class="text-blue-600 hover:underline">mycirkle@cirkledevelopment.co.uk</a></p>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <details class="p-4 bg-gray-50 rounded-lg">
+                            <summary class="font-semibold cursor-pointer">What can I get with my points?</summary>
+                            <div class="mt-3 text-gray-600">
+                                <p class="mb-2">Your points can be redeemed for:</p>
+                                <ul class="list-disc list-inside space-y-1 ml-4">
+                                    <li>Discount codes for future purchases</li>
+                                    <li>Free shipping vouchers</li>
+                                    <li>Exclusive digital rewards</li>
+                                    <li>Special perks and benefits</li>
+                                    <li>Early access to new products</li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <details class="p-4 bg-gray-50 rounded-lg">
+                            <summary class="font-semibold cursor-pointer">Lost Account Details?</summary>
+                            <div class="mt-3 text-gray-600">
+                                If you've lost your account details, email us at: <a href="mailto:mycirkle@cirkledevelopment.co.uk" class="text-blue-600 hover:underline">mycirkle@cirkledevelopment.co.uk</a> with your Discord username.
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <details class="p-4 bg-gray-50 rounded-lg">
+                            <summary class="font-semibold cursor-pointer">Is MyCirkle still in development?</summary>
+                            <div class="mt-3 text-gray-600">
+                                Yes! MyCirkle is constantly evolving with new features, rewards, and improvements based on user feedback.
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <details class="p-4 bg-gray-50 rounded-lg">
+                            <summary class="font-semibold cursor-pointer">How secure is my account?</summary>
+                            <div class="mt-3 text-gray-600">
+                                Your account is secured with Discord OAuth authentication and encrypted data storage. We never store sensitive information.
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <details class="p-4 bg-gray-50 rounded-lg">
                             <summary class="font-semibold cursor-pointer">Terms & Conditions</summary>
                             <div class="mt-3 text-gray-600">
                                 <a href="https://shop.cirkledevelopment.co.uk/mycirkle" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 underline">
                                     View our complete Terms & Conditions
                                 </a>
-                            </div>
-                        </details>
-                    </div>
-                    
-                    <div class="settings-group">
-                        <details class="p-4 bg-gray-50 rounded-lg">
-                            <summary class="font-semibold cursor-pointer">Lost Account Details</summary>
-                            <div class="mt-3 text-gray-600">
-                                Contact us at: <a href="mailto:mycirkle@cirkledevelopment.co.uk" class="text-blue-600 hover:underline">mycirkle@cirkledevelopment.co.uk</a>
-                            </div>
-                        </details>
-                    </div>
-                    
-                    <div class="settings-group">
-                        <details class="p-4 bg-gray-50 rounded-lg">
-                            <summary class="font-semibold cursor-pointer">What is MyCirkle?</summary>
-                            <div class="mt-3 text-gray-600">
-                                MyCirkle is an exclusive loyalty program that rewards our valued customers with points for every purchase. Earn rewards, unlock perks, and enjoy member-only benefits!
                             </div>
                         </details>
                     </div>
@@ -1062,9 +1133,9 @@ function showAccount() {
                 
                 <div class="settings-group">
                     <label class="block text-gray-700 text-sm font-medium mb-2">Email</label>
-                    <div class="flex gap-2">
-                        <input type="email" id="edit-email" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" value="${currentUser?.email || ''}">
-                        <button onclick="updateEmail()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <p class="text-gray-700 font-medium">${currentUser?.email || 'Not provided'}</p>
+                        <p class="text-xs text-gray-500 mt-1">🔒 Email cannot be changed for security reasons</p>
                     </div>
                 </div>
                 
@@ -1126,46 +1197,12 @@ function showLoyaltyCard() {
     hideAllDashboardContent();
     const loyaltyContent = document.getElementById('loyalty-content');
     if (loyaltyContent) {
-        loyaltyContent.innerHTML = `
-            <div class="content-header">
-                <h2 class="content-title">My Loyalty Card</h2>
-                <p class="content-subtitle">Your digital membership card</p>
-            </div>
-            
-            <div class="section-card max-w-md mx-auto">
-                <div class="loyalty-card-modern">
-                    <div class="loyalty-card-front">
-                        <div class="loyalty-card-header">
-                            <h3 class="text-2xl font-bold">MyCirkle</h3>
-                            <div class="text-sm opacity-90">Premium Member</div>
-                        </div>
-                        <div class="loyalty-card-body">
-                            <div class="mb-4">
-                                <p class="text-sm opacity-75">Member Name</p>
-                                <p class="text-xl font-semibold" id="card-name">${currentUser?.fullName || 'Guest'}</p>
-                            </div>
-                            <div class="mb-4">
-                                <p class="text-sm opacity-75">Points Balance</p>
-                                <p class="text-3xl font-bold" id="card-points">${currentUser?.points || 0}</p>
-                            </div>
-                            <div>
-                                <p class="text-sm opacity-75">Member ID</p>
-                                <p class="text-xs font-mono" id="card-id">${currentUser?.accountId || 'XXXX-XXXX-XXXX-XXXX'}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <svg id="barcode-svg" width="100%" height="60" viewBox="0 0 200 60" class="mx-auto"></svg>
-                    <p class="text-center text-xs text-gray-500 mt-2">Scan at checkout to earn points</p>
-                </div>
-            </div>
-        `;
         loyaltyContent.classList.remove('hidden');
-        generateBarcode();
     }
     updateNavActive('loyalty');
+    
+    // Update the loyalty card with user data
+    setTimeout(() => updateLoyaltyCard(), 50);
 }
 
 function hideAllDashboardContent() {
@@ -1255,7 +1292,20 @@ function updateCardInfo() {
 // Set Points Target
 function setTarget(target) {
     targetPoints = target;
+    
+    // Highlight the selected target button
+    const buttons = document.querySelectorAll('[onclick^="setTarget"]');
+    buttons.forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-800');
+    });
+    
+    // Highlight clicked button
+    event.target.classList.remove('bg-gray-200', 'text-gray-800');
+    event.target.classList.add('bg-blue-600', 'text-white');
+    
     updateProgress();
+    setProgressTarget(target);
 }
 
 // Redeem Reward
