@@ -529,6 +529,15 @@ export default {
                     console.error('Welcome channel error:', welcomeError);
                 }
 
+                // Send welcome email if they accepted marketing
+                if (acceptedMarketing && email) {
+                    try {
+                        await sendWelcomeEmail(env, email, firstName, finalAccountNumber, 5);
+                    } catch (emailError) {
+                        console.error('Welcome email error:', emailError);
+                    }
+                }
+
                 return jsonResponse({ 
                     success: true, 
                     message: 'User registered',

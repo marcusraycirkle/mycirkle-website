@@ -242,8 +242,15 @@ async function handleDiscordUser(user) {
                     localStorage.setItem('points', currentPoints);
                     
                     setTimeout(() => {
-                        // Go directly to dashboard for existing users
-                        showPage('dashboard');
+                        // Show welcome popup for returning users, then go to dashboard
+                        showPage('welcome-popup');
+                        welcomeName.textContent = currentUser.fullName || currentUser.firstName || 'back';
+                        
+                        // Change button text for returning users
+                        const dashBtn = document.getElementById('go-dashboard');
+                        if (dashBtn) {
+                            dashBtn.textContent = 'Go to Dashboard →';
+                        }
                     }, 2000);
                 } else {
                     // New user, show signup form
