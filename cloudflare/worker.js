@@ -1134,10 +1134,21 @@ export default {
                     return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
                 }
 
-                // Get all users from Google Sheets
-                const users = await getAllUsers(env);
+                // Get mailing list contacts from Resend
+                const mailingList = await getMailingListContacts(env);
+                const mailingEmails = new Set(mailingList.map(c => c.email));
                 
-                // Filter recipients
+                console.log(`Mailing list has ${mailingEmails.size} contacts`);
+                
+                // Get all users from Google Sheets
+                const allUsers = await getAllUsers(env);
+                
+                // Filter to only users who are in the mailing list
+                const users = allUsers.filter(u => u.email && mailingEmails.has(u.email));
+                
+                console.log(`Filtered to ${users.length} users who opted into marketing`);
+                
+                // Filter recipients further based on selection
                 let targetUsers = [];
                 const now = Date.now();
                 
@@ -1169,7 +1180,7 @@ export default {
                 }
 
                 if (targetUsers.length === 0) {
-                    return jsonResponse({ error: 'No recipients found' }, 400, corsHeaders);
+                    return jsonResponse({ error: 'No recipients found. Make sure users have opted into marketing emails during signup.' }, 400, corsHeaders);
                 }
 
                 // Send emails via Resend
@@ -1189,17 +1200,18 @@ export default {
                     failed: targetUsers.length - sent.length
                 }, 200, corsHeaders);
             } catch (error) {
+                console.error('Send email error:', error);
                 return jsonResponse({ error: error.message }, 500, corsHeaders);
             }
         }
 
         if (path === '/api/admin/email-stats' && request.method === 'GET') {
             try {
-                const users = await getAllUsers(env);
+                const mailingList = await getMailingListContacts(env);
                 const emailsToday = await getEmailsSentToday(env);
                 
                 return jsonResponse({
-                    totalMembers: users.length,
+                    totalMembers: mailingList.length,
                     emailsToday
                 }, 200, corsHeaders);
             } catch (error) {
@@ -2320,7 +2332,7 @@ async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
                     <!-- Footer -->
                     <div style="background: #1f2937; padding: 20px; text-align: center;">
                         <p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development</p>
-                        <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 11px;">You're receiving this because you signed up for MyCirkle.</p>
+                        <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 11px;">You're receiving this because you signed up for MyCirkle Marketing Updates.</p>
                     </div>
                 </div>
             `
@@ -2385,6 +2397,31 @@ async function removeFromMailingList(env, email) {
         }
     } catch (error) {
         console.error('Failed to remove from mailing list:', error);
+    }
+}
+
+// Get mailing list contacts from Resend
+async function getMailingListContacts(env) {
+    try {
+        const audienceId = '78618937-ef3f-45f7-a1ce-8549070384a5';
+        const response = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            console.error('Failed to fetch mailing list');
+            return [];
+        }
+        
+        const result = await response.json();
+        return result.data || [];
+    } catch (error) {
+        console.error('Failed to fetch mailing list:', error);
+        return [];
     }
 }
 
