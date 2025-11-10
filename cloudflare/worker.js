@@ -1296,6 +1296,32 @@ export default {
                     await sendTierUpgradeDM(env, userId, oldTier, newTier, userData.points);
                 }
                 
+                // Log to activity logs channel
+                try {
+                    const logsWebhook = 'https://discord.com/api/webhooks/1437082041194778754/5iiSF3_4XND_ftVDb3widQlaQ3VwkKS384hWHfnJXCDyjoafJ9L-Bo6CcE4DKtdwOgjU';
+                    await fetch(logsWebhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            embeds: [{
+                                title: '📊 Activity Points Awarded',
+                                description: `<@${userId}> received points for activity!`,
+                                color: 0x3b82f6,
+                                fields: [
+                                    { name: '🎯 Activity', value: reason || 'Activity reward', inline: false },
+                                    { name: '➕ Points Earned', value: `+${points}`, inline: true },
+                                    { name: '💰 Old Balance', value: `${oldPoints}`, inline: true },
+                                    { name: '✨ New Balance', value: `${userData.points}`, inline: true },
+                                    { name: '🏆 Tier', value: newTier, inline: true }
+                                ],
+                                timestamp: new Date().toISOString()
+                            }]
+                        })
+                    });
+                } catch (webhookError) {
+                    console.error('Activity log webhook error:', webhookError);
+                }
+                
                 return jsonResponse({
                     success: true,
                     oldPoints,
@@ -1605,7 +1631,19 @@ async function handleBalanceCommand(userId, env) {
         }
 
         const points = userData.points || 0;
-        const tier = points < 100 ? '🥉 Bronze' : points < 500 ? '🥈 Silver' : '🥇 Gold';
+        const tier = getTier(points);
+        
+        // Calculate next tier
+        let nextTierText = '';
+        if (points < 750) {
+            nextTierText = `Silver 🥈 at 750 pts (${750 - points} pts away)`;
+        } else if (points < 1000) {
+            nextTierText = `Gold 🥇 at 1000 pts (${1000 - points} pts away)`;
+        } else if (points < 2000) {
+            nextTierText = `Diamond 💎 at 2000 pts (${2000 - points} pts away)`;
+        } else {
+            nextTierText = 'Max tier reached! 🎉';
+        }
 
         return jsonResponse({
             type: 4,
@@ -1616,7 +1654,7 @@ async function handleBalanceCommand(userId, env) {
                     fields: [
                         { name: '⭐ Points', value: `**${points}** points`, inline: true },
                         { name: '🎯 Tier', value: tier, inline: true },
-                        { name: '📈 Next Tier', value: points < 100 ? 'Silver at 100 pts' : points < 500 ? 'Gold at 500 pts' : 'Max tier!', inline: false }
+                        { name: '📈 Next Tier', value: nextTierText, inline: false }
                     ],
                     footer: { text: 'Use /rewards to see what you can redeem!' }
                 }]
@@ -1762,7 +1800,7 @@ async function handleProfileCommand(userId, env) {
             });
         }
 
-        const tier = userData.points < 100 ? '🥉 Bronze' : userData.points < 500 ? '🥈 Silver' : '🥇 Gold';
+        const tier = getTier(userData.points || 0);
 
         return jsonResponse({
             type: 4,
