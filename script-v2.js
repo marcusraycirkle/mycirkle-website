@@ -858,9 +858,12 @@ function handleLogout() {
 // Modern Navigation Functions
 function showRewards() {
     hideAllDashboardContent();
-    showPage('dashboard'); // Ensure we stay on dashboard page
     const rewardsContent = document.getElementById('rewards-content');
     if (rewardsContent) {
+        // Show loading state immediately
+        rewardsContent.innerHTML = '<div class="text-center py-12"><div class="loading-spinner mx-auto"></div><p class="mt-4 text-gray-600">Loading rewards...</p></div>';
+        rewardsContent.classList.remove('hidden');
+        
         // Fetch daily reward from API
         fetch(`${API_URL}/api/daily-reward`)
             .then(res => res.json())
@@ -932,7 +935,6 @@ function showRewards() {
                 </div>
             </div>
         `;
-                rewardsContent.classList.remove('hidden');
                 updatePoints();
             })
             .catch(error => {
@@ -947,8 +949,6 @@ function showRewards() {
 function showRewardsDefault() {
     const rewardsContent = document.getElementById('rewards-content');
     if (!rewardsContent) return;
-    
-    showPage('dashboard'); // Ensure we stay on dashboard page
     
     rewardsContent.innerHTML = `
             <div class="content-header">
