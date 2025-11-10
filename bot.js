@@ -188,6 +188,56 @@ async function awardPoints(userId, points, reason) {
     });
 }
 
+// Helper: Send message to a channel
+async function sendChannelMessage(channelId, content, messageReference = null) {
+    return new Promise((resolve) => {
+        const messageData = {
+            content: content
+        };
+        
+        // Add message reference if replying
+        if (messageReference) {
+            messageData.message_reference = {
+                message_id: messageReference
+            };
+        }
+        
+        const postData = JSON.stringify(messageData);
+        const options = {
+            hostname: 'discord.com',
+            path: `/api/v10/channels/${channelId}/messages`,
+            method: 'POST',
+            headers: {
+                'Authorization': `Bot ${BOT_TOKEN}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+        
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => data += chunk);
+            res.on('end', () => {
+                if (res.statusCode === 200) {
+                    console.log(`💬 Sent message to channel ${channelId}`);
+                    resolve(true);
+                } else {
+                    console.error(`❌ Failed to send message to channel ${channelId}: ${res.statusCode}`);
+                    resolve(false);
+                }
+            });
+        });
+        
+        req.on('error', (error) => {
+            console.error(`❌ Error sending channel message:`, error.message);
+            resolve(false);
+        });
+        
+        req.write(postData);
+        req.end();
+    });
+}
+
 // Helper: Send DM to user
 async function sendActivityDM(userId, points, reason) {
     return new Promise((resolve) => {
@@ -370,7 +420,7 @@ function handlePayload(payload) {
                 updateStatusRotation();
             } else if (t === 'MESSAGE_CREATE') {
                 // Handle message-based rewards
-                const { author, channel_id } = d;
+                const { author, channel_id, id: message_id } = d;
                 
                 // Ignore bots
                 if (author.bot) break;
@@ -392,6 +442,8 @@ function handlePayload(payload) {
                         try {
                             await awardPoints(author.id, MESSAGE_REWARD_POINTS, `Sent ${MESSAGE_THRESHOLD} messages in active channel`);
                             await sendActivityDM(author.id, MESSAGE_REWARD_POINTS, `Sent ${MESSAGE_THRESHOLD} messages in active channel`);
+                            // Send reply message in channel
+                            await sendChannelMessage(channel_id, `<@${author.id}> You have received ${MESSAGE_REWARD_POINTS} points for activity!`, message_id);
                         } catch (err) {
                             console.error('❌ Error awarding message points:', err.message);
                         }
