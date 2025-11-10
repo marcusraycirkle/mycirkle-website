@@ -1624,7 +1624,7 @@ async function redeemReward(rewardType, customCost, customName) {
             // Update local points
             currentPoints = data.newPoints;
             localStorage.setItem('points', currentPoints);
-            updatePointsDisplay();
+            updateAllPointDisplays();
             
             // Show reward code
             document.getElementById('reward-code').textContent = data.code;
