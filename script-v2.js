@@ -14,6 +14,7 @@ let generatedCodes = {};
 let verificationCallback = null;
 let verificationCode = null;
 let verificationAction = null;
+let activeTarget = null;
 
 // DOM Elements - will be populated after DOM loads
 let pages, modals, profileIcon, profileName, dashProfileImg, dashProfileName;
@@ -2043,8 +2044,6 @@ function fallbackQRCode(container, accountId) {
 }
 
 // Progress bar target visualization
-let activeTarget = null;
-
 function setProgressTarget(targetPoints) {
     activeTarget = targetPoints;
     updateProgressBarTargets();

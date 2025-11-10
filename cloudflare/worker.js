@@ -1334,6 +1334,29 @@ export default {
             }
         }
 
+        // Get user data by Discord ID
+        if (path === '/api/get-user' && request.method === 'GET') {
+            try {
+                const url = new URL(request.url);
+                const discordId = url.searchParams.get('discordId');
+                
+                if (!discordId) {
+                    return jsonResponse({ error: 'discordId parameter required' }, 400, corsHeaders);
+                }
+                
+                const userData = await getUserData(discordId, env);
+                
+                if (!userData) {
+                    return jsonResponse({ error: 'User not found' }, 404, corsHeaders);
+                }
+                
+                return jsonResponse(userData, 200, corsHeaders);
+            } catch (error) {
+                console.error('Get user error:', error);
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
         // Transactional Emails (Welcome, Account Deletion)
         if (path === '/api/email/welcome' && request.method === 'POST') {
             try {
