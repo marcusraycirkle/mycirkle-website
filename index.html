@@ -861,9 +861,10 @@
                     <div>
                         <label class="block text-gray-700 text-sm font-medium mb-2">Display Name</label>
                         <div class="flex gap-2">
-                            <input type="text" id="edit-name" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <button onclick="updateDisplayName()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                            <input type="text" id="edit-name" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed" readonly>
+                            <button class="bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold cursor-not-allowed" disabled>Locked</button>
                         </div>
+                        <p class="text-xs text-gray-500 mt-1">Display name cannot be changed</p>
                     </div>
                     
                     <div>
@@ -954,6 +955,16 @@
                         </div>
                     </div>
                     <p class="text-center text-gray-500 text-sm mt-4">Click card to flip and view details</p>
+                    
+                    <!-- Card Usage Information -->
+                    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-3">What can I use this for?</h3>
+                        <p class="text-gray-700 leading-relaxed">
+                            You can use the card to present to the support agent who will deal with your enquiry or redemption. 
+                            This card is for verification purposes and can be used to verify identity. 
+                            Please ensure you have the back of it ready to send to an agent if needed.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
