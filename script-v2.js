@@ -858,6 +858,7 @@ function handleLogout() {
 // Modern Navigation Functions
 function showRewards() {
     hideAllDashboardContent();
+    showPage('dashboard'); // Ensure we stay on dashboard page
     const rewardsContent = document.getElementById('rewards-content');
     if (rewardsContent) {
         // Fetch daily reward from API
@@ -947,6 +948,8 @@ function showRewardsDefault() {
     const rewardsContent = document.getElementById('rewards-content');
     if (!rewardsContent) return;
     
+    showPage('dashboard'); // Ensure we stay on dashboard page
+    
     rewardsContent.innerHTML = `
             <div class="content-header">
                 <h2 class="content-title">Rewards & Points</h2>
@@ -1013,6 +1016,7 @@ function showRewardsDefault() {
         `;
     rewardsContent.classList.remove('hidden');
     updatePoints();
+    updateNavActive('rewards');
 }
 
 function showFAQ() {
