@@ -560,7 +560,7 @@ async function refreshUserData() {
     }
     
     try {
-        const response = await fetch(`${API_URL}/api/get-user?discordId=${currentUser.discordId}`);
+        const response = await fetch(`${WORKER_URL}/api/get-user?discordId=${currentUser.discordId}`);
         if (response.ok) {
             const data = await response.json();
             if (data && data.discordId) {
@@ -865,7 +865,7 @@ function showRewards() {
         rewardsContent.classList.remove('hidden');
         
         // Fetch daily reward from API
-        fetch(`${API_URL}/api/daily-reward`)
+        fetch(`${WORKER_URL}/api/daily-reward`)
             .then(res => res.json())
             .then(dailyReward => {
                 const dailyRewardName = dailyReward.name || 'Free Shipping Voucher';

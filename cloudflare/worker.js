@@ -1234,6 +1234,68 @@ export default {
             }
         }
 
+        // Activity-based rewards (messages, forum posts)
+        if (path === '/api/activity-reward' && request.method === 'POST') {
+            try {
+                const { userId, points, reason } = await request.json();
+                
+                if (!userId || !points) {
+                    return jsonResponse({ error: 'Missing userId or points' }, 400, corsHeaders);
+                }
+                
+                // Get user data from KV
+                const userKvKey = `user:${userId}`;
+                const userData = await env.USERS_KV?.get(userKvKey, { type: 'json' });
+                
+                if (!userData) {
+                    return jsonResponse({ error: 'User not found' }, 404, corsHeaders);
+                }
+                
+                // Add points
+                const oldPoints = userData.points || 0;
+                const oldTier = getTier(oldPoints);
+                userData.points = oldPoints + points;
+                const newTier = getTier(userData.points);
+                
+                // Save to KV
+                await env.USERS_KV?.put(userKvKey, JSON.stringify(userData));
+                
+                // Update Google Sheets
+                try {
+                    const rows = await fetchSheetData(env.SHEET_ID, env.GOOGLE_API_KEY);
+                    const rowIndex = rows.findIndex(row => row[0] === userId);
+                    
+                    if (rowIndex !== -1) {
+                        // Update points column (column G, index 6)
+                        await updateSheetCell(
+                            env.SHEET_ID,
+                            env.GOOGLE_API_KEY,
+                            rowIndex + 2, // +2 because sheets are 1-indexed and header row
+                            'G',
+                            userData.points
+                        );
+                    }
+                } catch (sheetError) {
+                    console.error('Failed to update Google Sheets:', sheetError);
+                }
+                
+                // Check tier upgrade
+                if (newTier !== oldTier) {
+                    await sendTierUpgradeDM(env, userId, oldTier, newTier, userData.points);
+                }
+                
+                return jsonResponse({
+                    success: true,
+                    oldPoints,
+                    newPoints: userData.points,
+                    tierUpgrade: newTier !== oldTier ? { oldTier, newTier } : null
+                }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Activity reward error:', error);
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
         // Transactional Emails (Welcome, Account Deletion)
         if (path === '/api/email/welcome' && request.method === 'POST') {
             try {
@@ -1806,8 +1868,58 @@ async function handleGivePointsCommand(interaction, env) {
             return jsonResponse({ type: 4, data: { content: '❌ User not found', flags: 64 } });
         }
         
-        userData.points = (userData.points || 0) + points;
+        const oldPoints = userData.points || 0;
+        const oldTier = getTier(oldPoints);
+        userData.points = oldPoints + points;
+        const newTier = getTier(userData.points);
+        
         await saveUserData(userData, env);
+        
+        // Send DM to user about points received
+        const botToken = env.DISCORD_BOT_TOKEN;
+        if (botToken) {
+            try {
+                const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ recipient_id: targetUserId })
+                });
+                const channel = await channelResponse.json();
+                
+                await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        embeds: [{
+                            title: '✨ Points Received!',
+                            description: `You've received **${points} points**!`,
+                            color: 0x10b981,
+                            fields: [
+                                { name: '📝 Reason', value: reason, inline: false },
+                                { name: '⭐ Points Added', value: `+${points}`, inline: true },
+                                { name: '💰 New Balance', value: `${userData.points} points`, inline: true },
+                                { name: '🏆 Current Tier', value: newTier, inline: true }
+                            ],
+                            footer: { text: 'MyCirkle Loyalty Program' },
+                            timestamp: new Date().toISOString()
+                        }]
+                    })
+                });
+            } catch (dmError) {
+                console.error('DM error:', dmError);
+            }
+        }
+        
+        // Check for tier upgrade and send DM
+        if (newTier !== oldTier) {
+            await sendTierUpgradeDM(env, targetUserId, oldTier, newTier, userData.points);
+        }
         
         // Log to points activity webhook
         const pointsWebhook = 'https://discord.com/api/webhooks/1436826449150742679/ExNLzfnEG3CCemhOpVxNxLrzH4U57ekFKhnm7td_FTNP9El2lJsxA8AsxcJKorziy9gw';
@@ -1868,8 +1980,53 @@ async function handleDeductPointsCommand(interaction, env) {
             return jsonResponse({ type: 4, data: { content: '❌ User not found', flags: 64 } });
         }
         
-        userData.points = Math.max(0, (userData.points || 0) - points);
+        const oldPoints = userData.points || 0;
+        const oldTier = getTier(oldPoints);
+        userData.points = Math.max(0, oldPoints - points);
+        const newTier = getTier(userData.points);
+        
         await saveUserData(userData, env);
+        
+        // Send DM to user about points deducted
+        const botToken = env.DISCORD_BOT_TOKEN;
+        if (botToken) {
+            try {
+                const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ recipient_id: targetUserId })
+                });
+                const channel = await channelResponse.json();
+                
+                await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        embeds: [{
+                            title: '⚠️ Points Deducted',
+                            description: `**${points} points** have been deducted from your account.`,
+                            color: 0xf59e0b,
+                            fields: [
+                                { name: '📝 Reason', value: reason, inline: false },
+                                { name: '⭐ Points Removed', value: `-${points}`, inline: true },
+                                { name: '💰 New Balance', value: `${userData.points} points`, inline: true },
+                                { name: '🏆 Current Tier', value: newTier, inline: true }
+                            ],
+                            footer: { text: 'MyCirkle Loyalty Program' },
+                            timestamp: new Date().toISOString()
+                        }]
+                    })
+                });
+            } catch (dmError) {
+                console.error('DM error:', dmError);
+            }
+        }
         
         // Log to points activity webhook
         const pointsWebhook = 'https://discord.com/api/webhooks/1436826449150742679/ExNLzfnEG3CCemhOpVxNxLrzH4U57ekFKhnm7td_FTNP9El2lJsxA8AsxcJKorziy9gw';
@@ -2379,3 +2536,54 @@ async function getEmailsSentToday(env) {
         return 0;
     }
 }
+
+// Get tier based on points
+function getTier(points) {
+    if (points >= 2000) return 'Diamond 💎';
+    if (points >= 1000) return 'Gold 🥇';
+    if (points >= 750) return 'Silver 🥈';
+    return 'Bronze 🥉';
+}
+
+// Send tier upgrade DM
+async function sendTierUpgradeDM(env, userId, oldTier, newTier, points) {
+    const botToken = env.DISCORD_BOT_TOKEN;
+    if (!botToken) return;
+    
+    try {
+        const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bot ${botToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ recipient_id: userId })
+        });
+        const channel = await channelResponse.json();
+        
+        await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bot ${botToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                embeds: [{
+                    title: '🎉 Tier Upgrade!',
+                    description: `Congratulations! You've reached a new tier!`,
+                    color: 0xfbbf24,
+                    fields: [
+                        { name: '📊 Previous Tier', value: oldTier, inline: true },
+                        { name: '🆙 New Tier', value: newTier, inline: true },
+                        { name: '💰 Current Points', value: `${points} points`, inline: false }
+                    ],
+                    footer: { text: 'Keep earning to reach even higher tiers!' },
+                    timestamp: new Date().toISOString()
+                }]
+            })
+        });
+    } catch (error) {
+        console.error('Tier upgrade DM error:', error);
+    }
+}
+
