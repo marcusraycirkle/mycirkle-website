@@ -1992,6 +1992,7 @@ function updateProgressBarTargets() {
 // Verification system
 let verificationCallback = null;
 let verificationCode = null;
+let verificationAction = null;
 
 function showVerification(title, message, action, callback) {
     verificationCallback = callback;
