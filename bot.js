@@ -5,6 +5,20 @@
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CONFIG_URL = process.env.CONFIG_URL || 'https://mycirkle-auth.marcusray.workers.dev/api/bot-config';
 const PORT = process.env.PORT || 3000;
+const WORKER_API_URL = process.env.WORKER_API_URL || 'https://mycirkle-auth.marcusray.workers.dev';
+
+// Activity reward configuration
+const MESSAGE_REWARD_CHANNELS = ['1365306074319683707', '1315050837520809984'];
+const MESSAGE_THRESHOLD = 5; // Points awarded every 5 messages
+const MESSAGE_REWARD_POINTS = 2;
+
+const FORUM_REWARDS = {
+    '1315679706745409566': 3, // Forum ID -> points
+    '1323293808326086717': 4
+};
+
+// In-memory message tracking (per user per channel)
+const messageTracker = new Map(); // key: "userId:channelId", value: count
 
 if (!BOT_TOKEN) {
     console.error('❌ Error: BOT_TOKEN environment variable is required');
@@ -134,6 +148,129 @@ function updateStatusRotation() {
     }
 }
 
+// Helper: Award points to a user
+async function awardPoints(userId, points, reason) {
+    return new Promise((resolve) => {
+        const postData = JSON.stringify({ userId, points, reason });
+        const url = new URL(`${WORKER_API_URL}/api/activity-reward`);
+        
+        const options = {
+            hostname: url.hostname,
+            path: url.pathname,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+        
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => data += chunk);
+            res.on('end', () => {
+                if (res.statusCode === 200) {
+                    console.log(`✨ Awarded ${points} points to ${userId} - ${reason}`);
+                    resolve(true);
+                } else {
+                    console.error(`❌ Failed to award ${points} points to ${userId}: ${res.statusCode}`);
+                    resolve(false);
+                }
+            });
+        });
+        
+        req.on('error', (error) => {
+            console.error(`❌ Error awarding points:`, error.message);
+            resolve(false);
+        });
+        
+        req.write(postData);
+        req.end();
+    });
+}
+
+// Helper: Send DM to user
+async function sendActivityDM(userId, points, reason) {
+    return new Promise((resolve) => {
+        // First, create DM channel
+        const dmData = JSON.stringify({ recipient_id: userId });
+        const dmOptions = {
+            hostname: 'discord.com',
+            path: '/api/v10/users/@me/channels',
+            method: 'POST',
+            headers: {
+                'Authorization': `Bot ${BOT_TOKEN}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(dmData)
+            }
+        };
+        
+        const dmReq = https.request(dmOptions, (dmRes) => {
+            let dmChannelData = '';
+            dmRes.on('data', (chunk) => dmChannelData += chunk);
+            dmRes.on('end', () => {
+                if (dmRes.statusCode !== 200) {
+                    resolve(false);
+                    return;
+                }
+                
+                try {
+                    const dmChannel = JSON.parse(dmChannelData);
+                    
+                    // Send message to DM channel
+                    const msgData = JSON.stringify({
+                        embeds: [{
+                            title: '🎉 Activity Reward!',
+                            description: `You earned **${points} points** for being active!`,
+                            color: 0x8b5cf6,
+                            fields: [
+                                { name: '📝 Reason', value: reason, inline: false },
+                                { name: '⭐ Points Earned', value: `+${points}`, inline: true }
+                            ],
+                            footer: { text: 'Keep being active to earn more points!' },
+                            timestamp: new Date().toISOString()
+                        }]
+                    });
+                    
+                    const msgOptions = {
+                        hostname: 'discord.com',
+                        path: `/api/v10/channels/${dmChannel.id}/messages`,
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bot ${BOT_TOKEN}`,
+                            'Content-Type': 'application/json',
+                            'Content-Length': Buffer.byteLength(msgData)
+                        }
+                    };
+                    
+                    const msgReq = https.request(msgOptions, (msgRes) => {
+                        msgRes.on('data', () => {}); // Consume response
+                        msgRes.on('end', () => resolve(true));
+                    });
+                    
+                    msgReq.on('error', (error) => {
+                        console.error('❌ Error sending activity DM:', error.message);
+                        resolve(false);
+                    });
+                    
+                    msgReq.write(msgData);
+                    msgReq.end();
+                } catch (error) {
+                    console.error('❌ Error parsing DM channel response:', error.message);
+                    resolve(false);
+                }
+            });
+        });
+        
+        dmReq.on('error', (error) => {
+            console.error('❌ Error creating DM channel:', error.message);
+            resolve(false);
+        });
+        
+        dmReq.write(dmData);
+        dmReq.end();
+    });
+}
+
 function connect() {
     console.log('🔄 Connecting to Discord Gateway...');
     ws = new WebSocket(GATEWAY_URL);
@@ -195,7 +332,7 @@ function handlePayload(payload) {
                     op: 2,
                     d: {
                         token: BOT_TOKEN,
-                        intents: 0, // No intents needed - commands handled by worker
+                        intents: (1 << 9) | (1 << 15), // GUILD_MESSAGES (512) + MESSAGE_CONTENT (32768) = 33280
                         properties: {
                             os: 'linux',
                             browser: 'mycirkle-bot',
@@ -231,6 +368,53 @@ function handlePayload(payload) {
                 
                 // Setup status rotation
                 updateStatusRotation();
+            } else if (t === 'MESSAGE_CREATE') {
+                // Handle message-based rewards
+                const { author, channel_id } = d;
+                
+                // Ignore bots
+                if (author.bot) break;
+                
+                // Check if channel is tracked
+                if (!MESSAGE_REWARD_CHANNELS.includes(channel_id)) break;
+                
+                const trackingKey = `${author.id}:${channel_id}`;
+                const currentCount = messageTracker.get(trackingKey) || 0;
+                const newCount = currentCount + 1;
+                
+                messageTracker.set(trackingKey, newCount);
+                
+                // Award points every MESSAGE_THRESHOLD messages
+                if (newCount % MESSAGE_THRESHOLD === 0) {
+                    console.log(`📨 User ${author.username} reached ${newCount} messages in channel ${channel_id}`);
+                    // Wrap async calls in IIFE
+                    (async () => {
+                        try {
+                            await awardPoints(author.id, MESSAGE_REWARD_POINTS, `Sent ${MESSAGE_THRESHOLD} messages in active channel`);
+                            await sendActivityDM(author.id, MESSAGE_REWARD_POINTS, `Sent ${MESSAGE_THRESHOLD} messages in active channel`);
+                        } catch (err) {
+                            console.error('❌ Error awarding message points:', err.message);
+                        }
+                    })();
+                }
+            } else if (t === 'THREAD_CREATE') {
+                // Handle forum post rewards
+                const { owner_id, parent_id } = d;
+                
+                // Check if forum is tracked
+                const pointsToAward = FORUM_REWARDS[parent_id];
+                if (!pointsToAward) break;
+                
+                console.log(`📝 User created thread in forum ${parent_id}`);
+                // Wrap async calls in IIFE
+                (async () => {
+                    try {
+                        await awardPoints(owner_id, pointsToAward, `Created a discussion thread`);
+                        await sendActivityDM(owner_id, pointsToAward, `Created a discussion thread`);
+                    } catch (err) {
+                        console.error('❌ Error awarding thread points:', err.message);
+                    }
+                })();
             }
             break;
 
