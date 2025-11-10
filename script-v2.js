@@ -11,6 +11,9 @@ let dailyRewards = ['10% off', 'Free Shipping', 'Bonus Points'];
 let currentDailyIndex = 0;
 let targetPoints = 100;
 let generatedCodes = {};
+let verificationCallback = null;
+let verificationCode = null;
+let verificationAction = null;
 
 // DOM Elements - will be populated after DOM loads
 let pages, modals, profileIcon, profileName, dashProfileImg, dashProfileName;
@@ -577,6 +580,67 @@ async function refreshUserData() {
     return false;
 }
 
+// Update all point displays across the application
+function updateAllPointDisplays() {
+    if (!currentUser) return;
+    
+    const points = currentUser.points || 0;
+    
+    // Update dashboard points
+    const availablePointsEl = document.getElementById('available-points');
+    if (availablePointsEl) availablePointsEl.textContent = points;
+    
+    // Update rewards page points
+    const rewardsPointsEls = document.querySelectorAll('.points-value');
+    rewardsPointsEls.forEach(el => el.textContent = points);
+    
+    // Update loyalty card back points
+    const cardPointsBack = document.getElementById('card-points-back');
+    if (cardPointsBack) cardPointsBack.textContent = points;
+    
+    // Update tier displays
+    const statTier = document.getElementById('stat-tier');
+    let tierName = 'Bronze';
+    if (points >= 2000) tierName = 'Diamond';
+    else if (points >= 1000) tierName = 'Gold';
+    else if (points >= 750) tierName = 'Silver';
+    if (statTier) statTier.textContent = tierName;
+    
+    console.log(`✅ Updated all displays to ${points} points (${tierName} tier)`);
+}
+
+// Auto-refresh points every 10 seconds
+let pointsRefreshInterval = null;
+
+function startPointsAutoRefresh() {
+    // Clear any existing interval
+    if (pointsRefreshInterval) {
+        clearInterval(pointsRefreshInterval);
+    }
+    
+    // Refresh every 10 seconds
+    pointsRefreshInterval = setInterval(async () => {
+        if (currentUser && currentUser.discordId) {
+            const oldPoints = currentUser.points || 0;
+            const refreshed = await refreshUserData();
+            if (refreshed) {
+                const newPoints = currentUser.points || 0;
+                if (newPoints !== oldPoints) {
+                    console.log(`🔄 Points changed: ${oldPoints} → ${newPoints}`);
+                    updateAllPointDisplays();
+                }
+            }
+        }
+    }, 10000); // 10 seconds
+}
+
+function stopPointsAutoRefresh() {
+    if (pointsRefreshInterval) {
+        clearInterval(pointsRefreshInterval);
+        pointsRefreshInterval = null;
+    }
+}
+
 // Show Dashboard
 function showDashboard() {
     if (!currentUser) {
@@ -586,22 +650,13 @@ function showDashboard() {
     
     console.log('Showing dashboard for user:', currentUser);
     
-    // Refresh user data from API in background
+    // Start auto-refresh when entering dashboard
+    startPointsAutoRefresh();
+    
+    // Refresh user data from API immediately
     refreshUserData().then(refreshed => {
         if (refreshed) {
-            // Update points display after refresh
-            const availablePointsEl = document.getElementById('available-points');
-            if (availablePointsEl) availablePointsEl.textContent = currentUser.points || 0;
-            
-            // Update tier
-            const statTier = document.getElementById('stat-tier');
-            if (statTier) {
-                const points = currentUser.points || 0;
-                if (points >= 2000) statTier.textContent = 'Diamond';
-                else if (points >= 1000) statTier.textContent = 'Gold';
-                else if (points >= 750) statTier.textContent = 'Silver';
-                else statTier.textContent = 'Bronze';
-            }
+            updateAllPointDisplays();
         }
     });
     
@@ -857,6 +912,11 @@ function handleLogout() {
 
 // Modern Navigation Functions
 function showRewards() {
+    // Refresh points before showing rewards
+    refreshUserData().then(() => {
+        updateAllPointDisplays();
+    });
+    
     hideAllDashboardContent();
     const rewardsContent = document.getElementById('rewards-content');
     if (rewardsContent) {
@@ -1227,6 +1287,11 @@ async function renderProductsToDashboard() {
 }
 
 function showAccount() {
+    // Refresh points before showing account settings
+    refreshUserData().then(() => {
+        updateAllPointDisplays();
+    });
+    
     hideAllDashboardContent();
     const accountContent = document.getElementById('account-content');
     if (accountContent) {
@@ -1331,6 +1396,11 @@ function showAccount() {
 }
 
 function showLoyaltyCard() {
+    // Refresh points before showing loyalty card
+    refreshUserData().then(() => {
+        updateAllPointDisplays();
+    });
+    
     hideAllDashboardContent();
     const loyaltyContent = document.getElementById('loyalty-content');
     if (loyaltyContent) {
@@ -1990,10 +2060,6 @@ function updateProgressBarTargets() {
 }
 
 // Verification system
-let verificationCallback = null;
-let verificationCode = null;
-let verificationAction = null;
-
 function showVerification(title, message, action, callback) {
     verificationCallback = callback;
     verificationAction = action; // Store the action type
