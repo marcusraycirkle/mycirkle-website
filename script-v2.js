@@ -760,9 +760,14 @@ function updatePoints() {
 }
 
 function updateProgress() {
-    if (!progressFill) return;
+    // Update both dashboard and rewards progress bars
+    const progressFillMain = document.getElementById('progress-fill');
+    const progressFillDashboard = document.getElementById('progress-fill-dashboard');
+    
     const percentage = Math.min((currentPoints / targetPoints) * 100, 100);
-    progressFill.style.width = percentage + '%';
+    
+    if (progressFillMain) progressFillMain.style.width = percentage + '%';
+    if (progressFillDashboard) progressFillDashboard.style.width = percentage + '%';
     
     // Update target line position
     const targetLine = document.getElementById('target-line');
@@ -1946,7 +1951,11 @@ function updateLoyaltyCard() {
     if (cardPoints) cardPoints.textContent = currentPoints || currentUser.points || 5;
     
     const cardNumber = document.getElementById('card-number-24');
-    if (cardNumber) cardNumber.textContent = generate24DigitNumber(currentUser.accountId || 'DEFAULT');
+    // Show actual account number formatted with spaces
+    if (cardNumber) {
+        const accountNum = currentUser.accountNumber || currentUser.accountId || 'DEFAULT';
+        cardNumber.textContent = accountNum.match(/.{1,4}/g)?.join(' ') || accountNum;
+    }
     
     generateQRCodeBack();
 }
@@ -1959,8 +1968,14 @@ function generateQRCodeBack() {
     // Clear previous QR code
     qrContainer.innerHTML = '';
     
-    const accountId = currentUser.accountId || generateAccountId();
-    const qrData = `MYCIRKLE:${accountId}:${currentUser.discordId || currentUser.id}`;
+    // Include full account details in QR code
+    const qrData = JSON.stringify({
+        name: currentUser.fullName || `${currentUser.firstName} ${currentUser.lastName}`,
+        email: currentUser.email || '',
+        accountNumber: currentUser.accountNumber || currentUser.accountId,
+        discordId: currentUser.discordId || currentUser.id,
+        discordUsername: currentUser.discordUsername || currentUser.username
+    });
     
     // Check if QRCode library is loaded
     if (typeof QRCode !== 'undefined') {
@@ -1974,10 +1989,10 @@ function generateQRCodeBack() {
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.M
             });
-            console.log('✅ QR Code generated:', qrData);
+            console.log('✅ QR Code generated with full account details');
         } catch (error) {
             console.error('QR Code generation error:', error);
-            fallbackQRCode(qrContainer, accountId);
+            fallbackQRCode(qrContainer, currentUser.accountNumber || currentUser.accountId);
         }
     } else {
         console.warn('QRCode library not loaded, using fallback');
