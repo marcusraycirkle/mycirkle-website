@@ -426,11 +426,11 @@ async function handleRobloxUsername() {
     btn.disabled = true;
     
     try {
-        // Try to get user by username
-        const response = await fetch(`https://users.roblox.com/v1/usernames/users`, {
+        // Try to get user by username via proxy
+        const response = await fetch(`${WORKER_URL}/api/roblox/username`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usernames: [username], excludeBannedUsers: false })
+            body: JSON.stringify({ username: username })
         });
         
         const data = await response.json();
@@ -478,8 +478,8 @@ async function handleRobloxUserId() {
     btn.disabled = true;
     
     try {
-        // Get user info by ID
-        const response = await fetch(`https://users.roblox.com/v1/users/${userId}`);
+        // Get user info by ID via proxy
+        const response = await fetch(`${WORKER_URL}/api/roblox/user/${userId}`);
         
         if (response.ok) {
             const user = await response.json();
@@ -500,8 +500,8 @@ async function handleRobloxUserId() {
 // Display Roblox Profile
 async function displayRobloxProfile(userId, username, displayName) {
     try {
-        // Fetch avatar thumbnail
-        const thumbResponse = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png&isCircular=true`);
+        // Fetch avatar thumbnail via proxy
+        const thumbResponse = await fetch(`${WORKER_URL}/api/roblox/avatar/${userId}`);
         const thumbData = await thumbResponse.json();
         const avatarUrl = thumbData.data && thumbData.data[0] ? thumbData.data[0].imageUrl : 'https://via.placeholder.com/100';
         

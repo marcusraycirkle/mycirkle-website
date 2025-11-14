@@ -341,6 +341,69 @@ export default {
             }
         }
 
+        // Roblox API Proxy - Username lookup
+        if (path === '/api/roblox/username' && request.method === 'POST') {
+            try {
+                const { username } = await request.json();
+                
+                if (!username) {
+                    return jsonResponse({ error: 'Username required' }, 400, corsHeaders);
+                }
+                
+                const response = await fetch('https://users.roblox.com/v1/usernames/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        usernames: [username], 
+                        excludeBannedUsers: false 
+                    })
+                });
+                
+                const data = await response.json();
+                return jsonResponse(data, response.status, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: 'Failed to lookup username', details: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // Roblox API Proxy - User ID lookup
+        if (path.startsWith('/api/roblox/user/') && request.method === 'GET') {
+            try {
+                const userId = path.split('/').pop();
+                
+                if (!userId || isNaN(userId)) {
+                    return jsonResponse({ error: 'Invalid user ID' }, 400, corsHeaders);
+                }
+                
+                const response = await fetch(`https://users.roblox.com/v1/users/${userId}`);
+                const data = await response.json();
+                
+                return jsonResponse(data, response.status, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: 'Failed to lookup user', details: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // Roblox API Proxy - Avatar thumbnail
+        if (path.startsWith('/api/roblox/avatar/') && request.method === 'GET') {
+            try {
+                const userId = path.split('/').pop();
+                
+                if (!userId || isNaN(userId)) {
+                    return jsonResponse({ error: 'Invalid user ID' }, 400, corsHeaders);
+                }
+                
+                const response = await fetch(
+                    `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png&isCircular=true`
+                );
+                const data = await response.json();
+                
+                return jsonResponse(data, response.status, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: 'Failed to fetch avatar', details: error.message }, 500, corsHeaders);
+            }
+        }
+
         // API: Signup with webhook notification
         if (path === '/api/signup' && request.method === 'POST') {
             try {
