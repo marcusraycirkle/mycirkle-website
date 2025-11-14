@@ -16,6 +16,38 @@ let verificationCode = null;
 let verificationAction = null;
 let activeTarget = null;
 
+// Notification System
+function showNotification(title, message, type = 'info') {
+    const modal = document.getElementById('notification-modal');
+    const icon = document.getElementById('notification-icon');
+    const titleEl = document.getElementById('notification-title');
+    const messageEl = document.getElementById('notification-message');
+    const closeBtn = document.getElementById('notification-close-btn');
+    
+    // Set icon and colors based on type
+    const types = {
+        success: { icon: '✓', bg: 'bg-green-100', text: 'text-green-600', btnBg: 'bg-green-600 hover:bg-green-700 text-white' },
+        error: { icon: '✕', bg: 'bg-red-100', text: 'text-red-600', btnBg: 'bg-red-600 hover:bg-red-700 text-white' },
+        warning: { icon: '⚠', bg: 'bg-yellow-100', text: 'text-yellow-600', btnBg: 'bg-yellow-600 hover:bg-yellow-700 text-white' },
+        info: { icon: 'ℹ', bg: 'bg-blue-100', text: 'text-blue-600', btnBg: 'bg-blue-600 hover:bg-blue-700 text-white' }
+    };
+    
+    const style = types[type] || types.info;
+    
+    icon.textContent = style.icon;
+    icon.className = `flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-2xl ${style.bg} ${style.text}`;
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    closeBtn.className = `px-6 py-2.5 rounded-lg font-semibold transition-colors ${style.btnBg}`;
+    
+    modal.classList.remove('hidden');
+}
+
+function closeNotification() {
+    const modal = document.getElementById('notification-modal');
+    modal.classList.add('hidden');
+}
+
 // DOM Elements - will be populated after DOM loads
 let pages, modals, profileIcon, profileName, dashProfileImg, dashProfileName;
 let memberSince, availablePoints, progressFill, targetSelect, dailyRewardText;
@@ -201,7 +233,7 @@ function handleHashCallback() {
             handleDiscordUser(user);
         } catch (err) {
             console.error('Error parsing user data:', err);
-            alert('Failed to process login data.');
+            showNotification('Login Failed', 'Failed to process login data. Please try again.', 'error');
             window.location.hash = 'home';
         }
     }
@@ -217,7 +249,7 @@ async function handleDiscordUser(user) {
             const membershipResponse = await fetch(`${WORKER_URL}/auth/check-membership?user_id=${user.id}`);
             const membership = await membershipResponse.json();
             if (!membership.isMember) {
-                alert('You must be a member of the MyCirkle Discord server to proceed.');
+                showNotification('Access Denied', 'You must be a member of the MyCirkle Discord server to proceed. Please join our server first.', 'error');
                 window.location.hash = 'home';
                 return;
             }
@@ -283,7 +315,7 @@ async function handleDiscordUser(user) {
             }
         }, 3000);
     } else {
-        alert('Authentication failed. Please try again.');
+        showNotification('Authentication Error', 'Authentication failed. Please try again.', 'error');
         window.location.hash = 'home';
     }
 }
@@ -393,7 +425,7 @@ function handleNameSubmit() {
         localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
         showPage('create-email');
     } else {
-        alert('Please enter both names.');
+        showNotification('Missing Information', 'Please enter both your first and last name.', 'warning');
     }
 }
 
@@ -405,17 +437,17 @@ function handleEmailSubmit() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
     if (!email) {
-        alert('❌ Please enter your email address.');
+        showNotification('Email Required', 'Please enter your email address.', 'warning');
         return;
     }
     
     if (!email.includes('@')) {
-        alert('❌ Email must contain an @ symbol.');
+        showNotification('Invalid Email', 'Email must contain an @ symbol.', 'warning');
         return;
     }
     
     if (!emailRegex.test(email)) {
-        alert('❌ Please enter a valid email address (e.g., name@example.com).');
+        showNotification('Invalid Email Format', 'Please enter a valid email address (e.g., name@example.com).', 'warning');
         return;
     }
     
@@ -433,7 +465,7 @@ async function handlePassSubmit() {
         localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
         showPage('create-preferences');
     } else {
-        alert('Password must be at least 6 characters.');
+        showNotification('Weak Password', 'Password must be at least 6 characters long.', 'warning');
     }
 }
 
@@ -612,17 +644,17 @@ async function handlePreferencesSubmit() {
     const acceptedTerms = document.getElementById('accept-terms').checked;
     
     if (!country || !timezone) {
-        alert('Please select your country and timezone.');
+        showNotification('Missing Information', 'Please select your country and timezone.', 'warning');
         return;
     }
     
     if (!acceptedAge) {
-        alert('You must be over 13 years old to use this service.');
+        showNotification('Age Requirement', 'You must be over 13 years old to use this service.', 'error');
         return;
     }
     
     if (!acceptedTerms) {
-        alert('You must agree to the Terms & Conditions to continue.');
+        showNotification('Terms Required', 'You must agree to the Terms & Conditions to continue.', 'error');
         return;
     }
     
@@ -695,7 +727,7 @@ async function completeSignup(country, timezone, language, acceptedMarketing) {
             localStorage.setItem('points', '5');
         } else {
             console.error('Signup failed:', result.error);
-            alert('Signup failed. Please try again or contact support.');
+            showNotification('Signup Failed', 'Signup failed. Please try again or contact support if the issue persists.', 'error');
             return;
         }
     } catch (err) {
@@ -966,7 +998,7 @@ function handleMenuClick(e) {
             codeReveal.classList.add('hidden');
             showPage('redeem');
         } else {
-            alert('Not enough points!');
+            showNotification('Insufficient Points', `You need ${cost} points to redeem this reward. You currently have ${currentPoints} points.`, 'warning');
         }
     } else if (page === 'loyalty') {
         loyaltyCard.addEventListener('click', () => loyaltyCard.classList.toggle('flipped'), { once: true });
@@ -1097,7 +1129,7 @@ function saveAccount() {
     currentUser.password = document.getElementById('edit-pass').value || currentUser.password;
     currentUser.email = document.getElementById('edit-email').value || currentUser.email;
     localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
-    alert('Changes saved!');
+    showNotification('Success', 'Changes saved successfully!', 'success');
     document.getElementById('edit-name').value = currentUser.fullName;
     document.getElementById('edit-email').value = currentUser.email;
     setTimeout(() => {
@@ -1464,11 +1496,16 @@ async function renderProductsToDashboard() {
             return;
         }
 
-        const response = await fetch(`${WORKER_URL}/api/products?robloxUsername=${encodeURIComponent(robloxUsername)}&accountId=${encodeURIComponent(currentUser.accountId || currentUser.discordId)}`);
+        const apiUrl = `${WORKER_URL}/api/products?robloxUsername=${encodeURIComponent(robloxUsername)}&accountId=${encodeURIComponent(currentUser.accountId || currentUser.discordId)}`;
+        console.log('🔍 Fetching products from:', apiUrl);
+        console.log('📦 Current user data:', { robloxUsername, accountId: currentUser.accountId || currentUser.discordId, discordId: currentUser.discordId });
+        
+        const response = await fetch(apiUrl);
+        console.log('📦 Products API response status:', response.status);
         
         // Check if response is ok
         if (!response.ok) {
-            console.warn('Products API returned:', response.status);
+            console.warn('⚠️ Products API returned:', response.status);
             productsListDash.innerHTML = `
                 <div class="text-center py-12 text-gray-500 col-span-full">
                     <div class="text-6xl mb-4">📦</div>
@@ -1480,8 +1517,10 @@ async function renderProductsToDashboard() {
         }
         
         const data = await response.json();
+        console.log('📦 Products API response data:', data);
 
         if (data.products && data.products.length > 0) {
+            console.log('✅ Found', data.products.length, 'product(s)');
             productsListDash.innerHTML = data.products.map(product => `
                 <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition">
                     <div class="text-4xl mb-3 text-center">📦</div>
@@ -1812,13 +1851,13 @@ async function redeemReward(rewardType, customCost, customName) {
     
     const reward = rewards[rewardType];
     if (!reward) {
-        alert('Invalid reward type');
+        showNotification('Invalid Reward', 'The selected reward is not available.', 'error');
         return;
     }
     
     // Check if user has enough points
     if (currentPoints < reward.cost) {
-        alert(`You need ${reward.cost} points to redeem this reward. You currently have ${currentPoints} points.`);
+        showNotification('Insufficient Points', `You need ${reward.cost} points to redeem this reward. You currently have ${currentPoints} points.`, 'warning');
         return;
     }
     
@@ -1861,12 +1900,12 @@ async function redeemReward(rewardType, customCost, customName) {
             showPage('redeem');
         } else {
             document.body.removeChild(loadingOverlay);
-            alert(data.error || 'Redemption failed. Please try again.');
+            showNotification('Redemption Failed', data.error || 'Redemption failed. Please try again.', 'error');
         }
     } catch (error) {
         document.body.removeChild(loadingOverlay);
         console.error('Redemption error:', error);
-        alert('Failed to process redemption. Please try again.');
+        showNotification('Error', 'Failed to process redemption. Please try again.', 'error');
     }
 }
 
@@ -2033,7 +2072,7 @@ function updateDisplayName() {
         currentUser.fullName = newName;
         localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
         document.getElementById('dash-profile-name').textContent = newName;
-        alert('Display name updated successfully!');
+        showNotification('Success', 'Display name updated successfully!', 'success');
     }
 }
 
@@ -2042,9 +2081,9 @@ function updateEmail() {
     if (newEmail.trim() && newEmail.includes('@')) {
         currentUser.email = newEmail;
         localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
-        alert('Email updated successfully!');
+        showNotification('Success', 'Email updated successfully!', 'success');
     } else {
-        alert('Please enter a valid email address.');
+        showNotification('Invalid Email', 'Please enter a valid email address.', 'warning');
     }
 }
 

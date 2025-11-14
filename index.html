@@ -1164,6 +1164,26 @@
         </div>
     </div>
 
+    <!-- Custom Notification Modal -->
+    <div id="notification-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-scale-in">
+            <div id="notification-header" class="p-6 pb-4">
+                <div class="flex items-start gap-4">
+                    <div id="notification-icon" class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-2xl"></div>
+                    <div class="flex-1">
+                        <h3 id="notification-title" class="text-xl font-bold text-gray-900 mb-2"></h3>
+                        <p id="notification-message" class="text-gray-600 leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 pb-6 flex gap-3 justify-end">
+                <button id="notification-close-btn" onclick="closeNotification()" class="px-6 py-2.5 rounded-lg font-semibold transition-colors">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="./script-v2.js"></script>
 </body>
 </html>
