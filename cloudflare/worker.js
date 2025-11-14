@@ -347,7 +347,7 @@ export default {
                 const data = await request.json();
                 const { 
                     discordId, discordUsername, firstName, lastName, fullName, email, memberSince,
-                    country, timezone, language, robloxUsername, acceptedMarketing, accountNumber
+                    country, timezone, language, robloxUsername, robloxUserId, robloxDisplayName, acceptedMarketing, accountNumber
                 } = data;
 
                 if (!discordId || !firstName || !lastName) {
@@ -379,6 +379,11 @@ export default {
                     lastName,
                     points: 5, // START WITH 5 POINTS
                     robloxUsername: robloxUsername || '',
+                    robloxUserId: robloxUserId || '',
+                    robloxDisplayName: robloxDisplayName || '',
+                    country: country || '',
+                    timezone: timezone || '',
+                    language: language || '',
                     memberSince: memberSince || new Date().toISOString()
                 };
 
@@ -544,7 +549,7 @@ export default {
                         await logEmailToDashboard(env, email, fullName || `${firstName} ${lastName}`, 'signup');
                         
                         // Send marketing webhook notification
-                        const marketingWebhook = 'https://discord.com/api/webhooks/1437082041194778754/5iiSF3_4XND_ftVDb3widQlaQ3VwkKS384hWHfnJXCDyjoafJ9L-Bo6CcE4DKtdwOgjU';
+                        const marketingWebhook = 'https://discord.com/api/webhooks/1436826617853902948/ZBLTXr0vbLpZbj-fhEy_EosA64VbyS2P6GQPFnR96qQ6ojg7l9QoZEmI65v7f0PyvXvX';
                         await fetch(marketingWebhook, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -570,8 +575,8 @@ export default {
                     console.log('Skipping marketing emails - acceptedMarketing:', acceptedMarketing, 'email:', email);
                 }
                 
-                // Send account creation webhook
-                const accountWebhook = 'https://discord.com/api/webhooks/1436826449150742679/P7Z3v2HpDpZxINW8OWF5YDM4_MJRtSYDpWcgK_yOu2JcW63JJVVmWNPi62f5vYRy_xLI';
+                // Send account information webhook
+                const accountWebhook = 'https://discord.com/api/webhooks/1436394267986755648/CaQCKNNOLhRT3ngZSEYif7dNYwq63pTRq3kizD1TfTr6YROOYRin2pQ4LaZ4WUFKnlht';
                 try {
                     await new Promise(resolve => setTimeout(resolve, 300));
                     const webhookResponse = await fetch(accountWebhook, {
@@ -579,15 +584,23 @@ export default {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             embeds: [{
-                                title: '🆕 New Account Created',
-                                description: `**${firstName} ${lastName}** just created a MyCirkle account!`,
-                                color: 0x3b82f6,
+                                title: '📋 Account Information - New Signup',
+                                description: `Complete account details for **${firstName} ${lastName}**`,
+                                color: 0x8b5cf6,
                                 fields: [
-                                    { name: '👤 Discord', value: `<@${discordId}>`, inline: true },
+                                    { name: '👤 Full Name', value: `${firstName} ${lastName}`, inline: true },
                                     { name: '📧 Email', value: email || 'Not provided', inline: true },
-                                    { name: '🔢 Account Number', value: `\`${finalAccountNumber}\``, inline: false },
+                                    { name: '🎮 Discord ID', value: discordId, inline: false },
+                                    { name: '💬 Discord Username', value: discordUsername || 'Unknown', inline: true },
+                                    { name: '🔢 Account Number', value: `\`${finalAccountNumber}\``, inline: true },
+                                    { name: '🎮 Roblox Username', value: newUserData.robloxUsername || 'Not provided', inline: true },
+                                    { name: '🆔 Roblox User ID', value: newUserData.robloxUserId || 'Not provided', inline: true },
+                                    { name: '🌍 Country', value: country || 'Not provided', inline: true },
+                                    { name: '🕐 Timezone', value: timezone || 'Not provided', inline: true },
+                                    { name: '🗣️ Language', value: language || 'Not provided', inline: true },
+                                    { name: '📬 Marketing Opt-in', value: acceptedMarketing ? 'Yes ✅' : 'No ❌', inline: true },
                                     { name: '⭐ Starting Points', value: '5 points', inline: true },
-                                    { name: '📬 Marketing Emails', value: acceptedMarketing ? 'Yes ✅' : 'No ❌', inline: true }
+                                    { name: '📅 Member Since', value: new Date(memberSince || Date.now()).toLocaleString(), inline: false }
                                 ],
                                 timestamp: new Date().toISOString()
                             }]
@@ -596,10 +609,10 @@ export default {
                     
                     if (!webhookResponse.ok) {
                         const errorText = await webhookResponse.text();
-                        console.error('Account webhook failed:', webhookResponse.status, errorText);
+                        console.error('Account info webhook failed:', webhookResponse.status, errorText);
                     }
                 } catch (webhookError) {
-                    console.error('Account webhook error:', webhookError);
+                    console.error('Account info webhook error:', webhookError);
                 }
 
                 return jsonResponse({ 
@@ -1298,7 +1311,7 @@ export default {
                 
                 // Log to activity logs channel
                 try {
-                    const logsWebhook = 'https://discord.com/api/webhooks/1437082041194778754/5iiSF3_4XND_ftVDb3widQlaQ3VwkKS384hWHfnJXCDyjoafJ9L-Bo6CcE4DKtdwOgjU';
+                    const logsWebhook = 'https://discord.com/api/webhooks/1436826617853902948/ZBLTXr0vbLpZbj-fhEy_EosA64VbyS2P6GQPFnR96qQ6ojg7l9QoZEmI65v7f0PyvXvX';
                     await fetch(logsWebhook, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1353,6 +1366,182 @@ export default {
                 return jsonResponse(userData, 200, corsHeaders);
             } catch (error) {
                 console.error('Get user error:', error);
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // Parcel API: Get user products
+        if (path === '/api/parcel/products' && request.method === 'GET') {
+            try {
+                const url = new URL(request.url);
+                const discordId = url.searchParams.get('discordId');
+                
+                if (!discordId) {
+                    return jsonResponse({ error: 'discordId parameter required' }, 400, corsHeaders);
+                }
+                
+                // Get user data to find Roblox ID
+                const userData = await getUserData(discordId, env);
+                if (!userData || !userData.robloxUserId) {
+                    return jsonResponse({ error: 'Roblox account not linked' }, 400, corsHeaders);
+                }
+                
+                // Fetch products from Parcel API
+                const parcelApiKey = 'prod_BwM387gLYcCa8qhERIH1JliOQ';
+                const parcelResponse = await fetch(`https://api.parcel.gg/v1/purchases?userId=${userData.robloxUserId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${parcelApiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!parcelResponse.ok) {
+                    return jsonResponse({ error: 'Failed to fetch Parcel data' }, 500, corsHeaders);
+                }
+                
+                const parcelData = await parcelResponse.json();
+                return jsonResponse(parcelData, 200, corsHeaders);
+            } catch (error) {
+                console.error('Parcel API error:', error);
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // Parcel Webhook: Handle purchase notifications
+        if (path === '/api/parcel/webhook' && request.method === 'POST') {
+            try {
+                const data = await request.json();
+                const { userId, productId, productName, price } = data;
+                
+                // Find user by Roblox ID
+                const spreadsheetId = env.SPREADSHEET_ID;
+                const sheetsApiKey = env.GOOGLE_SHEETS_API_KEY;
+                
+                if (!spreadsheetId || !sheetsApiKey) {
+                    return jsonResponse({ error: 'Sheets not configured' }, 500, corsHeaders);
+                }
+                
+                const rows = await fetchSheetData(spreadsheetId, sheetsApiKey);
+                let userData = null;
+                let rowIndex = -1;
+                
+                // Find user by Roblox user ID (stored in column G or in userData)
+                for (let i = 0; i < rows.length; i++) {
+                    const discordId = rows[i][0];
+                    const kvData = await env.USERS_KV?.get(`user:${discordId}`, { type: 'json' });
+                    if (kvData && kvData.robloxUserId === String(userId)) {
+                        userData = kvData;
+                        rowIndex = i;
+                        break;
+                    }
+                }
+                
+                if (!userData) {
+                    console.log('User not found for Roblox ID:', userId);
+                    return jsonResponse({ error: 'User not found' }, 404, corsHeaders);
+                }
+                
+                // Calculate tokens based on price (in Robux)
+                let tokensToAward = 150; // Default: ≤100 Robux
+                if (price > 500) {
+                    tokensToAward = 400;
+                } else if (price > 100) {
+                    tokensToAward = 250;
+                }
+                
+                // Award tokens
+                const oldPoints = userData.points || 0;
+                const oldTier = getTier(oldPoints);
+                userData.points = oldPoints + tokensToAward;
+                const newTier = getTier(userData.points);
+                
+                // Save to KV
+                await env.USERS_KV?.put(`user:${userData.discordId}`, JSON.stringify(userData));
+                
+                // Update Google Sheets
+                if (rowIndex !== -1) {
+                    await updateSheetCell(
+                        spreadsheetId,
+                        sheetsApiKey,
+                        rowIndex + 2,
+                        'G',
+                        userData.points
+                    );
+                }
+                
+                // Check tier upgrade
+                if (newTier !== oldTier) {
+                    await sendTierUpgradeDM(env, userData.discordId, oldTier, newTier, userData.points);
+                }
+                
+                // Log purchase to Discord
+                const logsWebhook = 'https://discord.com/api/webhooks/1436826617853902948/ZBLTXr0vbLpZbj-fhEy_EosA64VbyS2P6GQPFnR96qQ6ojg7l9QoZEmI65v7f0PyvXvX';
+                await fetch(logsWebhook, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        embeds: [{
+                            title: '🛍️ Purchase Detected',
+                            description: `<@${userData.discordId}> made a purchase!`,
+                            color: 0x10b981,
+                            fields: [
+                                { name: '🎁 Product', value: productName || 'Unknown', inline: false },
+                                { name: '💰 Price', value: `${price} Robux`, inline: true },
+                                { name: '➕ Tokens Earned', value: `+${tokensToAward}`, inline: true },
+                                { name: '💎 Old Balance', value: `${oldPoints}`, inline: true },
+                                { name: '✨ New Balance', value: `${userData.points}`, inline: true },
+                                { name: '🏆 Tier', value: newTier, inline: true }
+                            ],
+                            timestamp: new Date().toISOString()
+                        }]
+                    })
+                });
+                
+                // Send DM to user
+                const botToken = env.DISCORD_BOT_TOKEN;
+                if (botToken) {
+                    try {
+                        const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${botToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ recipient_id: userData.discordId })
+                        });
+                        
+                        if (channelResponse.ok) {
+                            const channel = await channelResponse.json();
+                            await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bot ${botToken}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    embeds: [{
+                                        title: '🎉 Purchase Reward!',
+                                        description: `Thank you for your purchase!`,
+                                        color: 0x10b981,
+                                        fields: [
+                                            { name: '🎁 Product', value: productName || 'Unknown', inline: false },
+                                            { name: '💰 Price', value: `${price} Robux`, inline: true },
+                                            { name: '⭐ Tokens Earned', value: `+${tokensToAward}`, inline: true },
+                                            { name: '💎 New Balance', value: `${userData.points} tokens`, inline: false }
+                                        ],
+                                        timestamp: new Date().toISOString()
+                                    }]
+                                })
+                            });
+                        }
+                    } catch (dmError) {
+                        console.error('Failed to send purchase DM:', dmError);
+                    }
+                }
+                
+                return jsonResponse({ success: true, tokensAwarded: tokensToAward }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Parcel webhook error:', error);
                 return jsonResponse({ error: error.message }, 500, corsHeaders);
             }
         }
