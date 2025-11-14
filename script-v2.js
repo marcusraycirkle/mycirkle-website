@@ -171,8 +171,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Validate user has completed signup before showing dashboard
     if (currentUser) {
-        showDashboard();
+        // Check if user completed signup (has required fields)
+        if (isSignupComplete(currentUser)) {
+            showDashboard();
+        } else {
+            // Incomplete signup, redirect to appropriate step
+            console.log('Signup incomplete, redirecting...');
+            redirectToSignupStep(currentUser);
+        }
     }
 
     // Handle OAuth callback from Worker (via URL hash)
@@ -283,6 +291,19 @@ async function handleDiscordUser(user) {
 // Routing
 function handleHashRouting() {
     const hash = window.location.hash.slice(1) || 'home';
+    
+    // Protected pages that require completed signup
+    const protectedPages = ['dashboard', 'rewards', 'products', 'account', 'loyalty'];
+    
+    if (protectedPages.includes(hash)) {
+        // Check if user is logged in and has completed signup
+        if (!currentUser || !isSignupComplete(currentUser)) {
+            console.warn('Attempted to access protected page without completed signup');
+            window.location.hash = 'home';
+            return;
+        }
+    }
+    
     showPage(hash);
     const header = document.querySelector('.header');
     if (header) {
@@ -295,6 +316,13 @@ function handleHashRouting() {
 }
 
 function showPage(pageId) {
+    // Protected pages check
+    const protectedPages = ['dashboard', 'rewards', 'products', 'account', 'loyalty'];
+    if (protectedPages.includes(pageId) && (!currentUser || !isSignupComplete(currentUser))) {
+        console.warn('Cannot show protected page:', pageId);
+        pageId = 'home';
+    }
+    
     pages.forEach(p => p.classList.remove('active'));
     modals.forEach(m => m.classList.add('hidden'));
     const page = document.getElementById(pageId);
@@ -427,13 +455,25 @@ async function handleRobloxUsername() {
     
     try {
         // Try to get user by username via proxy
+        console.log('Fetching Roblox username:', username);
+        console.log('Using Worker URL:', WORKER_URL);
+        
         const response = await fetch(`${WORKER_URL}/api/roblox/username`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: username })
         });
         
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Roblox API error:', errorText);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
+        console.log('Roblox API response:', data);
         
         if (data.data && data.data.length > 0) {
             const user = data.data[0];
@@ -479,10 +519,23 @@ async function handleRobloxUserId() {
     
     try {
         // Get user info by ID via proxy
+        console.log('Fetching Roblox user ID:', userId);
+        console.log('Using Worker URL:', WORKER_URL);
+        
         const response = await fetch(`${WORKER_URL}/api/roblox/user/${userId}`);
         
-        if (response.ok) {
-            const user = await response.json();
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Roblox API error:', errorText);
+            throw new Error(`HTTP ${response.status}: User not found`);
+        }
+        
+        const user = await response.json();
+        console.log('Roblox API response:', user);
+        
+        if (user.id && user.name) {
             await displayRobloxProfile(user.id, user.name, user.displayName);
         } else {
             btn.textContent = originalText;
@@ -636,14 +689,22 @@ async function completeSignup(country, timezone, language, robloxUsername, accep
             console.log('User registered successfully');
             if (result.accountNumber) {
                 currentUser.accountId = result.accountNumber;
+                currentUser.accountNumber = result.accountNumber; // Store both for compatibility
             }
             // Set welcome bonus points
             currentUser.points = 5;
             currentPoints = 5;
+            
+            // Mark signup as complete
+            currentUser.signupComplete = true;
+            currentUser.memberSince = currentUser.memberSince || new Date().toISOString();
+            
             localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
             localStorage.setItem('points', '5');
         } else {
             console.error('Signup failed:', result.error);
+            alert('Signup failed. Please try again or contact support.');
+            return;
         }
     } catch (err) {
         console.error('Error during signup:', err);
@@ -749,10 +810,47 @@ function stopPointsAutoRefresh() {
     }
 }
 
+// Check if user has completed all signup steps
+function isSignupComplete(user) {
+    if (!user) return false;
+    
+    // User must have these fields to have completed signup
+    return !!(user.firstName && 
+              user.lastName && 
+              user.email && 
+              user.accountNumber && 
+              user.robloxUsername && 
+              user.robloxUserId);
+}
+
+// Redirect user to appropriate signup step based on what's missing
+function redirectToSignupStep(user) {
+    if (!user.firstName || !user.lastName) {
+        showPage('create-name');
+    } else if (!user.email) {
+        showPage('email');
+    } else if (!user.robloxUsername || !user.robloxUserId) {
+        showPage('roblox-username');
+    } else {
+        // If they have basic info but no account, something went wrong
+        showPage('home');
+        localStorage.removeItem('mycirkleUser');
+        currentUser = null;
+    }
+}
+
 // Show Dashboard
 function showDashboard() {
     if (!currentUser) {
         console.warn('No current user, cannot show dashboard');
+        showPage('home');
+        return;
+    }
+    
+    // Final validation before showing dashboard
+    if (!isSignupComplete(currentUser)) {
+        console.warn('User has not completed signup');
+        redirectToSignupStep(currentUser);
         return;
     }
     
@@ -846,6 +944,15 @@ function showDashboard() {
 // Menu Clicks
 function handleMenuClick(e) {
     const page = e.target.dataset.page || e.target.closest('.menu-btn, .redeem-btn')?.dataset.page;
+    
+    // Check if user has completed signup before allowing navigation
+    const protectedPages = ['dashboard', 'rewards', 'products', 'account', 'loyalty', 'redeem'];
+    if (protectedPages.includes(page) && (!currentUser || !isSignupComplete(currentUser))) {
+        console.warn('User must complete signup first');
+        showErrorModal('Signup Required', 'Please complete the signup process to access this feature.');
+        return;
+    }
+    
     if (page === 'redeem') {
         const rewardType = e.target.closest('.reward-item').querySelector('span').textContent.includes('DAILY') ? 'daily' :
                           e.target.closest('.reward-item').querySelector('span').textContent.includes('10%') ? '10off' :
