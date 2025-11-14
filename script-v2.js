@@ -607,7 +607,6 @@ async function handlePreferencesSubmit() {
     const country = document.getElementById('user-country').value;
     const timezone = document.getElementById('user-timezone').value;
     const language = document.getElementById('user-language').value;
-    const robloxUsername = document.getElementById('user-roblox').value;
     const acceptedAge = document.getElementById('accept-age').checked;
     const acceptedMarketing = document.getElementById('accept-marketing').checked;
     const acceptedTerms = document.getElementById('accept-terms').checked;
@@ -616,12 +615,6 @@ async function handlePreferencesSubmit() {
         alert('Please select your country and timezone.');
         return;
     }
-    
-    // Roblox is now optional while OAuth app is under review
-    // if (!robloxUsername) {
-    //     alert('Please enter your Roblox username for product verification.');
-    //     return;
-    // }
     
     if (!acceptedAge) {
         alert('You must be over 13 years old to use this service.');
@@ -637,7 +630,6 @@ async function handlePreferencesSubmit() {
     currentUser.country = country;
     currentUser.timezone = timezone;
     currentUser.language = language;
-    currentUser.robloxUsername = robloxUsername;
     currentUser.acceptedAge = true;
     currentUser.acceptedMarketing = acceptedMarketing;
     currentUser.acceptedTerms = true;
@@ -651,13 +643,13 @@ async function handlePreferencesSubmit() {
         'account creation',
         async (verificationCode) => {
             // Code verified, now proceed with signup
-            await completeSignup(country, timezone, language, robloxUsername, acceptedMarketing);
+            await completeSignup(country, timezone, language, acceptedMarketing);
         }
     );
 }
 
 // Complete signup after verification
-async function completeSignup(country, timezone, language, robloxUsername, acceptedMarketing) {
+async function completeSignup(country, timezone, language, acceptedMarketing) {
     showPage('confirm');
     
     // Save to Google Sheets and send welcome DM
@@ -676,7 +668,7 @@ async function completeSignup(country, timezone, language, robloxUsername, accep
                 country: country,
                 timezone: timezone,
                 language: language,
-                robloxUsername: currentUser.robloxUsername || robloxUsername,
+                robloxUsername: currentUser.robloxUsername || '',
                 robloxUserId: currentUser.robloxUserId || '',
                 robloxDisplayName: currentUser.robloxDisplayName || '',
                 acceptedMarketing: acceptedMarketing,
