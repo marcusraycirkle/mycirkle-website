@@ -91,6 +91,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const continueNameBtn = document.getElementById('continue-name');
     const continueEmailBtn = document.getElementById('continue-email');
+    const continueRobloxUsernameBtn = document.getElementById('continue-roblox-username');
+    const continueRobloxUserIdBtn = document.getElementById('continue-roblox-userid');
+    const confirmRobloxProfileBtn = document.getElementById('confirm-roblox-profile');
+    const backToUsernameBtn = document.getElementById('back-to-username');
     const submitPassBtn = document.getElementById('submit-pass');
     const submitPrefsBtn = document.getElementById('submit-preferences');
     const goDashboardBtn = document.getElementById('go-dashboard');
@@ -106,6 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (continueNameBtn) continueNameBtn.addEventListener('click', handleNameSubmit);
     if (continueEmailBtn) continueEmailBtn.addEventListener('click', handleEmailSubmit);
+    if (continueRobloxUsernameBtn) continueRobloxUsernameBtn.addEventListener('click', handleRobloxUsername);
+    if (continueRobloxUserIdBtn) continueRobloxUserIdBtn.addEventListener('click', handleRobloxUserId);
+    if (confirmRobloxProfileBtn) confirmRobloxProfileBtn.addEventListener('click', () => showPage('create-pass'));
+    if (backToUsernameBtn) backToUsernameBtn.addEventListener('click', () => showPage('roblox-username'));
     if (submitPassBtn) submitPassBtn.addEventListener('click', handlePassSubmit);
     if (submitPrefsBtn) submitPrefsBtn.addEventListener('click', handlePreferencesSubmit);
     if (goDashboardBtn) goDashboardBtn.addEventListener('click', () => showDashboard());
@@ -380,10 +388,10 @@ function handleEmailSubmit() {
         return;
     }
     
-    // Email is valid, save and continue
+    // Email is valid, save and continue to Roblox username
     currentUser.email = email;
     localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
-    showPage('create-pass');
+    showPage('roblox-username');
 }
 
 // Password Submit
@@ -395,6 +403,126 @@ async function handlePassSubmit() {
         showPage('create-preferences');
     } else {
         alert('Password must be at least 6 characters.');
+    }
+}
+
+// Roblox Username Verification
+async function handleRobloxUsername() {
+    const usernameInput = document.getElementById('roblox-username-input');
+    const username = usernameInput.value.trim();
+    
+    if (!username) {
+        alert('❌ Please enter your Roblox username.');
+        return;
+    }
+    
+    // Show loading
+    const btn = document.getElementById('continue-roblox-username');
+    const originalText = btn.textContent;
+    btn.textContent = 'Searching...';
+    btn.disabled = true;
+    
+    try {
+        // Try to get user by username
+        const response = await fetch(`https://users.roblox.com/v1/usernames/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usernames: [username], excludeBannedUsers: false })
+        });
+        
+        const data = await response.json();
+        
+        if (data.data && data.data.length > 0) {
+            const user = data.data[0];
+            // Fetch additional user info
+            await displayRobloxProfile(user.id, user.name, user.displayName);
+        } else {
+            // Username not found, go to User ID page
+            btn.textContent = originalText;
+            btn.disabled = false;
+            showPage('roblox-userid');
+        }
+    } catch (error) {
+        console.error('Error verifying Roblox username:', error);
+        btn.textContent = originalText;
+        btn.disabled = false;
+        alert('❌ Error verifying username. Please try again.');
+    }
+}
+
+// Roblox User ID Verification
+async function handleRobloxUserId() {
+    const userIdInput = document.getElementById('roblox-userid-input');
+    const userId = userIdInput.value.trim();
+    
+    if (!userId || isNaN(userId)) {
+        alert('❌ Please enter a valid Roblox User ID.');
+        return;
+    }
+    
+    // Show loading
+    const btn = document.getElementById('continue-roblox-userid');
+    const originalText = btn.textContent;
+    btn.textContent = 'Verifying...';
+    btn.disabled = true;
+    
+    try {
+        // Get user info by ID
+        const response = await fetch(`https://users.roblox.com/v1/users/${userId}`);
+        
+        if (response.ok) {
+            const user = await response.json();
+            await displayRobloxProfile(user.id, user.name, user.displayName);
+        } else {
+            btn.textContent = originalText;
+            btn.disabled = false;
+            alert('❌ User ID not found. Please check and try again.');
+        }
+    } catch (error) {
+        console.error('Error verifying Roblox User ID:', error);
+        btn.textContent = originalText;
+        btn.disabled = false;
+        alert('❌ Error verifying User ID. Please try again.');
+    }
+}
+
+// Display Roblox Profile
+async function displayRobloxProfile(userId, username, displayName) {
+    try {
+        // Fetch avatar thumbnail
+        const thumbResponse = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png&isCircular=true`);
+        const thumbData = await thumbResponse.json();
+        const avatarUrl = thumbData.data && thumbData.data[0] ? thumbData.data[0].imageUrl : 'https://via.placeholder.com/100';
+        
+        // Update profile display
+        document.getElementById('roblox-avatar').src = avatarUrl;
+        document.getElementById('roblox-display-name').textContent = displayName || username;
+        document.getElementById('roblox-username-display').textContent = `@${username}`;
+        document.getElementById('roblox-user-id').textContent = `ID: ${userId}`;
+        
+        // Store in currentUser
+        currentUser.robloxUsername = username;
+        currentUser.robloxUserId = userId;
+        currentUser.robloxDisplayName = displayName;
+        localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+        
+        // Show profile found page
+        showPage('roblox-found');
+        
+        // Re-enable buttons
+        const usernameBtn = document.getElementById('continue-roblox-username');
+        const userIdBtn = document.getElementById('continue-roblox-userid');
+        if (usernameBtn) {
+            usernameBtn.textContent = 'Continue →';
+            usernameBtn.disabled = false;
+        }
+        if (userIdBtn) {
+            userIdBtn.textContent = 'Continue →';
+            userIdBtn.disabled = false;
+        }
+    } catch (error) {
+        console.error('Error displaying Roblox profile:', error);
+        alert('❌ Error loading profile. Please try again.');
     }
 }
 
@@ -518,7 +646,9 @@ async function completeSignup(country, timezone, language, robloxUsername, accep
                 country: country,
                 timezone: timezone,
                 language: language,
-                robloxUsername: robloxUsername,
+                robloxUsername: currentUser.robloxUsername || robloxUsername,
+                robloxUserId: currentUser.robloxUserId || '',
+                robloxDisplayName: currentUser.robloxDisplayName || '',
                 acceptedMarketing: acceptedMarketing,
                 accountNumber: currentUser.accountId || generateAccountId()
             })

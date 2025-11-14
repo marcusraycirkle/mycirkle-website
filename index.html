@@ -234,6 +234,88 @@
         </div>
     </section>
 
+    <!-- Roblox Username Entry -->
+    <section id="roblox-username" class="page signup-flow">
+        <div class="signup-container">
+            <div class="signup-left">
+                <div class="signup-logo">MyCirkle</div>
+                <p class="signup-tagline">Connect your Roblox</p>
+                <div class="progress-dots">
+                    <span class="dot active"></span>
+                    <span class="dot active"></span>
+                    <span class="dot active"></span>
+                </div>
+            </div>
+            <div class="signup-right slide-in">
+                <div class="form-card">
+                    <h2>What's your Roblox username?</h2>
+                    <p class="form-subtitle">We'll use this to track your purchases and award tokens</p>
+                    <div class="input-group">
+                        <label for="roblox-username-input">Roblox Username</label>
+                        <input type="text" id="roblox-username-input" placeholder="Enter your username" class="modern-input">
+                        <small class="input-hint">Enter your exact Roblox username</small>
+                    </div>
+                    <button id="continue-roblox-username" class="btn-modern">Continue →</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roblox Profile Found -->
+    <section id="roblox-found" class="page signup-flow">
+        <div class="signup-container">
+            <div class="signup-left">
+                <div class="signup-logo">MyCirkle</div>
+                <p class="signup-tagline">Profile verified!</p>
+                <div class="progress-dots">
+                    <span class="dot active"></span>
+                    <span class="dot active"></span>
+                    <span class="dot active"></span>
+                </div>
+            </div>
+            <div class="signup-right slide-in">
+                <div class="form-card">
+                    <h2>Username Found!</h2>
+                    <div id="roblox-profile-display" style="text-align: center; padding: 20px;">
+                        <img id="roblox-avatar" src="" alt="Roblox Avatar" style="width: 100px; height: 100px; border-radius: 50%; margin: 0 auto 15px;">
+                        <h3 id="roblox-display-name" style="font-size: 24px; margin: 5px 0;"></h3>
+                        <p id="roblox-username-display" style="color: #666; margin: 5px 0;">@username</p>
+                        <p id="roblox-user-id" style="color: #999; font-size: 14px; margin: 5px 0;">ID: 000000</p>
+                    </div>
+                    <button id="confirm-roblox-profile" class="btn-modern">Confirm & Continue →</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roblox User ID Fallback -->
+    <section id="roblox-userid" class="page signup-flow">
+        <div class="signup-container">
+            <div class="signup-left">
+                <div class="signup-logo">MyCirkle</div>
+                <p class="signup-tagline">Username not found</p>
+                <div class="progress-dots">
+                    <span class="dot active"></span>
+                    <span class="dot active"></span>
+                    <span class="dot active"></span>
+                </div>
+            </div>
+            <div class="signup-right slide-in">
+                <div class="form-card">
+                    <h2>Enter your Roblox User ID</h2>
+                    <p class="form-subtitle">We couldn't find that username. Please enter your User ID instead.</p>
+                    <div class="input-group">
+                        <label for="roblox-userid-input">Roblox User ID</label>
+                        <input type="number" id="roblox-userid-input" placeholder="123456789" class="modern-input">
+                        <small class="input-hint">Find your User ID in your Roblox profile URL</small>
+                    </div>
+                    <button id="continue-roblox-userid" class="btn-modern">Continue →</button>
+                    <button id="back-to-username" class="btn-modern" style="background: #6B7280; margin-top: 10px;">← Back to Username</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Create Account: Password -->
     <section id="create-pass" class="page signup-flow">
         <div class="signup-container">
