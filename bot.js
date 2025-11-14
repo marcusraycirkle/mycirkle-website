@@ -219,8 +219,42 @@ async function sendChannelMessage(channelId, content, messageReference = null) {
             res.on('data', (chunk) => data += chunk);
             res.on('end', () => {
                 if (res.statusCode === 200) {
-                    console.log(`💬 Sent message to channel ${channelId}`);
-                    resolve(true);
+                    try {
+                        const messageResponse = JSON.parse(data);
+                        const sentMessageId = messageResponse.id;
+                        console.log(`💬 Sent message to channel ${channelId}, ID: ${sentMessageId}`);
+                        
+                        // Delete the message after 5 seconds
+                        setTimeout(() => {
+                            const deleteOptions = {
+                                hostname: 'discord.com',
+                                path: `/api/v10/channels/${channelId}/messages/${sentMessageId}`,
+                                method: 'DELETE',
+                                headers: {
+                                    'Authorization': `Bot ${BOT_TOKEN}`
+                                }
+                            };
+                            
+                            const deleteReq = https.request(deleteOptions, (deleteRes) => {
+                                if (deleteRes.statusCode === 204) {
+                                    console.log(`🗑️ Deleted message ${sentMessageId} after 5 seconds`);
+                                } else {
+                                    console.error(`❌ Failed to delete message ${sentMessageId}: ${deleteRes.statusCode}`);
+                                }
+                            });
+                            
+                            deleteReq.on('error', (error) => {
+                                console.error(`❌ Error deleting message:`, error.message);
+                            });
+                            
+                            deleteReq.end();
+                        }, 5000);
+                        
+                        resolve(true);
+                    } catch (err) {
+                        console.error(`❌ Error parsing message response:`, err.message);
+                        resolve(true); // Still resolve as the message was sent
+                    }
                 } else {
                     console.error(`❌ Failed to send message to channel ${channelId}: ${res.statusCode}`);
                     resolve(false);
