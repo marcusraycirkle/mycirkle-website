@@ -600,18 +600,25 @@ export default {
                 // Send welcome email if they accepted marketing
                 if (acceptedMarketing && email) {
                     try {
-                        console.log('Sending welcome email to:', email, 'Name:', fullName);
-                        await sendWelcomeEmail(env, email, firstName, finalAccountNumber, 5);
+                        console.log('📧 User opted into marketing - Email:', email, 'Name:', fullName);
+                        
+                        // Send welcome email
+                        console.log('📨 Sending welcome email...');
+                        const emailResult = await sendWelcomeEmail(env, email, firstName, finalAccountNumber, 5);
+                        console.log('✅ Welcome email sent:', emailResult);
                         
                         // Add to Resend mailing list
-                        console.log('Adding to mailing list:', email);
-                        await addToMailingList(env, email, firstName, lastName);
+                        console.log('📋 Adding to Resend mailing list...');
+                        const mailingResult = await addToMailingList(env, email, firstName, lastName);
+                        console.log('✅ Added to mailing list:', mailingResult);
                         
                         // Log to email dashboard (KV storage)
-                        console.log('Logging to email dashboard:', email, fullName);
+                        console.log('📊 Logging to email dashboard...');
                         await logEmailToDashboard(env, email, fullName || `${firstName} ${lastName}`, 'signup');
+                        console.log('✅ Logged to email dashboard');
                         
                         // Send marketing webhook notification
+                        console.log('🔔 Sending marketing signup webhook...');
                         const marketingWebhook = 'https://discord.com/api/webhooks/1436826617853902948/ZBLTXr0vbLpZbj-fhEy_EosA64VbyS2P6GQPFnR96qQ6ojg7l9QoZEmI65v7f0PyvXvX';
                         await fetch(marketingWebhook, {
                             method: 'POST',
@@ -630,12 +637,13 @@ export default {
                                 }]
                             })
                         });
-                        console.log('Marketing email setup completed successfully');
+                        console.log('✅ Marketing email setup completed successfully');
                     } catch (emailError) {
-                        console.error('Welcome email/marketing error:', emailError);
+                        console.error('❌ Welcome email/marketing error:', emailError);
+                        console.error('Error details:', emailError.message, emailError.stack);
                     }
                 } else {
-                    console.log('Skipping marketing emails - acceptedMarketing:', acceptedMarketing, 'email:', email);
+                    console.log('⏭️ Skipping marketing emails - acceptedMarketing:', acceptedMarketing, 'email:', email);
                 }
                 
                 // Assign MyCirkle Member role on Discord
@@ -902,23 +910,38 @@ export default {
                 const robloxUsername = url.searchParams.get('robloxUsername');
                 const accountId = url.searchParams.get('accountId');
 
-                console.log('📦 Products API called with:', { robloxUsername, accountId });
+                console.log('📦 Products API Request:');
+                console.log('  - Roblox Username:', robloxUsername);
+                console.log('  - Account ID:', accountId);
+                console.log('  - Request URL:', request.url);
 
-                if (!robloxUsername) {
-                    console.log('❌ Missing robloxUsername');
-                    return jsonResponse({ error: 'Missing robloxUsername', products: [] }, 400, corsHeaders);
+                if (!robloxUsername || robloxUsername === 'null' || robloxUsername === 'undefined') {
+                    console.log('❌ Invalid robloxUsername:', robloxUsername);
+                    return jsonResponse({ success: true, error: 'Missing or invalid robloxUsername', products: [] }, 200, corsHeaders);
                 }
 
                 const PARCEL_API_KEY = env.PARCELROBLOX_API_KEY;
                 const PRODUCT_ID = env.PARCEL_PRODUCT_ID || 'prod_BwM387gLYcCa8qhERIH1JliOQ';
 
                 if (!PARCEL_API_KEY) {
-                    return jsonResponse({ error: 'ParcelRoblox API not configured', products: [] }, 500, corsHeaders);
+                    console.error('❌ ParcelRoblox API key not configured');
+                    return jsonResponse({ success: true, error: 'ParcelRoblox API not configured', products: [] }, 200, corsHeaders);
                 }
+
+                console.log('🔍 ParcelRoblox Configuration:');
+                console.log('  - Product ID:', PRODUCT_ID);
+                console.log('  - API Key:', PARCEL_API_KEY ? 'Configured ✓' : 'Missing ✗');
 
                 // Check ownership via ParcelRoblox API
                 const checkUrl = 'https://api.parcelroblox.com/v1/products/ownership';
-                console.log('📡 Calling ParcelRoblox API:', { productId: PRODUCT_ID, robloxUsername });
+                const requestBody = {
+                    productId: PRODUCT_ID,
+                    robloxUsername: robloxUsername
+                };
+                
+                console.log('📡 Calling ParcelRoblox API...');
+                console.log('  - Endpoint:', checkUrl);
+                console.log('  - Request Body:', JSON.stringify(requestBody));
                 
                 const response = await fetch(checkUrl, {
                     method: 'POST',
@@ -926,21 +949,23 @@ export default {
                         'Authorization': `Bearer ${PARCEL_API_KEY}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        productId: PRODUCT_ID,
-                        robloxUsername: robloxUsername
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
+                console.log('📥 ParcelRoblox Response:');
+                console.log('  - Status:', response.status, response.statusText);
+                console.log('  - Headers:', Object.fromEntries(response.headers));
+
                 if (!response.ok) {
-                    console.error('❌ ParcelRoblox API error:', response.status);
                     const errorText = await response.text();
-                    console.error('Error response:', errorText);
-                    return jsonResponse({ success: true, products: [] }, 200, corsHeaders);
+                    console.error('❌ ParcelRoblox API Error:');
+                    console.error('  - Status:', response.status);
+                    console.error('  - Response:', errorText);
+                    return jsonResponse({ success: true, error: `API Error: ${response.status}`, products: [] }, 200, corsHeaders);
                 }
 
                 const data = await response.json();
-                console.log('📦 ParcelRoblox response:', data);
+                console.log('✅ ParcelRoblox Data:', JSON.stringify(data, null, 2));
                 
                 const products = data.owns ? [{
                     id: PRODUCT_ID,
@@ -949,11 +974,14 @@ export default {
                     owned: true
                 }] : [];
 
-                console.log('✅ Returning products:', products);
+                console.log('📦 Final Products Array:', JSON.stringify(products, null, 2));
+                console.log('✅ Products API completed successfully');
                 return jsonResponse({ success: true, products }, 200, corsHeaders);
             } catch (error) {
-                console.error('Products API error:', error);
-                return jsonResponse({ success: true, products: [] }, 200, corsHeaders);
+                console.error('❌ Products API Fatal Error:');
+                console.error('  - Error:', error.message);
+                console.error('  - Stack:', error.stack);
+                return jsonResponse({ success: true, error: error.message, products: [] }, 200, corsHeaders);
             }
         }
 
@@ -1195,6 +1223,34 @@ export default {
                     } catch (err) {
                         console.error('Goodbye DM error:', err);
                     }
+                }
+
+                // Send webhook notification about account deletion
+                try {
+                    const deletionWebhook = 'https://discord.com/api/webhooks/1439026719326470164/-8qt_MMRzD55-Tr5BkV5AbuoC3lAa5NTc1hGBJ3dLn48kAXuZyQxmLHFouaNu9cnxc_X';
+                    await fetch(deletionWebhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            embeds: [{
+                                title: '🗑️ Account Deleted',
+                                description: 'A user has deleted their MyCirkle account.',
+                                color: 0xef4444,
+                                fields: [
+                                    { name: '👤 User', value: `<@${discordId}>`, inline: true },
+                                    { name: '🆔 Discord ID', value: discordId, inline: true },
+                                    { name: '📧 Email', value: userEmail || 'N/A', inline: false },
+                                    { name: '👤 Name', value: userFirstName || 'N/A', inline: true },
+                                    { name: '📅 Deleted At', value: new Date().toLocaleString(), inline: true }
+                                ],
+                                footer: { text: 'MyCirkle Account Deletion' },
+                                timestamp: new Date().toISOString()
+                            }]
+                        })
+                    });
+                    console.log('✅ Account deletion webhook sent');
+                } catch (webhookErr) {
+                    console.error('❌ Failed to send deletion webhook:', webhookErr);
                 }
 
                 return jsonResponse({ success: true }, 200, corsHeaders);
@@ -2966,6 +3022,8 @@ async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
 // Add email to Resend mailing list
 async function addToMailingList(env, email, firstName, lastName) {
     try {
+        console.log('📧 Adding to Resend mailing list:', { email, firstName, lastName });
+        
         const response = await fetch('https://api.resend.com/audiences/78618937-ef3f-45f7-a1ce-8549070384a5/contacts', {
             method: 'POST',
             headers: {
@@ -2980,21 +3038,31 @@ async function addToMailingList(env, email, firstName, lastName) {
             })
         });
         
+        console.log('📥 Resend API Response:');
+        console.log('  - Status:', response.status, response.statusText);
+        console.log('  - OK:', response.ok);
+        
         const result = await response.json();
+        console.log('  - Result:', JSON.stringify(result, null, 2));
+        
         if (!response.ok) {
-            console.error('Failed to add to mailing list:', result);
+            console.error('❌ Failed to add to mailing list:', result);
+            // Don't throw - just log the error
+            return { success: false, error: result };
         } else {
-            console.log('Successfully added to mailing list:', email);
+            console.log('✅ Successfully added to mailing list:', email);
+            return { success: true, data: result };
         }
-        return result;
     } catch (error) {
-        console.error('Failed to add to mailing list:', error);
+        console.error('❌ Exception adding to mailing list:', error.message, error.stack);
+        return { success: false, error: error.message };
     }
 }
 
 // Remove email from Resend mailing list
 async function removeFromMailingList(env, email) {
     try {
+        console.log('🗑️ Removing from mailing list:', email);
         const audienceId = '78618937-ef3f-45f7-a1ce-8549070384a5';
         const response = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts/${email}`, {
             method: 'DELETE',
