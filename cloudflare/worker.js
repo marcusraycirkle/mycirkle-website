@@ -1386,21 +1386,53 @@ export default {
                     return jsonResponse({ error: 'Roblox account not linked' }, 400, corsHeaders);
                 }
                 
-                // Fetch products from Parcel API
+                // Check whitelist status first
                 const parcelApiKey = 'prod_BwM387gLYcCa8qhERIH1JliOQ';
-                const parcelResponse = await fetch(`https://api.parcel.gg/v1/purchases?userId=${userData.robloxUserId}`, {
+                const whitelistResponse = await fetch(`https://v2.parcelroblox.com/whitelist/check/user_id/${userData.robloxUserId}`, {
                     headers: {
-                        'Authorization': `Bearer ${parcelApiKey}`,
+                        'Authorization': `${parcelApiKey}`,
                         'Content-Type': 'application/json'
                     }
                 });
                 
-                if (!parcelResponse.ok) {
-                    return jsonResponse({ error: 'Failed to fetch Parcel data' }, 500, corsHeaders);
+                if (!whitelistResponse.ok) {
+                    console.log('Whitelist check failed:', whitelistResponse.status);
                 }
                 
-                const parcelData = await parcelResponse.json();
-                return jsonResponse(parcelData, 200, corsHeaders);
+                const whitelistData = await whitelistResponse.json();
+                
+                // Get user's owned products from whitelist data
+                let products = [];
+                if (whitelistData.products && Array.isArray(whitelistData.products)) {
+                    // Fetch details for each product
+                    products = await Promise.all(
+                        whitelistData.products.map(async (productId) => {
+                            try {
+                                const productResponse = await fetch(`https://v2.parcelroblox.com/products/${productId}`, {
+                                    headers: {
+                                        'Authorization': `${parcelApiKey}`,
+                                        'Content-Type': 'application/json'
+                                    }
+                                });
+                                
+                                if (productResponse.ok) {
+                                    return await productResponse.json();
+                                }
+                            } catch (err) {
+                                console.error(`Failed to fetch product ${productId}:`, err);
+                            }
+                            return null;
+                        })
+                    );
+                    
+                    products = products.filter(p => p !== null);
+                }
+                
+                return jsonResponse({ 
+                    data: products,
+                    whitelisted: whitelistData.whitelisted || false,
+                    userId: userData.robloxUserId
+                }, 200, corsHeaders);
             } catch (error) {
                 console.error('Parcel API error:', error);
                 return jsonResponse({ error: error.message }, 500, corsHeaders);
