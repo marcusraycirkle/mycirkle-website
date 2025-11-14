@@ -2553,7 +2553,7 @@ async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
                     <!-- Header Image -->
                     <div style="text-align: center; padding: 0; margin: 0;">
-                        <img src="${headerImageUrl}" alt="MyCirkle" style="width: 100%; max-width: 600px; display: block; margin: 0;" />
+                        <img src="${headerImageUrl}" alt="" style="width: 100%; max-width: 600px; display: block; margin: 0; border: 0;" />
                     </div>
                     
                     <!-- Spacing -->
@@ -2688,7 +2688,7 @@ async function logEmailToDashboard(env, email, name, action) {
         
         history.unshift({
             email,
-            name,
+            name: name || 'Unknown',
             action,
             timestamp: new Date().toISOString()
         });
@@ -2738,7 +2738,7 @@ async function sendAccountDeletedEmail(env, email, firstName) {
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
                     <!-- Header Image -->
                     <div style="text-align: center; padding: 0; margin: 0;">
-                        <img src="${headerImageUrl}" alt="MyCirkle" style="width: 100%; max-width: 600px; display: block; margin: 0;" />
+                        <img src="${headerImageUrl}" alt="" style="width: 100%; max-width: 600px; display: block; margin: 0; border: 0;" />
                     </div>
                     
                     <!-- Spacing -->

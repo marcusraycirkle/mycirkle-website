@@ -106,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelResetBtn = document.getElementById('cancel-reset');
     const closeDetailBtn = document.getElementById('close-detail');
     const logoutBtn = document.getElementById('logout-btn');
-    const robloxConnectBtn = document.getElementById('roblox-connect-btn');
     
     if (continueNameBtn) continueNameBtn.addEventListener('click', handleNameSubmit);
     if (continueEmailBtn) continueEmailBtn.addEventListener('click', handleEmailSubmit);
@@ -125,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelResetBtn) cancelResetBtn.addEventListener('click', hideResetModal);
     if (closeDetailBtn) closeDetailBtn.addEventListener('click', hideProductModal);
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
-    if (robloxConnectBtn) robloxConnectBtn.addEventListener('click', connectRobloxAccount);
     
     document.querySelectorAll('.menu-btn, .redeem-btn').forEach(btn => btn.addEventListener('click', handleMenuClick));
 
@@ -524,52 +522,6 @@ async function displayRobloxProfile(userId, username, displayName) {
         console.error('Error displaying Roblox profile:', error);
         alert('❌ Error loading profile. Please try again.');
     }
-}
-
-// Roblox OAuth Connection
-async function connectRobloxAccount() {
-    const btn = document.getElementById('roblox-connect-btn');
-    const statusText = document.getElementById('roblox-status');
-    const infoText = document.getElementById('roblox-info');
-    
-    // Open Roblox OAuth window
-    const width = 600;
-    const height = 700;
-    const left = (screen.width - width) / 2;
-    const top = (screen.height - height) / 2;
-    
-    const robloxWindow = window.open(
-        `${WORKER_URL}/auth/roblox?state=${currentUser.discordId}`,
-        'RobloxAuth',
-        `width=${width},height=${height},left=${left},top=${top}`
-    );
-    
-    // Listen for message from popup
-    window.addEventListener('message', function robloxCallback(event) {
-        if (event.origin !== window.location.origin) return;
-        
-        if (event.data.type === 'ROBLOX_AUTH_SUCCESS') {
-            const { username, userId } = event.data;
-            
-            // Update UI
-            document.getElementById('user-roblox').value = username;
-            document.getElementById('user-roblox-id').value = userId;
-            statusText.textContent = `✅ Connected: ${username}`;
-            btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-            infoText.textContent = `✅ Roblox account verified (User ID: ${userId})`;
-            infoText.style.color = '#10b981';
-            
-            // Remove listener
-            window.removeEventListener('message', robloxCallback);
-            
-            if (robloxWindow && !robloxWindow.closed) {
-                robloxWindow.close();
-            }
-        } else if (event.data.type === 'ROBLOX_AUTH_ERROR') {
-            alert('Failed to connect Roblox account. Please try again.');
-            window.removeEventListener('message', robloxCallback);
-        }
-    });
 }
 
 // Preferences Submit
