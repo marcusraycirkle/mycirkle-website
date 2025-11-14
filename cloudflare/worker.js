@@ -2761,9 +2761,9 @@ async function handleProcessCommand(interaction, env) {
     const adminUser = interaction.member?.user || interaction.user;
     
     const rewardInfo = {
-        '20_off_product': { name: '20% off product', points: 500, needsCoupon: true, discount: '20%' },
-        '40_off_commission': { name: '40% off commission', points: 750, needsCoupon: true, discount: '40%' },
-        'free_product': { name: 'Free Product', points: 200, needsCoupon: false }
+        '20_off_product': { name: '20% off product', needsCoupon: true, discount: '20%' },
+        '40_off_commission': { name: '40% off commission', needsCoupon: true, discount: '40%' },
+        'free_product': { name: 'Free Product', needsCoupon: false }
     };
     
     const info = rewardInfo[reward];
@@ -2774,36 +2774,67 @@ async function handleProcessCommand(interaction, env) {
             return jsonResponse({ type: 4, data: { content: '❌ User not found', flags: 64 } });
         }
         
-        if ((userData.points || 0) < info.points) {
-            return jsonResponse({
-                type: 4,
-                data: {
-                    content: `❌ User only has ${userData.points} points, needs ${info.points}`,
-                    flags: 64
-                }
-            });
-        }
-        
-        userData.points -= info.points;
-        await saveUserData(userData, env);
-        
         const couponCode = `MYC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        const botToken = env.DISCORD_BOT_TOKEN;
+        
+        // Send DM to user
+        if (botToken) {
+            try {
+                const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ recipient_id: targetUserId })
+                });
+                const channel = await channelResponse.json();
+                
+                const dmEmbed = {
+                    title: '🎉 Reward Processed!',
+                    description: `Your **${info.name}** reward has been processed!`,
+                    color: 0x10b981,
+                    fields: [
+                        { name: '🎁 Reward', value: info.name, inline: false }
+                    ],
+                    footer: { text: 'Thank you for being part of MyCirkle!' },
+                    timestamp: new Date().toISOString()
+                };
+                
+                if (info.needsCoupon) {
+                    dmEmbed.fields.push({
+                        name: '🎫 Your Coupon Code',
+                        value: `\`${couponCode}\``,
+                        inline: false
+                    });
+                }
+                
+                await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ embeds: [dmEmbed] })
+                });
+            } catch (dmError) {
+                console.error('DM error:', dmError);
+            }
+        }
         
         // Log to redemption webhook
         const redemptionWebhook = 'https://discord.com/api/webhooks/1436826526883647569/mpdU8WILa-zH7hd3AI9wN6g2hUmNerpXbcq0WKzQeAEAL3A2MosB-56jvCRZtdYUPgGR';
         try {
             const embedData = {
-                title: '🎁 Reward Redeemed',
-                description: `<@${targetUserId}> redeemed **${info.name}**!`,
+                title: '✅ Reward Processed',
+                description: `Processed **${info.name}** for <@${targetUserId}>`,
                 color: 0x10b981,
                 fields: [
                     { name: '👤 User', value: `<@${targetUserId}>`, inline: true },
                     { name: '🎁 Reward', value: info.name, inline: true },
-                    { name: '💰 Points Spent', value: `${info.points} points`, inline: true },
-                    { name: '📊 Remaining Balance', value: `${userData.points} points`, inline: true },
                     { name: '👨‍💼 Processed By', value: `<@${adminUser.id}>`, inline: true }
                 ],
-                footer: { text: '🎉 Redemption Activity' },
+                footer: { text: '🎉 Reward Processing Log' },
                 timestamp: new Date().toISOString()
             };
             
@@ -2826,11 +2857,11 @@ async function handleProcessCommand(interaction, env) {
         
         const responseEmbed = {
             title: '✅ Reward Processed',
-            description: `Processed **${info.name}** for <@${targetUserId}>`,
+            description: `Successfully processed **${info.name}** for <@${targetUserId}>`,
             color: 0x10b981,
             fields: [
-                { name: '💰 Points Deducted', value: `${info.points} points`, inline: true },
-                { name: '📊 New Balance', value: `${userData.points} points`, inline: true }
+                { name: '🎁 Reward', value: info.name, inline: true },
+                { name: '👤 User', value: `<@${targetUserId}>`, inline: true }
             ]
         };
         
@@ -3047,15 +3078,14 @@ async function addToMailingList(env, email, firstName, lastName) {
         
         if (!response.ok) {
             console.error('❌ Failed to add to mailing list:', result);
-            // Don't throw - just log the error
-            return { success: false, error: result };
-        } else {
-            console.log('✅ Successfully added to mailing list:', email);
-            return { success: true, data: result };
+            throw new Error(`Resend API error: ${response.status} - ${JSON.stringify(result)}`);
         }
+        
+        console.log('✅ Successfully added to mailing list:', email);
+        return { success: true, data: result };
     } catch (error) {
         console.error('❌ Exception adding to mailing list:', error.message, error.stack);
-        return { success: false, error: error.message };
+        throw error; // Re-throw so signup process knows it failed
     }
 }
 
