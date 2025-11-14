@@ -638,6 +638,29 @@ export default {
                     console.log('Skipping marketing emails - acceptedMarketing:', acceptedMarketing, 'email:', email);
                 }
                 
+                // Assign MyCirkle Member role on Discord
+                const memberRoleId = '1315065604738383982';
+                try {
+                    console.log('🎭 Assigning MyCirkle Member role to Discord user:', discordId);
+                    const roleResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}/roles/${memberRoleId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bot ${botToken}`,
+                            'Content-Type': 'application/json',
+                            'User-Agent': 'MyCirkle-Loyalty/1.0'
+                        }
+                    });
+                    
+                    if (roleResponse.ok || roleResponse.status === 204) {
+                        console.log('✅ Successfully assigned MyCirkle Member role');
+                    } else {
+                        const roleError = await roleResponse.text();
+                        console.error('❌ Failed to assign role:', roleResponse.status, roleError);
+                    }
+                } catch (roleError) {
+                    console.error('❌ Error assigning Discord role:', roleError);
+                }
+                
                 // Send account information webhook
                 const accountWebhook = 'https://discord.com/api/webhooks/1436394267986755648/CaQCKNNOLhRT3ngZSEYif7dNYwq63pTRq3kizD1TfTr6YROOYRin2pQ4LaZ4WUFKnlht';
                 try {
@@ -1213,21 +1236,29 @@ export default {
         // Admin Email Endpoints
         if (path === '/api/admin/send-email' && request.method === 'POST') {
             try {
-                const { recipients, subject, message, adminKey } = await request.json();
+                const body = await request.json();
+                console.log('📧 Send email request body:', body);
+                
+                const { recipients, subject, message, adminKey } = body;
                 
                 // Verify admin key
                 if (adminKey !== env.ADMIN_KEY) {
+                    console.log('❌ Admin key mismatch');
                     return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
                 }
 
                 // Get mailing list contacts from Resend
+                console.log('📋 Fetching mailing list from Resend...');
                 const mailingList = await getMailingListContacts(env);
-                const mailingEmails = new Set(mailingList.map(c => c.email));
+                console.log('📋 Mailing list response:', { length: mailingList.length, sample: mailingList[0] });
                 
-                console.log(`Mailing list has ${mailingEmails.size} contacts`);
+                const mailingEmails = new Set(mailingList.map(c => c.email));
+                console.log(`✅ Mailing list has ${mailingEmails.size} contacts`);
                 
                 // Get all users from Google Sheets
+                console.log('📄 Fetching users from Google Sheets...');
                 const allUsers = await getAllUsers(env);
+                console.log(`📄 Found ${allUsers.length} total users`);
                 
                 // Filter to only users who are in the mailing list
                 const users = allUsers.filter(u => u.email && mailingEmails.has(u.email));
@@ -1265,8 +1296,14 @@ export default {
                         targetUsers = users;
                 }
 
+                console.log(`🎯 Target users: ${targetUsers.length} (from ${users.length} marketing subscribers)`);
+                
                 if (targetUsers.length === 0) {
-                    return jsonResponse({ error: 'No recipients found. Make sure users have opted into marketing emails during signup.' }, 400, corsHeaders);
+                    const errorMsg = recipients === 'test' 
+                        ? 'No recipients found. Make sure at least one user has opted into marketing emails during signup.' 
+                        : `No recipients found for filter "${recipients}". Total marketing subscribers: ${users.length}. Make sure users have opted into marketing emails during signup.`;
+                    console.log('❌', errorMsg);
+                    return jsonResponse({ error: errorMsg }, 400, corsHeaders);
                 }
 
                 // Send emails via Resend
@@ -2852,14 +2889,16 @@ async function getMailingListContacts(env) {
         });
         
         if (!response.ok) {
-            console.error('Failed to fetch mailing list');
+            const errorText = await response.text();
+            console.error('❌ Failed to fetch mailing list:', response.status, errorText);
             return [];
         }
         
         const result = await response.json();
+        console.log('✅ Mailing list contacts fetched:', result.data?.length || 0);
         return result.data || [];
     } catch (error) {
-        console.error('Failed to fetch mailing list:', error);
+        console.error('❌ Failed to fetch mailing list:', error);
         return [];
     }
 }
