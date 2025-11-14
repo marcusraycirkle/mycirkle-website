@@ -1618,12 +1618,19 @@ export default {
                                         title: '🎉 Purchase Reward!',
                                         description: `You have received **${tokensToAward} tokens** for buying **${productName || 'a product'}**!`,
                                         color: 0x10b981,
+                                        thumbnail: {
+                                            url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                                        },
                                         fields: [
                                             { name: '🎁 Product', value: productName || 'Unknown', inline: false },
                                             { name: '💰 Price', value: `${price} Robux`, inline: true },
                                             { name: '⭐ Tokens Earned', value: `+${tokensToAward}`, inline: true },
                                             { name: '💎 New Balance', value: `${userData.points} tokens`, inline: false }
                                         ],
+                                        footer: {
+                                            text: 'MyCirkle Loyalty Program',
+                                            icon_url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                                        },
                                         timestamp: new Date().toISOString()
                                     }]
                                 })
@@ -1638,6 +1645,80 @@ export default {
             } catch (error) {
                 console.error('Parcel webhook error:', error);
                 return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // Test Purchase DM endpoint
+        if (path === '/api/test-purchase-dm' && request.method === 'POST') {
+            try {
+                const { discordId } = await request.json();
+                
+                if (!discordId) {
+                    return jsonResponse({ error: 'discordId required' }, 400, corsHeaders);
+                }
+                
+                const botToken = env.DISCORD_BOT_TOKEN;
+                if (!botToken) {
+                    return jsonResponse({ error: 'Bot token not configured' }, 500, corsHeaders);
+                }
+                
+                // Create DM channel
+                const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'MyCirkle-Loyalty/1.0'
+                    },
+                    body: JSON.stringify({ recipient_id: discordId })
+                });
+                
+                if (!channelResponse.ok) {
+                    const error = await channelResponse.text();
+                    return jsonResponse({ error: 'Failed to create DM channel', details: error }, channelResponse.status, corsHeaders);
+                }
+                
+                const channel = await channelResponse.json();
+                
+                // Send test purchase DM
+                const dmResponse = await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'MyCirkle-Loyalty/1.0'
+                    },
+                    body: JSON.stringify({
+                        embeds: [{
+                            title: '🎉 Purchase Reward! [TEST]',
+                            description: `You have received **250 tokens** for buying **Test Product**!`,
+                            color: 0x10b981,
+                            thumbnail: {
+                                url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                            },
+                            fields: [
+                                { name: '🎁 Product', value: 'Test Product (Sample Item)', inline: false },
+                                { name: '💰 Price', value: '250 Robux', inline: true },
+                                { name: '⭐ Tokens Earned', value: '+250', inline: true },
+                                { name: '💎 New Balance', value: '250 tokens', inline: false }
+                            ],
+                            footer: {
+                                text: 'This is a test message from MyCirkle',
+                                icon_url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                            },
+                            timestamp: new Date().toISOString()
+                        }]
+                    })
+                });
+                
+                if (!dmResponse.ok) {
+                    const error = await dmResponse.text();
+                    return jsonResponse({ error: 'Failed to send DM', details: error }, dmResponse.status, corsHeaders);
+                }
+                
+                return jsonResponse({ success: true, message: 'Test purchase DM sent successfully!' }, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: 'Failed to send test DM', details: error.message }, 500, corsHeaders);
             }
         }
 
@@ -2630,6 +2711,7 @@ async function sendBulkEmails(env, users, subject, message) {
 // Send welcome email
 async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
     const headerImageUrl = 'https://i.postimg.cc/hPdGLf78/cirkledevtest.png'; // MyCirkle header image
+    const logoImageUrl = 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'; // MyCirkle logo
     
     // Use verified Resend domain
     const fromEmail = 'MyCirkle <mycirkle@notifications.cirkledevelopment.co.uk>';
@@ -2651,8 +2733,10 @@ async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
                         <img src="${headerImageUrl}" alt="" style="width: 100%; max-width: 600px; display: block; margin: 0; border: 0;" />
                     </div>
                     
-                    <!-- Spacing -->
-                    <div style="height: 20px;"></div>
+                    <!-- Logo -->
+                    <div style="text-align: center; padding: 20px 0;">
+                        <img src="${logoImageUrl}" alt="MyCirkle Logo" style="width: 80px; height: 80px; object-fit: contain;" />
+                    </div>
                     
                     <!-- Content -->
                     <div style="padding: 30px; background: #f9fafb;">
