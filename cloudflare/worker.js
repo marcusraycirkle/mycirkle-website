@@ -800,7 +800,10 @@ export default {
                 const robloxUsername = url.searchParams.get('robloxUsername');
                 const accountId = url.searchParams.get('accountId');
 
+                console.log('📦 Products API called with:', { robloxUsername, accountId });
+
                 if (!robloxUsername) {
+                    console.log('❌ Missing robloxUsername');
                     return jsonResponse({ error: 'Missing robloxUsername', products: [] }, 400, corsHeaders);
                 }
 
@@ -813,6 +816,8 @@ export default {
 
                 // Check ownership via ParcelRoblox API
                 const checkUrl = 'https://api.parcelroblox.com/v1/products/ownership';
+                console.log('📡 Calling ParcelRoblox API:', { productId: PRODUCT_ID, robloxUsername });
+                
                 const response = await fetch(checkUrl, {
                     method: 'POST',
                     headers: {
@@ -826,11 +831,15 @@ export default {
                 });
 
                 if (!response.ok) {
-                    console.error('ParcelRoblox API error:', response.status);
+                    console.error('❌ ParcelRoblox API error:', response.status);
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
                     return jsonResponse({ success: true, products: [] }, 200, corsHeaders);
                 }
 
                 const data = await response.json();
+                console.log('📦 ParcelRoblox response:', data);
+                
                 const products = data.owns ? [{
                     id: PRODUCT_ID,
                     name: data.productName || 'MyCirkle Product',
@@ -838,6 +847,7 @@ export default {
                     owned: true
                 }] : [];
 
+                console.log('✅ Returning products:', products);
                 return jsonResponse({ success: true, products }, 200, corsHeaders);
             } catch (error) {
                 console.error('Products API error:', error);
@@ -2730,12 +2740,12 @@ async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
                     <!-- Header Image -->
                     <div style="text-align: center; padding: 0; margin: 0;">
-                        <img src="${headerImageUrl}" alt="" style="width: 100%; max-width: 600px; display: block; margin: 0; border: 0;" />
+                        <img src="${headerImageUrl}" alt="MyCirkle Header" width="600" height="auto" style="width: 100%; max-width: 600px; height: auto; display: block; margin: 0; padding: 0; border: 0; outline: none;" />
                     </div>
                     
                     <!-- Logo -->
                     <div style="text-align: center; padding: 20px 0;">
-                        <img src="${logoImageUrl}" alt="MyCirkle Logo" style="width: 80px; height: 80px; object-fit: contain;" />
+                        <img src="${logoImageUrl}" alt="MyCirkle Logo" width="80" height="80" style="width: 80px; height: 80px; display: block; margin: 0 auto; border: 0; outline: none;" />
                     </div>
                     
                     <!-- Content -->
