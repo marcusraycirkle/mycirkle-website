@@ -1521,7 +1521,7 @@ export default {
                                 body: JSON.stringify({
                                     embeds: [{
                                         title: '🎉 Purchase Reward!',
-                                        description: `Thank you for your purchase!`,
+                                        description: `You have received **${tokensToAward} tokens** for buying **${productName || 'a product'}**!`,
                                         color: 0x10b981,
                                         fields: [
                                             { name: '🎁 Product', value: productName || 'Unknown', inline: false },
