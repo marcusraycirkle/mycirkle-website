@@ -640,25 +640,104 @@ export default {
                 
                 // Assign MyCirkle Member role on Discord
                 const memberRoleId = '1315065604738383982';
+                const guildId = env.DISCORD_GUILD_ID;
                 try {
                     console.log('🎭 Assigning MyCirkle Member role to Discord user:', discordId);
+                    console.log('🎭 Guild ID:', guildId, 'Role ID:', memberRoleId);
+                    
+                    // Add delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
                     const roleResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}/roles/${memberRoleId}`, {
                         method: 'PUT',
                         headers: {
                             'Authorization': `Bot ${botToken}`,
                             'Content-Type': 'application/json',
-                            'User-Agent': 'MyCirkle-Loyalty/1.0'
+                            'User-Agent': 'MyCirkle-Loyalty/1.0',
+                            'X-Audit-Log-Reason': 'MyCirkle signup - automatic role assignment'
                         }
                     });
                     
+                    console.log('🎭 Role assignment response status:', roleResponse.status);
+                    
                     if (roleResponse.ok || roleResponse.status === 204) {
-                        console.log('✅ Successfully assigned MyCirkle Member role');
+                        console.log('✅ Successfully assigned MyCirkle Member role to user', discordId);
+                        
+                        // Send role assignment confirmation webhook
+                        const roleWebhook = 'https://discord.com/api/webhooks/1436394267986755648/CaQCKNNOLhRT3ngZSEYif7dNYwq63pTRq3kizD1TfTr6YROOYRin2pQ4LaZ4WUFKnlht';
+                        try {
+                            await fetch(roleWebhook, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    embeds: [{
+                                        title: '✅ Role Assigned',
+                                        description: `Successfully assigned MyCirkle Member role to <@${discordId}>`,
+                                        color: 0x00ff00,
+                                        fields: [
+                                            { name: 'User', value: `<@${discordId}>`, inline: true },
+                                            { name: 'Role', value: `<@&${memberRoleId}>`, inline: true }
+                                        ],
+                                        timestamp: new Date().toISOString()
+                                    }]
+                                })
+                            });
+                        } catch (webhookErr) {
+                            console.error('Role webhook error:', webhookErr);
+                        }
                     } else {
                         const roleError = await roleResponse.text();
                         console.error('❌ Failed to assign role:', roleResponse.status, roleError);
+                        
+                        // Send failure webhook
+                        const roleWebhook = 'https://discord.com/api/webhooks/1436394267986755648/CaQCKNNOLhRT3ngZSEYif7dNYwq63pTRq3kizD1TfTr6YROOYRin2pQ4LaZ4WUFKnlht';
+                        try {
+                            await fetch(roleWebhook, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    embeds: [{
+                                        title: '❌ Role Assignment Failed',
+                                        description: `Failed to assign MyCirkle Member role to <@${discordId}>`,
+                                        color: 0xff0000,
+                                        fields: [
+                                            { name: 'User', value: `<@${discordId}>`, inline: true },
+                                            { name: 'Status', value: String(roleResponse.status), inline: true },
+                                            { name: 'Error', value: roleError.substring(0, 1000), inline: false }
+                                        ],
+                                        timestamp: new Date().toISOString()
+                                    }]
+                                })
+                            });
+                        } catch (webhookErr) {
+                            console.error('Error webhook error:', webhookErr);
+                        }
                     }
                 } catch (roleError) {
                     console.error('❌ Error assigning Discord role:', roleError);
+                    
+                    // Send error webhook
+                    const roleWebhook = 'https://discord.com/api/webhooks/1436394267986755648/CaQCKNNOLhRT3ngZSEYif7dNYwq63pTRq3kizD1TfTr6YROOYRin2pQ4LaZ4WUFKnlht';
+                    try {
+                        await fetch(roleWebhook, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                embeds: [{
+                                    title: '⚠️ Role Assignment Error',
+                                    description: `Exception when assigning MyCirkle Member role to <@${discordId}>`,
+                                    color: 0xffa500,
+                                    fields: [
+                                        { name: 'User', value: `<@${discordId}>`, inline: true },
+                                        { name: 'Error', value: String(roleError).substring(0, 1000), inline: false }
+                                    ],
+                                    timestamp: new Date().toISOString()
+                                }]
+                            })
+                        });
+                    } catch (webhookErr) {
+                        console.error('Error webhook error:', webhookErr);
+                    }
                 }
                 
                 // Send account information webhook
@@ -1777,6 +1856,66 @@ export default {
                 return jsonResponse({ success: true }, 200, corsHeaders);
             } catch (error) {
                 return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // API: Test role assignment
+        if (path === '/api/test-role-assignment' && request.method === 'POST') {
+            try {
+                const { discordId } = await request.json();
+                
+                if (!discordId) {
+                    return jsonResponse({ error: 'discordId required' }, 400, corsHeaders);
+                }
+                
+                const botToken = env.DISCORD_BOT_TOKEN;
+                const guildId = env.DISCORD_GUILD_ID;
+                const memberRoleId = '1315065604738383982';
+                
+                if (!botToken) {
+                    return jsonResponse({ error: 'Bot token not configured' }, 500, corsHeaders);
+                }
+                
+                console.log('🧪 Testing role assignment for Discord user:', discordId);
+                console.log('🧪 Guild ID:', guildId, 'Role ID:', memberRoleId);
+                
+                // Assign MyCirkle Member role
+                const roleResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${discordId}/roles/${memberRoleId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'MyCirkle-Loyalty/1.0',
+                        'X-Audit-Log-Reason': 'MyCirkle role test - manual test endpoint'
+                    }
+                });
+                
+                const statusCode = roleResponse.status;
+                const responseText = await roleResponse.text();
+                
+                console.log('🧪 Role assignment response:', statusCode, responseText);
+                
+                if (roleResponse.ok || statusCode === 204) {
+                    return jsonResponse({ 
+                        success: true, 
+                        message: 'Role assigned successfully!',
+                        details: {
+                            discordId,
+                            roleId: memberRoleId,
+                            guildId,
+                            status: statusCode
+                        }
+                    }, 200, corsHeaders);
+                } else {
+                    return jsonResponse({ 
+                        error: 'Failed to assign role',
+                        status: statusCode,
+                        details: responseText
+                    }, statusCode, corsHeaders);
+                }
+            } catch (error) {
+                console.error('🧪 Role test error:', error);
+                return jsonResponse({ error: 'Role assignment failed', details: error.message }, 500, corsHeaders);
             }
         }
 
