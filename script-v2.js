@@ -1850,21 +1850,28 @@ async function loadProducts() {
         }
         
         // Display products
-        productsList.innerHTML = data.data.map(product => `
-            <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-                <div class="flex items-start justify-between mb-4">
-                    <div>
-                        <h3 class="font-bold text-lg text-gray-800">${product.productName || 'Product'}</h3>
-                        <p class="text-sm text-gray-500">${new Date(product.purchaseDate).toLocaleDateString()}</p>
+        productsList.innerHTML = data.data.map(product => {
+            const productName = product.name || product.productName || 'Product';
+            const productPrice = product.price || product.robux_price || 0;
+            const createdDate = product.created_at || product.createdAt || product.purchaseDate || new Date().toISOString();
+            
+            return `
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800">${productName}</h3>
+                            <p class="text-sm text-gray-500">${new Date(createdDate).toLocaleDateString()}</p>
+                        </div>
+                        <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Owned</span>
                     </div>
-                    <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Owned</span>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-600">Price:</span>
+                        <span class="font-semibold text-gray-800">${productPrice} Robux</span>
+                    </div>
+                    ${product.description ? `<p class="text-xs text-gray-500 mt-3">${product.description}</p>` : ''}
                 </div>
-                <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-600">Price:</span>
-                    <span class="font-semibold text-gray-800">${product.price || 0} Robux</span>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         
         // Update product count in dashboard
         const statProducts = document.getElementById('stat-products');
