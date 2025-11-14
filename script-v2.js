@@ -415,7 +415,7 @@ async function handleRobloxUsername() {
     const username = usernameInput.value.trim();
     
     if (!username) {
-        alert('❌ Please enter your Roblox username.');
+        showErrorModal('Username Required', 'Please enter your Roblox username.');
         return;
     }
     
@@ -443,13 +443,21 @@ async function handleRobloxUsername() {
             // Username not found, go to User ID page
             btn.textContent = originalText;
             btn.disabled = false;
-            showPage('roblox-userid');
+            showErrorModal('Username Not Found', 'We couldn\'t find that username. Please enter your Roblox User ID instead.');
+            setTimeout(() => {
+                closeErrorModal();
+                showPage('roblox-userid');
+            }, 2000);
         }
     } catch (error) {
         console.error('Error verifying Roblox username:', error);
         btn.textContent = originalText;
         btn.disabled = false;
-        alert('❌ Error verifying username. Please try again.');
+        showErrorModal('Error', 'Error looking up username. Please try again or enter your User ID instead.');
+        setTimeout(() => {
+            closeErrorModal();
+            showPage('roblox-userid');
+        }, 2000);
     }
 }
 
@@ -459,7 +467,7 @@ async function handleRobloxUserId() {
     const userId = userIdInput.value.trim();
     
     if (!userId || isNaN(userId)) {
-        alert('❌ Please enter a valid Roblox User ID.');
+        showErrorModal('Invalid User ID', 'Please enter a valid Roblox User ID (numbers only).');
         return;
     }
     
@@ -479,13 +487,13 @@ async function handleRobloxUserId() {
         } else {
             btn.textContent = originalText;
             btn.disabled = false;
-            alert('❌ User ID not found. Please check and try again.');
+            showErrorModal('User ID Not Found', 'We couldn\'t find that User ID. Please check and try again.');
         }
     } catch (error) {
         console.error('Error verifying Roblox User ID:', error);
         btn.textContent = originalText;
         btn.disabled = false;
-        alert('❌ Error verifying User ID. Please try again.');
+        showErrorModal('Error', 'Error verifying User ID. Please check your connection and try again.');
     }
 }
 
@@ -525,7 +533,19 @@ async function displayRobloxProfile(userId, username, displayName) {
         }
     } catch (error) {
         console.error('Error displaying Roblox profile:', error);
-        alert('❌ Error loading profile. Please try again.');
+        showErrorModal('Error', 'Error loading profile. Please try again.');
+        
+        // Re-enable buttons
+        const usernameBtn = document.getElementById('continue-roblox-username');
+        const userIdBtn = document.getElementById('continue-roblox-userid');
+        if (usernameBtn) {
+            usernameBtn.textContent = 'Continue →';
+            usernameBtn.disabled = false;
+        }
+        if (userIdBtn) {
+            userIdBtn.textContent = 'Continue →';
+            userIdBtn.disabled = false;
+        }
     }
 }
 
@@ -2039,6 +2059,17 @@ function showTermsModal() {
 
 function closeTermsModal() {
     document.getElementById('terms-modal').classList.add('hidden');
+}
+
+// Error Modal Functions
+function showErrorModal(title, message) {
+    document.getElementById('error-modal-title').textContent = title;
+    document.getElementById('error-modal-message').textContent = message;
+    document.getElementById('error-modal').classList.remove('hidden');
+}
+
+function closeErrorModal() {
+    document.getElementById('error-modal').classList.add('hidden');
 }
 
 // Mobile Menu Functions
