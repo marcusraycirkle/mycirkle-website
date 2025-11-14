@@ -334,6 +334,11 @@ function showPage(pageId) {
         if (pageId === 'loyalty') {
             setTimeout(() => updateLoyaltyCard(), 100);
         }
+        
+        // Load products when showing products page
+        if (pageId === 'products') {
+            setTimeout(() => loadProducts(), 100);
+        }
     }
     if (pageId.includes('loading') || pageId === 'confirm' || pageId === 'reset-loading') {
         handleLoadingAnimations(pageId);
@@ -773,7 +778,23 @@ function showDashboard() {
     const statTier = document.getElementById('stat-tier');
     
     if (statRewards) statRewards.textContent = '4';
-    if (statProducts) statProducts.textContent = '0';
+    
+    // Load products count
+    if (currentUser.robloxUserId) {
+        fetch(`${WORKER_URL}/api/parcel/products?discordId=${currentUser.discordId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (statProducts && data.data) {
+                    statProducts.textContent = data.data.length;
+                }
+            })
+            .catch(() => {
+                if (statProducts) statProducts.textContent = '0';
+            });
+    } else {
+        if (statProducts) statProducts.textContent = '0';
+    }
+    
     if (statTier) {
         const points = currentUser.points || 0;
         if (points >= 2000) statTier.textContent = 'Diamond';
@@ -1783,6 +1804,81 @@ function initScratchCanvas() {
 // Exit Redeem
 function exitRedeem() {
     showPage('rewards');
+}
+
+// Load user products from Parcel API
+async function loadProducts() {
+    const productsList = document.getElementById('products-list');
+    if (!productsList) return;
+    
+    if (!currentUser || !currentUser.robloxUserId) {
+        productsList.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <p class="text-gray-500 text-lg">Please link your Roblox account to view your products.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    try {
+        productsList.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="text-gray-500 mt-4">Loading your products...</p>
+            </div>
+        `;
+        
+        const response = await fetch(`${WORKER_URL}/api/parcel/products?discordId=${currentUser.discordId}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch products');
+        }
+        
+        const data = await response.json();
+        
+        if (!data.data || data.data.length === 0) {
+            productsList.innerHTML = `
+                <div class="col-span-full text-center py-12">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                    </svg>
+                    <p class="text-gray-500 text-lg">No products purchased yet</p>
+                    <p class="text-gray-400 text-sm mt-2">Products you buy from our store will appear here</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Display products
+        productsList.innerHTML = data.data.map(product => `
+            <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <h3 class="font-bold text-lg text-gray-800">${product.productName || 'Product'}</h3>
+                        <p class="text-sm text-gray-500">${new Date(product.purchaseDate).toLocaleDateString()}</p>
+                    </div>
+                    <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Owned</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-600">Price:</span>
+                    <span class="font-semibold text-gray-800">${product.price || 0} Robux</span>
+                </div>
+            </div>
+        `).join('');
+        
+        // Update product count in dashboard
+        const statProducts = document.getElementById('stat-products');
+        if (statProducts) statProducts.textContent = data.data.length;
+        
+    } catch (error) {
+        console.error('Error loading products:', error);
+        productsList.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <p class="text-red-500 text-lg">Failed to load products</p>
+                <p class="text-gray-400 text-sm mt-2">Please try again later</p>
+            </div>
+        `;
+    }
 }
 
 // FAQ Toggle
