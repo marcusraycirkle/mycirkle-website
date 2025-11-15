@@ -1528,6 +1528,9 @@ function showDashboard() {
     
     // Show dashboard page and default content
     showPage('dashboard');
+    hideAllDashboardContent();
+    const dashContent = document.getElementById('dashboard-content');
+    if (dashContent) dashContent.classList.remove('hidden');
     updateNavActive('dashboard');
 }
 
