@@ -1741,20 +1741,23 @@ export default {
                 const hubData = await hubResponse.json();
                 console.log('📦 Hub response:', JSON.stringify(hubData, null, 2));
                 
-                // Get hub products and check which ones the user is whitelisted for
+                // Get hub products and check which ones the user owns
                 let userProducts = [];
                 if (hubData.data && hubData.data.products && Array.isArray(hubData.data.products)) {
                     const hubProducts = hubData.data.products;
                     console.log('🏢 Hub has', hubProducts.length, 'total products');
                     
-                    // Check each product to see if user is whitelisted
+                    // Check each product to see if user owns it (using Discord ID directly)
                     for (const product of hubProducts) {
                         const productId = product.id || product._id || product.productId;
-                        console.log('🔍 Checking whitelist for product:', productId);
+                        console.log('🔍 Checking ownership for product:', productId, '-', product.name);
                         
                         try {
-                            const whitelistCheckUrl = `https://v2.parcelroblox.com/whitelist/check/user_id/${userData.robloxUserId}?product_id=${productId}`;
-                            const checkResponse = await fetch(whitelistCheckUrl, {
+                            // Use Discord ID type for direct checking
+                            const checkUrl = `https://v2.parcelroblox.com/whitelist/check/discord/${discordId}?product_id=${productId}`;
+                            console.log('🔗 Check URL:', checkUrl);
+                            
+                            const checkResponse = await fetch(checkUrl, {
                                 headers: {
                                     'Authorization': `${hubId}`,
                                     'Content-Type': 'application/json'
@@ -1763,15 +1766,18 @@ export default {
                             
                             if (checkResponse.ok) {
                                 const checkData = await checkResponse.json();
-                                console.log('📦 Whitelist check result:', checkData);
+                                console.log('📦 Ownership check result:', JSON.stringify(checkData, null, 2));
                                 
-                                // If user is whitelisted for this product, add it to the list
-                                if (checkData.whitelisted === true || checkData.data?.whitelisted === true) {
+                                // Check the owns_license field
+                                if (checkData.data?.owns_license === true) {
                                     console.log('✅ User owns product:', product.name || productId);
                                     userProducts.push(product);
+                                } else {
+                                    console.log('❌ User does NOT own product:', product.name || productId);
                                 }
                             } else {
-                                console.log('⚠️ Whitelist check failed for product:', productId);
+                                const errorText = await checkResponse.text();
+                                console.log('⚠️ Ownership check failed for product:', productId, '-', errorText);
                             }
                         } catch (err) {
                             console.error('❌ Error checking product:', productId, err);
@@ -1787,6 +1793,7 @@ export default {
                     data: userProducts,
                     whitelisted: userProducts.length > 0,
                     userId: userData.robloxUserId,
+                    discordId: discordId,
                     hubId: hubId
                 }, 200, corsHeaders);
             } catch (error) {
