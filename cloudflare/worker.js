@@ -1656,38 +1656,51 @@ export default {
                 const url = new URL(request.url);
                 const discordId = url.searchParams.get('discordId');
                 
+                console.log('🔍 Products API called with discordId:', discordId);
+                
                 if (!discordId) {
                     return jsonResponse({ error: 'discordId parameter required' }, 400, corsHeaders);
                 }
                 
                 // Get user data to find Roblox ID
                 const userData = await getUserData(discordId, env);
+                console.log('👤 User data found:', userData ? `Roblox ID: ${userData.robloxUserId}` : 'Not found');
+                
                 if (!userData || !userData.robloxUserId) {
                     return jsonResponse({ error: 'Roblox account not linked' }, 400, corsHeaders);
                 }
                 
                 // Check whitelist status first
                 const parcelApiKey = 'prod_BwM387gLYcCa8qhERIH1JliOQ';
-                const whitelistResponse = await fetch(`https://v2.parcelroblox.com/whitelist/check/user_id/${userData.robloxUserId}`, {
+                const whitelistUrl = `https://v2.parcelroblox.com/whitelist/check/user_id/${userData.robloxUserId}`;
+                console.log('🔗 Calling ParcelRoblox whitelist API:', whitelistUrl);
+                
+                const whitelistResponse = await fetch(whitelistUrl, {
                     headers: {
                         'Authorization': `${parcelApiKey}`,
                         'Content-Type': 'application/json'
                     }
                 });
                 
+                console.log('📥 Whitelist API response status:', whitelistResponse.status);
+                
                 if (!whitelistResponse.ok) {
-                    console.log('Whitelist check failed:', whitelistResponse.status);
+                    console.error('❌ Whitelist check failed:', whitelistResponse.status, await whitelistResponse.text());
                 }
                 
                 const whitelistData = await whitelistResponse.json();
+                console.log('📦 Whitelist data:', JSON.stringify(whitelistData, null, 2));
                 
                 // Get user's owned products from whitelist data
                 let products = [];
                 if (whitelistData.products && Array.isArray(whitelistData.products)) {
+                    console.log('✅ Found', whitelistData.products.length, 'product IDs:', whitelistData.products);
+                    
                     // Fetch details for each product
                     products = await Promise.all(
                         whitelistData.products.map(async (productId) => {
                             try {
+                                console.log('📦 Fetching details for product:', productId);
                                 const productResponse = await fetch(`https://v2.parcelroblox.com/products/${productId}`, {
                                     headers: {
                                         'Authorization': `${parcelApiKey}`,
@@ -1696,16 +1709,23 @@ export default {
                                 });
                                 
                                 if (productResponse.ok) {
-                                    return await productResponse.json();
+                                    const productData = await productResponse.json();
+                                    console.log('✅ Product details:', productData);
+                                    return productData;
+                                } else {
+                                    console.error('❌ Failed to fetch product:', productId, productResponse.status);
                                 }
                             } catch (err) {
-                                console.error(`Failed to fetch product ${productId}:`, err);
+                                console.error(`❌ Exception fetching product ${productId}:`, err);
                             }
                             return null;
                         })
                     );
                     
                     products = products.filter(p => p !== null);
+                    console.log('📦 Final products array:', products.length, 'items');
+                } else {
+                    console.log('⚠️ No products array in whitelist data');
                 }
                 
                 return jsonResponse({ 
@@ -1714,7 +1734,7 @@ export default {
                     userId: userData.robloxUserId
                 }, 200, corsHeaders);
             } catch (error) {
-                console.error('Parcel API error:', error);
+                console.error('❌ Parcel API error:', error);
                 return jsonResponse({ error: error.message }, 500, corsHeaders);
             }
         }
