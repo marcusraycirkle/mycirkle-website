@@ -1398,6 +1398,37 @@ export default {
                 const mailingList = await getMailingListContacts(env);
                 console.log('📋 Mailing list response:', { length: mailingList.length, sample: mailingList[0] });
                 
+                // If using Resend audience contacts directly
+                if (recipients === 'all' && mailingList.length > 0) {
+                    console.log(`✅ Using ${mailingList.length} contacts directly from Resend audience`);
+                    
+                    const targetUsers = mailingList.map(contact => ({
+                        email: contact.email,
+                        firstName: contact.first_name || 'Member',
+                        lastName: contact.last_name || '',
+                        fullName: `${contact.first_name || 'Member'} ${contact.last_name || ''}`.trim()
+                    }));
+                    
+                    console.log(`🎯 Target users: ${targetUsers.length}`);
+                    
+                    // Send emails via Resend
+                    const sent = await sendBulkEmails(env, targetUsers, subject, message);
+                    
+                    // Log to history
+                    await logEmailHistory(env, {
+                        recipients,
+                        subject,
+                        sent: sent.length,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    return jsonResponse({ 
+                        success: true, 
+                        sent: sent.length,
+                        failed: targetUsers.length - sent.length
+                    }, 200, corsHeaders);
+                }
+                
                 const mailingEmails = new Set(mailingList.map(c => c.email));
                 console.log(`✅ Mailing list has ${mailingEmails.size} contacts`);
                 
@@ -1663,11 +1694,22 @@ export default {
                 }
                 
                 // Get user data to find Roblox ID
-                const userData = await getUserData(discordId, env);
-                console.log('👤 User data found:', userData ? `Roblox ID: ${userData.robloxUserId}` : 'Not found');
+                let userData;
+                try {
+                    userData = await getUserData(discordId, env);
+                    console.log('👤 User data found:', userData ? `Roblox ID: ${userData.robloxUserId}` : 'Not found');
+                } catch (userError) {
+                    console.error('❌ Error getting user data:', userError);
+                    return jsonResponse({ error: 'Failed to retrieve user data', details: userError.message }, 500, corsHeaders);
+                }
                 
                 if (!userData || !userData.robloxUserId) {
-                    return jsonResponse({ error: 'Roblox account not linked' }, 400, corsHeaders);
+                    return jsonResponse({ 
+                        error: 'Roblox account not linked',
+                        data: [],
+                        whitelisted: false,
+                        userId: null
+                    }, 200, corsHeaders);
                 }
                 
                 // Check whitelist status first
