@@ -645,9 +645,9 @@
                                 <span class="action-icon">🎁</span>
                                 <span class="action-label">Claim Rewards</span>
                             </button>
-                            <button onclick="showProducts()" class="action-card action-blue">
-                                <span class="action-icon">📦</span>
-                                <span class="action-label">View Products</span>
+                            <button onclick="showReferralModal()" class="action-card action-blue">
+                                <span class="action-icon">👥</span>
+                                <span class="action-label">Refer a Friend</span>
                             </button>
                             <button onclick="showLoyaltyCard()" class="action-card action-pink">
                                 <span class="action-icon">💳</span>
@@ -660,22 +660,7 @@
                         </div>
                     </div>
                     
-                    <!-- Refer a Friend Section -->
-                    <div class="section-card mb-6">
-                        <h3 class="section-title">Refer a Friend 🎉</h3>
-                        <p class="text-sm text-gray-600 mb-4">Share your unique referral code and earn <strong>50 points</strong> when they sign up!</p>
-                        <div class="flex gap-3 items-center">
-                            <div class="flex-1 bg-gray-100 p-4 rounded-lg border-2 border-dashed border-gray-300">
-                                <p class="text-xs text-gray-500 mb-1">Your Referral Code</p>
-                                <p class="text-2xl font-bold font-mono text-blue-600" id="referral-code">LOADING...</p>
-                            </div>
-                            <button onclick="copyReferralCode()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-lg font-semibold transition">
-                                <span class="text-xl">📋</span><br>
-                                <span class="text-xs">Copy</span>
-                            </button>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-2">Referrals: <span id="referral-count" class="font-semibold text-blue-600">0</span> friends joined</p>
-                    </div>
+                    <!-- Refer a Friend Section (Hidden - shown in modal) -->
                     
                     <!-- Recent Activity Section -->
                     <div class="section-card">
@@ -1213,6 +1198,47 @@
                 <button id="notification-close-btn" onclick="closeNotification()" class="px-6 py-2.5 rounded-lg font-semibold transition-colors">
                     OK
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./script-v2.js"></script>
+</body>
+</html>        </div>
+    </div>
+
+    <!-- Referral Modal -->
+    <div id="referral-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold text-gray-900">Refer a Friend 🎉</h3>
+                    <button onclick="closeReferralModal()" class="text-gray-400 hover:text-gray-600 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Share your unique referral code and you <strong>both get 75 points</strong> when they sign up!</p>
+                <div class="flex gap-3 items-center mb-4">
+                    <div class="flex-1 bg-gradient-to-br from-blue-50 to-purple-50 p-4 rounded-lg border-2 border-dashed border-blue-300">
+                        <p class="text-xs text-gray-600 mb-1 font-semibold">Your Referral Code</p>
+                        <p class="text-2xl font-bold font-mono text-blue-600" id="referral-code-modal">LOADING...</p>
+                    </div>
+                    <button onclick="copyReferralCode()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-lg font-semibold transition shadow-lg hover:shadow-xl">
+                        <span class="text-xl">📋</span><br>
+                        <span class="text-xs">Copy</span>
+                    </button>
+                </div>
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg mb-4">
+                    <p class="text-sm text-green-800">
+                        <span class="font-bold">💰 75 Points Each!</span><br>
+                        Both you and your friend will earn 75 bonus points when they use your code during signup.
+                    </p>
+                </div>
+                <p class="text-xs text-gray-500">
+                    Referrals: <span id="referral-count-modal" class="font-semibold text-blue-600">0</span> friends joined
+                </p>
             </div>
         </div>
     </div>
