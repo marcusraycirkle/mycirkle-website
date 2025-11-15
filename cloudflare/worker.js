@@ -1748,6 +1748,86 @@ export default {
             }
         }
 
+        // Update user data (for referral codes, etc.)
+        if (path === '/api/update-user' && request.method === 'POST') {
+            try {
+                const body = await request.json();
+                const { discordId, updates } = body;
+                
+                if (!discordId || !updates) {
+                    return jsonResponse({ error: 'discordId and updates required' }, 400, corsHeaders);
+                }
+                
+                const userData = await getUserData(discordId, env);
+                if (!userData) {
+                    return jsonResponse({ error: 'User not found' }, 404, corsHeaders);
+                }
+                
+                // Update user data
+                Object.assign(userData, updates);
+                await env.USERS_KV.put(`user:${discordId}`, JSON.stringify(userData));
+                
+                return jsonResponse({ success: true, user: userData }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Update user error:', error);
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // Add activity to user's activity feed
+        if (path === '/api/add-activity' && request.method === 'POST') {
+            try {
+                const body = await request.json();
+                const { discordId, activity } = body;
+                
+                if (!discordId || !activity) {
+                    return jsonResponse({ error: 'discordId and activity required' }, 400, corsHeaders);
+                }
+                
+                // Get existing activities
+                const activitiesKey = `activities:${discordId}`;
+                let activities = await env.USERS_KV.get(activitiesKey, 'json') || [];
+                
+                // Add new activity to beginning
+                activities.unshift(activity);
+                
+                // Keep only last 50 activities
+                activities = activities.slice(0, 50);
+                
+                // Save back to KV
+                await env.USERS_KV.put(activitiesKey, JSON.stringify(activities));
+                
+                return jsonResponse({ success: true }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Add activity error:', error);
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // Get user activities
+        if (path === '/api/get-activities' && request.method === 'GET') {
+            try {
+                const url = new URL(request.url);
+                const discordId = url.searchParams.get('discordId');
+                const limit = parseInt(url.searchParams.get('limit')) || 3;
+                
+                if (!discordId) {
+                    return jsonResponse({ error: 'discordId parameter required' }, 400, corsHeaders);
+                }
+                
+                const activitiesKey = `activities:${discordId}`;
+                let activities = await env.USERS_KV.get(activitiesKey, 'json') || [];
+                
+                // Return limited number
+                activities = activities.slice(0, limit);
+                
+                return jsonResponse({ activities }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Get activities error:', error);
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
         // Parcel API: Get user products
         if (path === '/api/parcel/products' && request.method === 'GET') {
             try {

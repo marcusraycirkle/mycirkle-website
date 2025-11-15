@@ -16,6 +16,161 @@ let verificationCode = null;
 let verificationAction = null;
 let activeTarget = null;
 
+// Referral System
+function generateReferralCode() {
+    const firstName = (currentUser?.firstName || currentUser?.username || 'USER').toUpperCase().substring(0, 4);
+    const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `${firstName}-${randomPart}`;
+}
+
+function getReferralCode() {
+    if (!currentUser) return null;
+    
+    // Check if user already has a referral code in localStorage or currentUser object
+    if (currentUser.referralCode) {
+        return currentUser.referralCode;
+    }
+    
+    // Generate new code
+    const newCode = generateReferralCode();
+    currentUser.referralCode = newCode;
+    localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+    
+    // Save to backend
+    saveReferralCode(newCode);
+    
+    return newCode;
+}
+
+async function saveReferralCode(code) {
+    try {
+        await fetch(`${WORKER_URL}/api/update-user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.discordId || currentUser.id,
+                updates: { referralCode: code }
+            })
+        });
+    } catch (error) {
+        console.error('Failed to save referral code:', error);
+    }
+}
+
+function copyReferralCode() {
+    const code = getReferralCode();
+    if (!code) return;
+    
+    navigator.clipboard.writeText(code).then(() => {
+        showNotification('Copied!', `Referral code ${code} copied to clipboard`, 'success');
+    }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = code;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification('Copied!', `Referral code ${code} copied to clipboard`, 'success');
+    });
+}
+
+// Activity Tracking System
+async function addActivity(type, description, points = 0) {
+    if (!currentUser) return;
+    
+    const activity = {
+        type,
+        description,
+        points,
+        timestamp: new Date().toISOString(),
+        icon: getActivityIcon(type)
+    };
+    
+    try {
+        // Send to backend
+        await fetch(`${WORKER_URL}/api/add-activity`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.discordId || currentUser.id,
+                activity
+            })
+        });
+        
+        // Update local display
+        refreshRecentActivity();
+    } catch (error) {
+        console.error('Failed to add activity:', error);
+    }
+}
+
+function getActivityIcon(type) {
+    const icons = {
+        'points_earned': '💰',
+        'points_spent': '💸',
+        'reward_claimed': '🎁',
+        'product_verified': '📦',
+        'referral_completed': '👥',
+        'daily_reward': '🎯',
+        'signup': '✨',
+        'login': '👋'
+    };
+    return icons[type] || '📊';
+}
+
+async function refreshRecentActivity() {
+    const activityContainer = document.getElementById('recent-activity');
+    if (!activityContainer || !currentUser) return;
+    
+    try {
+        const response = await fetch(`${WORKER_URL}/api/get-activities?discordId=${currentUser.discordId || currentUser.id}&limit=3`);
+        const data = await response.json();
+        
+        if (data.activities && data.activities.length > 0) {
+            activityContainer.innerHTML = data.activities.map(activity => {
+                const timeAgo = getTimeAgo(new Date(activity.timestamp));
+                const pointsDisplay = activity.points > 0 
+                    ? `<span class="text-green-600 font-semibold">+${activity.points}</span>` 
+                    : activity.points < 0 
+                    ? `<span class="text-red-600 font-semibold">${activity.points}</span>` 
+                    : '';
+                
+                return `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">${activity.icon}</span>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">${activity.description}</p>
+                                <p class="text-xs text-gray-500">${timeAgo}</p>
+                            </div>
+                        </div>
+                        ${pointsDisplay ? `<div class="text-right">${pointsDisplay}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        } else {
+            activityContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No recent activity yet</p>';
+        }
+    } catch (error) {
+        console.error('Failed to load activities:', error);
+        activityContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No recent activity yet</p>';
+    }
+}
+
+function getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
+}
+
 // Language System
 let currentLanguage = localStorage.getItem('mycirkle_language') || 'en';
 
@@ -1254,6 +1409,22 @@ function showDashboard() {
     
     // Update all user references
     updateCardInfo();
+    
+    // Initialize referral code display
+    setTimeout(() => {
+        const referralCodeEl = document.getElementById('referral-code');
+        const referralCountEl = document.getElementById('referral-count');
+        if (referralCodeEl) {
+            const code = getReferralCode();
+            referralCodeEl.textContent = code || 'ERROR';
+        }
+        if (referralCountEl && currentUser.referralCount) {
+            referralCountEl.textContent = currentUser.referralCount || 0;
+        }
+        
+        // Load recent activity
+        refreshRecentActivity();
+    }, 200);
     
     // Show dashboard page and default content
     showPage('dashboard');
