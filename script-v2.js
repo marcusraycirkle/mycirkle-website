@@ -844,7 +844,7 @@ function updateAllPointDisplays() {
     console.log(`✅ Updated all displays to ${points} points (${tierName} tier)`);
 }
 
-// Auto-refresh points every 10 seconds
+// Auto-refresh points every 5 seconds
 let pointsRefreshInterval = null;
 
 function startPointsAutoRefresh() {
@@ -853,7 +853,7 @@ function startPointsAutoRefresh() {
         clearInterval(pointsRefreshInterval);
     }
     
-    // Refresh every 10 seconds
+    // Refresh every 5 seconds for immediate updates
     pointsRefreshInterval = setInterval(async () => {
         if (currentUser && currentUser.discordId) {
             const oldPoints = currentUser.points || 0;
@@ -863,10 +863,18 @@ function startPointsAutoRefresh() {
                 if (newPoints !== oldPoints) {
                     console.log(`🔄 Points changed: ${oldPoints} → ${newPoints}`);
                     updateAllPointDisplays();
+                    
+                    // Show notification for point changes
+                    const diff = newPoints - oldPoints;
+                    if (diff > 0) {
+                        showNotification(`+${diff} points earned!`, 'Points updated from activity', 'success');
+                    }
                 }
             }
         }
-    }, 10000); // 10 seconds
+    }, 5000); // 5 seconds for faster updates
+    
+    console.log('✅ Auto-refresh started: checking every 5 seconds');
 }
 
 function stopPointsAutoRefresh() {
