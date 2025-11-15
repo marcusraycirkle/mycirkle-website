@@ -1753,11 +1753,31 @@ export default {
             try {
                 const url = new URL(request.url);
                 const discordId = url.searchParams.get('discordId');
+                const forceRefresh = url.searchParams.get('refresh') === 'true';
                 
-                console.log('🔍 Products API called with discordId:', discordId);
+                console.log('🔍 Products API called with discordId:', discordId, '| Force refresh:', forceRefresh);
                 
                 if (!discordId) {
                     return jsonResponse({ error: 'discordId parameter required' }, 400, corsHeaders);
+                }
+                
+                // Check cache first (unless forced refresh)
+                const cacheKey = `parcel_products_${discordId}`;
+                if (!forceRefresh) {
+                    const cachedData = await env.USERS_KV.get(cacheKey, 'json');
+                    if (cachedData && cachedData.timestamp > Date.now() - 86400000) { // 24 hour cache
+                        const cacheAge = Math.round((Date.now() - cachedData.timestamp) / 60000);
+                        console.log(`💾 Returning cached products (age: ${cacheAge} minutes)`);
+                        return jsonResponse({ 
+                            data: cachedData.products || [],
+                            whitelisted: cachedData.whitelisted || false,
+                            userId: cachedData.userId,
+                            discordId,
+                            hubId: cachedData.hubId,
+                            cached: true,
+                            cachedAt: new Date(cachedData.timestamp).toISOString()
+                        }, 200, corsHeaders);
+                    }
                 }
                 
                 // Get user data to find Roblox ID
@@ -1792,6 +1812,35 @@ export default {
                 });
                 
                 console.log('📥 Hub API response status:', hubResponse.status);
+                
+                // Handle rate limiting
+                if (hubResponse.status === 429) {
+                    console.log('⚠️ Rate limited by ParcelRoblox');
+                    // Try to return cached data even if expired
+                    const cachedData = await env.USERS_KV.get(cacheKey, 'json');
+                    if (cachedData) {
+                        console.log('💾 Returning expired cache due to rate limit');
+                        return jsonResponse({ 
+                            data: cachedData.products || [],
+                            whitelisted: cachedData.whitelisted || false,
+                            userId: cachedData.userId,
+                            discordId,
+                            hubId: cachedData.hubId,
+                            cached: true,
+                            rateLimited: true,
+                            message: 'Using cached data - ParcelRoblox rate limit reached (30 requests/day on free tier)'
+                        }, 200, corsHeaders);
+                    }
+                    return jsonResponse({ 
+                        data: [], 
+                        whitelisted: false,
+                        userId: userData.robloxUserId,
+                        discordId,
+                        hubId,
+                        rateLimited: true,
+                        error: 'ParcelRoblox rate limit reached (30 requests/day). Upgrade to paid tier or try again tomorrow.'
+                    }, 200, corsHeaders);
+                }
                 
                 if (!hubResponse.ok) {
                     const errorText = await hubResponse.text();
@@ -1856,12 +1905,23 @@ export default {
                     console.log('⚠️ No products found in hub data');
                 }
                 
+                // Cache the result for 24 hours
+                await env.USERS_KV.put(cacheKey, JSON.stringify({
+                    products: userProducts,
+                    whitelisted: userProducts.length > 0,
+                    userId: userData.robloxUserId,
+                    hubId: hubId,
+                    timestamp: Date.now()
+                }));
+                console.log('💾 Cached products for 24 hours');
+                
                 return jsonResponse({ 
                     data: userProducts,
                     whitelisted: userProducts.length > 0,
                     userId: userData.robloxUserId,
                     discordId: discordId,
-                    hubId: hubId
+                    hubId: hubId,
+                    cached: false
                 }, 200, corsHeaders);
             } catch (error) {
                 console.error('❌ Parcel API error:', error);
