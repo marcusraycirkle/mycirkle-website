@@ -118,6 +118,21 @@ const commands = [
                 min_value: 1
             }
         ]
+    },
+    {
+        name: 'adminconfig',
+        description: '[ADMIN] Manage user access and moderation',
+        options: [
+            {
+                name: 'action',
+                description: 'Action to perform',
+                type: 3, // STRING type
+                required: true,
+                choices: [
+                    { name: 'Suspend/Unsuspend User', value: 'suspend' }
+                ]
+            }
+        ]
     }
 ];
 
@@ -143,7 +158,7 @@ async function registerCommands() {
         const data = await response.json();
         console.log('✅ Successfully registered commands:');
         data.forEach(cmd => {
-            const isAdmin = ['givepoints', 'deductpoints', 'process', 'dailyreward'].includes(cmd.name);
+            const isAdmin = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig'].includes(cmd.name);
             const prefix = isAdmin ? '🔒 [ADMIN] ' : '   ';
             console.log(`${prefix}/${cmd.name} - ${cmd.description}`);
         });

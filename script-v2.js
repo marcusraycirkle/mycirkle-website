@@ -48,6 +48,48 @@ function closeNotification() {
     modal.classList.add('hidden');
 }
 
+function showSuspensionModal() {
+    // Create suspension modal HTML if it doesn't exist
+    let suspensionModal = document.getElementById('suspension-modal');
+    if (!suspensionModal) {
+        suspensionModal = document.createElement('div');
+        suspensionModal.id = 'suspension-modal';
+        suspensionModal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75';
+        suspensionModal.innerHTML = `
+            <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+                    <svg class="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Access Suspended</h2>
+                <p class="text-gray-600 mb-6">Your MyCirkle account has been suspended. You currently do not have access to the dashboard and services.</p>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                    <p class="text-sm text-yellow-800">
+                        <strong>Believe this is a mistake?</strong><br>
+                        Please contact our support team for assistance.
+                    </p>
+                </div>
+                <a href="https://discord.gg/your-support-invite" target="_blank" 
+                   class="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+                    Contact Support
+                </a>
+                <button onclick="logout()" 
+                        class="mt-3 inline-block w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-colors">
+                    Logout
+                </button>
+            </div>
+        `;
+        document.body.appendChild(suspensionModal);
+    }
+    
+    suspensionModal.classList.remove('hidden');
+    
+    // Hide all pages
+    const allPages = document.querySelectorAll('.page');
+    allPages.forEach(page => page.classList.add('hidden'));
+}
+
 // DOM Elements - will be populated after DOM loads
 let pages, modals, profileIcon, profileName, dashProfileImg, dashProfileName;
 let memberSince, availablePoints, progressFill, targetSelect, dailyRewardText;
@@ -875,6 +917,12 @@ function showDashboard() {
     if (!isSignupComplete(currentUser)) {
         console.warn('User has not completed signup');
         redirectToSignupStep(currentUser);
+        return;
+    }
+    
+    // Check if user is suspended
+    if (currentUser.suspended === true) {
+        showSuspensionModal();
         return;
     }
     
