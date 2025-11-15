@@ -1496,9 +1496,10 @@ async function renderProductsToDashboard() {
             return;
         }
 
-        const apiUrl = `${WORKER_URL}/api/products?robloxUsername=${encodeURIComponent(robloxUsername)}&accountId=${encodeURIComponent(currentUser.accountId || currentUser.discordId)}`;
+        const discordId = currentUser.discordId || currentUser.id;
+        const apiUrl = `${WORKER_URL}/api/parcel/products?discordId=${encodeURIComponent(discordId)}`;
         console.log('🔍 Fetching products from:', apiUrl);
-        console.log('📦 Current user data:', { robloxUsername, accountId: currentUser.accountId || currentUser.discordId, discordId: currentUser.discordId });
+        console.log('📦 Current user data:', { robloxUsername, accountId: currentUser.accountId, discordId });
         
         const response = await fetch(apiUrl);
         console.log('📦 Products API response status:', response.status);
@@ -1986,7 +1987,8 @@ async function loadProducts() {
             </div>
         `;
         
-        const response = await fetch(`${WORKER_URL}/api/parcel/products?discordId=${currentUser.discordId}`);
+        const discordId = currentUser.discordId || currentUser.id;
+        const response = await fetch(`${WORKER_URL}/api/parcel/products?discordId=${discordId}`);
         
         if (!response.ok) {
             throw new Error('Failed to fetch products');
