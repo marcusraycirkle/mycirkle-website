@@ -652,6 +652,31 @@
                             </button>
                         </div>
                     </div>
+                    
+                    <!-- Refer a Friend Section -->
+                    <div class="section-card mb-6">
+                        <h3 class="section-title">Refer a Friend 🎉</h3>
+                        <p class="text-sm text-gray-600 mb-4">Share your unique referral code and earn <strong>50 points</strong> when they sign up!</p>
+                        <div class="flex gap-3 items-center">
+                            <div class="flex-1 bg-gray-100 p-4 rounded-lg border-2 border-dashed border-gray-300">
+                                <p class="text-xs text-gray-500 mb-1">Your Referral Code</p>
+                                <p class="text-2xl font-bold font-mono text-blue-600" id="referral-code">LOADING...</p>
+                            </div>
+                            <button onclick="copyReferralCode()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-lg font-semibold transition">
+                                <span class="text-xl">📋</span><br>
+                                <span class="text-xs">Copy</span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Referrals: <span id="referral-count" class="font-semibold text-blue-600">0</span> friends joined</p>
+                    </div>
+                    
+                    <!-- Recent Activity Section -->
+                    <div class="section-card">
+                        <h3 class="section-title">Recent Activity 📊</h3>
+                        <div id="recent-activity" class="space-y-2">
+                            <p class="text-sm text-gray-500 text-center py-4">No recent activity yet</p>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Rewards Content (Hidden by default) -->
