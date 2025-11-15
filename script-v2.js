@@ -230,6 +230,17 @@ const translations = {
         viewRewards: 'View Rewards',
         checkProducts: 'Check Products',
         myLoyaltyCard: 'My Loyalty Card',
+        recentActivity: 'Recent Activity',
+        referFriend: 'Refer a Friend',
+        yourReferralCode: 'Your Referral Code',
+        totalReferrals: 'Total Referrals',
+        copyCode: 'Copy Code',
+        stats: 'Stats',
+        tier: 'Tier',
+        bronze: 'Bronze',
+        silver: 'Silver',
+        gold: 'Gold',
+        diamond: 'Diamond',
         
         // Rewards
         rewardsTitle: 'Available Rewards',
@@ -305,6 +316,26 @@ const translations = {
         welcomeBack: 'Bienvenido de nuevo',
         memberSince: 'Miembro Desde',
         availablePoints: 'Puntos Disponibles',
+        recentActivity: 'Actividad Reciente',
+        referFriend: 'Referir un Amigo',
+        yourReferralCode: 'Tu Código de Referido',
+        totalReferrals: 'Referencias Totales',
+        copyCode: 'Copiar Código',
+        stats: 'Estadísticas',
+        tier: 'Nivel',
+        bronze: 'Bronce',
+        silver: 'Plata',
+        gold: 'Oro',
+        diamond: 'Diamante',
+        dashboardOverview: 'Vista General del Tablero',
+        yourProgress: 'Tu progreso y recompensas',
+        pointsProgress: 'Progreso de Puntos',
+        quickActions: 'Acciones Rápidas',
+        viewRewards: 'Ver Recompensas',
+        checkProducts: 'Verificar Productos',
+        myLoyaltyCard: 'Mi Tarjeta de Lealtad',
+        faqTitle: 'Preguntas Frecuentes',
+        faqSubtitle: 'Encuentra respuestas a preguntas comunes',
         accountSettings: 'Configuración de Cuenta',
         languageApplied: 'Idioma Aplicado',
         languageAppliedDesc: 'La página se actualizará para mostrarse en el idioma seleccionado.',
@@ -1530,10 +1561,10 @@ function showDashboard() {
     
     if (statTier) {
         const points = currentUser.points || 0;
-        if (points >= 2000) statTier.textContent = 'Diamond';
-        else if (points >= 1000) statTier.textContent = 'Gold';
-        else if (points >= 750) statTier.textContent = 'Silver';
-        else statTier.textContent = 'Bronze';
+        if (points >= 2000) statTier.textContent = t('diamond');
+        else if (points >= 1000) statTier.textContent = t('gold');
+        else if (points >= 750) statTier.textContent = t('silver');
+        else statTier.textContent = t('bronze');
     }
     
     // Update initials
@@ -2097,7 +2128,8 @@ function showFAQ() {
     if (faqContent) {
         faqContent.innerHTML = `
             <div class="content-header">
-                <h2 class="content-title">Frequently Asked Questions</h2>
+                <h2 class="content-title">${t('faqTitle')}</h2>
+                <p class="content-subtitle">${t('faqSubtitle')}</p>
             </div>
             
             <div class="section-card">
