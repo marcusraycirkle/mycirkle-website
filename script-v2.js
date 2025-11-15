@@ -1523,6 +1523,17 @@ async function renderProductsToDashboard() {
         const data = await response.json();
         console.log('📦 Products API response data:', data);
 
+        // Check for new purchases and show notification
+        if (data.newPurchases && data.newPurchases.count > 0) {
+            console.log('🎉 NEW PURCHASES DETECTED:', data.newPurchases);
+            showNotification(
+                `🎉 New Purchase Detected! You earned ${data.newPurchases.pointsAwarded} points for: ${data.newPurchases.products.join(', ')}`,
+                'success'
+            );
+            // Reload user data to update points display
+            setTimeout(() => location.reload(), 2000);
+        }
+
         if (data.products && data.products.length > 0) {
             console.log('✅ Found', data.products.length, 'product(s)');
             productsListDash.innerHTML = data.products.map(product => `
