@@ -21,6 +21,7 @@ let currentLanguage = localStorage.getItem('mycirkle_language') || 'en';
 
 const translations = {
     en: {
+        // Navigation
         dashboard: 'Dashboard',
         rewards: 'Rewards',
         products: 'Products',
@@ -28,33 +29,85 @@ const translations = {
         faq: 'FAQ',
         account: 'Account',
         logout: 'Logout',
+        
+        // Common
         points: 'points',
         welcomeBack: 'Welcome back',
         memberSince: 'Member Since',
         availablePoints: 'Available Points',
+        loading: 'Loading...',
+        error: 'Error',
+        success: 'Success',
+        
+        // Dashboard
+        dashboardOverview: 'Dashboard Overview',
+        yourProgress: 'Your progress and rewards',
+        pointsProgress: 'Points Progress',
+        currentGoal: 'Current Goal',
+        earnMore: 'Earn more points to unlock rewards!',
+        quickActions: 'Quick Actions',
+        viewRewards: 'View Rewards',
+        checkProducts: 'Check Products',
+        myLoyaltyCard: 'My Loyalty Card',
+        
+        // Rewards
+        rewardsTitle: 'Available Rewards',
+        rewardsSubtitle: 'Redeem your points for exclusive rewards',
+        dailyReward: 'Daily Reward',
+        claimReward: 'Claim Reward',
+        rewardsCatalog: 'Rewards Catalog',
+        pointsRequired: 'Points Required',
+        redeem: 'Redeem',
+        comingSoon: 'Coming Soon',
+        
+        // Products
+        productsTitle: 'My Products',
+        productsSubtitle: 'Products you own from Cirkle Development',
+        noProducts: 'No products yet!',
+        noProductsDesc: 'Your purchased products will appear here.',
+        productName: 'Product Name',
+        purchaseDate: 'Purchase Date',
+        productId: 'Product ID',
+        
+        // Loyalty Card
+        loyaltyCardTitle: 'My Loyalty Card',
+        loyaltyCardSubtitle: 'Your digital membership card',
+        cardholder: 'CARDHOLDER',
+        issueDate: 'ISSUE DATE',
+        clickToFlip: 'Click to flip card',
+        
+        // FAQ
+        faqTitle: 'Frequently Asked Questions',
+        faqSubtitle: 'Find answers to common questions',
+        
+        // Account Settings
         accountSettings: 'Account Settings',
-        languageApplied: 'Language Applied',
-        languageAppliedDesc: 'The page will now refresh to display in your selected language.',
+        manageProfile: 'Manage your profile and preferences',
         accountInfo: 'Account Information',
         accountNumber: 'Account Number',
         discordUsername: 'Discord Username',
         pointsBalance: 'Points Balance',
-        updateProfile: 'Update Profile',
+        profileSettings: 'Profile Settings',
         displayName: 'Display Name',
+        displayNameReadOnly: 'Display name is managed through Discord',
         update: 'Update',
         email: 'Email',
         emailCannotChange: 'Email cannot be changed for security reasons',
         linkedDiscord: 'Linked Discord Account',
         linkedRoblox: 'Linked Roblox Account',
+        notLinked: 'Not linked',
         changePassword: 'Change Password',
         currentPassword: 'Current password',
         newPassword: 'New password',
         confirmPassword: 'Confirm new password',
         updatePassword: 'Update Password',
+        verificationRequired: 'Requires verification code sent to Discord',
         languagePreferences: 'Language Preferences',
         displayLanguage: 'Display Language',
         apply: 'Apply',
         websiteRefresh: 'The website will refresh to display in your selected language.',
+        languageApplied: 'Language Applied',
+        languageAppliedDesc: 'The page will now refresh to display in your selected language.',
         dangerZone: 'Danger Zone',
         dangerZoneDesc: 'These actions cannot be undone',
         deleteAccount: 'Delete Account'
@@ -1850,12 +1903,41 @@ function showAccount() {
             </div>
             
             <div class="section-card">
-                <h3 class="section-title">${t('updateProfile')}</h3>
-                <div class="settings-group">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">${t('displayName')}</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="edit-name" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" value="${currentUser?.fullName || ''}">
-                        <button onclick="updateDisplayName()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">${t('update')}</button>
+                <h3 class="section-title">${t('profileSettings')}</h3>
+                
+                <!-- Display Name and Language Preferences Side by Side -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 settings-group">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2">${t('displayName')}</label>
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <p class="text-gray-700 font-medium">${currentUser?.fullName || currentUser?.username || 'Not set'}</p>
+                            <p class="text-xs text-gray-500 mt-1">🔒 ${t('displayNameReadOnly')}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2">${t('displayLanguage')}</label>
+                        <div class="flex gap-2">
+                            <select id="language-select" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white">
+                                <option value="en">🇬🇧 English</option>
+                                <option value="es">🇪🇸 Español</option>
+                                <option value="fr">🇫🇷 Français</option>
+                                <option value="de">🇩🇪 Deutsch</option>
+                                <option value="pt">🇵🇹 Português</option>
+                                <option value="it">🇮🇹 Italiano</option>
+                                <option value="nl">🇳🇱 Nederlands</option>
+                                <option value="pl">🇵🇱 Polski</option>
+                                <option value="ru">🇷🇺 Русский</option>
+                                <option value="ja">🇯🇵 日本語</option>
+                                <option value="zh">🇨🇳 中文</option>
+                                <option value="ko">🇰🇷 한국어</option>
+                                <option value="ar">🇸🇦 العربية</option>
+                                <option value="hi">🇮🇳 हिन्दी</option>
+                                <option value="tr">🇹🇷 Türkçe</option>
+                            </select>
+                            <button onclick="applyLanguage()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition whitespace-nowrap">${t('apply')}</button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">${t('websiteRefresh')}</p>
                     </div>
                 </div>
                 
@@ -1906,35 +1988,7 @@ function showAccount() {
                         <input type="password" id="edit-confirm-pass" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" placeholder="${t('confirmPassword')}">
                         <button onclick="updatePassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">${t('updatePassword')}</button>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">Requires verification code sent to Discord</p>
-                </div>
-                
-                <div class="section-card mb-4">
-                    <h3 class="section-title">${t('languagePreferences')}</h3>
-                    <div class="settings-group">
-                        <label class="block text-gray-700 text-sm font-medium mb-2">${t('displayLanguage')}</label>
-                        <div class="flex gap-2">
-                            <select id="language-select" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white">
-                                <option value="en">🇬🇧 English</option>
-                                <option value="es">🇪🇸 Español (Spanish)</option>
-                                <option value="fr">🇫🇷 Français (French)</option>
-                                <option value="de">🇩🇪 Deutsch (German)</option>
-                                <option value="pt">🇵🇹 Português (Portuguese)</option>
-                                <option value="it">🇮🇹 Italiano (Italian)</option>
-                                <option value="nl">🇳🇱 Nederlands (Dutch)</option>
-                                <option value="pl">🇵🇱 Polski (Polish)</option>
-                                <option value="ru">🇷🇺 Русский (Russian)</option>
-                                <option value="ja">🇯🇵 日本語 (Japanese)</option>
-                                <option value="zh">🇨🇳 中文 (Chinese)</option>
-                                <option value="ko">🇰🇷 한국어 (Korean)</option>
-                                <option value="ar">🇸🇦 العربية (Arabic)</option>
-                                <option value="hi">🇮🇳 हिन्दी (Hindi)</option>
-                                <option value="tr">🇹🇷 Türkçe (Turkish)</option>
-                            </select>
-                            <button onclick="applyLanguage()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">${t('apply')}</button>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-2">${t('websiteRefresh')}</p>
-                    </div>
+                    <p class="text-xs text-gray-500 mt-1">${t('verificationRequired')}</p>
                 </div>
                 
                 <div class="danger-zone">
