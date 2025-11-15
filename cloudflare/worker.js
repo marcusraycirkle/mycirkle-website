@@ -1727,7 +1727,14 @@ export default {
                 console.log('📥 Whitelist API response status:', whitelistResponse.status);
                 
                 if (!whitelistResponse.ok) {
-                    console.error('❌ Whitelist check failed:', whitelistResponse.status, await whitelistResponse.text());
+                    const errorText = await whitelistResponse.text();
+                    console.error('❌ Whitelist check failed:', whitelistResponse.status, errorText);
+                    return jsonResponse({ 
+                        error: 'ParcelRoblox API error',
+                        data: [],
+                        whitelisted: false,
+                        userId: userData.robloxUserId
+                    }, 200, corsHeaders);
                 }
                 
                 const whitelistData = await whitelistResponse.json();
