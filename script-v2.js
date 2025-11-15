@@ -16,6 +16,187 @@ let verificationCode = null;
 let verificationAction = null;
 let activeTarget = null;
 
+// Language System
+let currentLanguage = localStorage.getItem('mycirkle_language') || 'en';
+
+const translations = {
+    en: {
+        dashboard: 'Dashboard',
+        rewards: 'Rewards',
+        products: 'Products',
+        loyaltyCard: 'Loyalty Card',
+        faq: 'FAQ',
+        account: 'Account',
+        logout: 'Logout',
+        points: 'points',
+        welcomeBack: 'Welcome back',
+        memberSince: 'Member Since',
+        availablePoints: 'Available Points',
+        accountSettings: 'Account Settings',
+        languageApplied: 'Language Applied',
+        languageAppliedDesc: 'The page will now refresh to display in your selected language.',
+        accountInfo: 'Account Information',
+        accountNumber: 'Account Number',
+        discordUsername: 'Discord Username',
+        pointsBalance: 'Points Balance',
+        updateProfile: 'Update Profile',
+        displayName: 'Display Name',
+        update: 'Update',
+        email: 'Email',
+        emailCannotChange: 'Email cannot be changed for security reasons',
+        linkedDiscord: 'Linked Discord Account',
+        linkedRoblox: 'Linked Roblox Account',
+        changePassword: 'Change Password',
+        currentPassword: 'Current password',
+        newPassword: 'New password',
+        confirmPassword: 'Confirm new password',
+        updatePassword: 'Update Password',
+        languagePreferences: 'Language Preferences',
+        displayLanguage: 'Display Language',
+        apply: 'Apply',
+        websiteRefresh: 'The website will refresh to display in your selected language.',
+        dangerZone: 'Danger Zone',
+        dangerZoneDesc: 'These actions cannot be undone',
+        deleteAccount: 'Delete Account'
+    },
+    es: {
+        dashboard: 'Tablero',
+        rewards: 'Recompensas',
+        products: 'Productos',
+        loyaltyCard: 'Tarjeta de Lealtad',
+        faq: 'Preguntas Frecuentes',
+        account: 'Cuenta',
+        logout: 'Cerrar Sesión',
+        points: 'puntos',
+        welcomeBack: 'Bienvenido de nuevo',
+        memberSince: 'Miembro Desde',
+        availablePoints: 'Puntos Disponibles',
+        accountSettings: 'Configuración de Cuenta',
+        languageApplied: 'Idioma Aplicado',
+        languageAppliedDesc: 'La página se actualizará para mostrarse en el idioma seleccionado.',
+        accountInfo: 'Información de la Cuenta',
+        accountNumber: 'Número de Cuenta',
+        discordUsername: 'Nombre de Usuario de Discord',
+        pointsBalance: 'Saldo de Puntos',
+        updateProfile: 'Actualizar Perfil',
+        displayName: 'Nombre para Mostrar',
+        update: 'Actualizar',
+        email: 'Correo Electrónico',
+        emailCannotChange: 'El correo electrónico no se puede cambiar por razones de seguridad',
+        linkedDiscord: 'Cuenta de Discord Vinculada',
+        linkedRoblox: 'Cuenta de Roblox Vinculada',
+        changePassword: 'Cambiar Contraseña',
+        currentPassword: 'Contraseña actual',
+        newPassword: 'Nueva contraseña',
+        confirmPassword: 'Confirmar nueva contraseña',
+        updatePassword: 'Actualizar Contraseña',
+        languagePreferences: 'Preferencias de Idioma',
+        displayLanguage: 'Idioma de Visualización',
+        apply: 'Aplicar',
+        websiteRefresh: 'El sitio web se actualizará para mostrarse en el idioma seleccionado.',
+        dangerZone: 'Zona de Peligro',
+        dangerZoneDesc: 'Estas acciones no se pueden deshacer',
+        deleteAccount: 'Eliminar Cuenta'
+    },
+    fr: {
+        dashboard: 'Tableau de Bord',
+        rewards: 'Récompenses',
+        products: 'Produits',
+        loyaltyCard: 'Carte de Fidélité',
+        faq: 'FAQ',
+        account: 'Compte',
+        logout: 'Déconnexion',
+        points: 'points',
+        welcomeBack: 'Bon retour',
+        memberSince: 'Membre Depuis',
+        availablePoints: 'Points Disponibles',
+        accountSettings: 'Paramètres du Compte',
+        languageApplied: 'Langue Appliquée',
+        languageAppliedDesc: 'La page va maintenant se rafraîchir pour afficher dans la langue sélectionnée.',
+        accountInfo: 'Informations du Compte',
+        accountNumber: 'Numéro de Compte',
+        discordUsername: 'Nom d\'Utilisateur Discord',
+        pointsBalance: 'Solde de Points',
+        updateProfile: 'Mettre à Jour le Profil',
+        displayName: 'Nom d\'Affichage',
+        update: 'Mettre à Jour',
+        email: 'Email',
+        emailCannotChange: 'L\'email ne peut pas être modifié pour des raisons de sécurité',
+        linkedDiscord: 'Compte Discord Lié',
+        linkedRoblox: 'Compte Roblox Lié',
+        changePassword: 'Changer le Mot de Passe',
+        currentPassword: 'Mot de passe actuel',
+        newPassword: 'Nouveau mot de passe',
+        confirmPassword: 'Confirmer le nouveau mot de passe',
+        updatePassword: 'Mettre à Jour le Mot de Passe',
+        languagePreferences: 'Préférences Linguistiques',
+        displayLanguage: 'Langue d\'Affichage',
+        apply: 'Appliquer',
+        websiteRefresh: 'Le site web va se rafraîchir pour afficher dans la langue sélectionnée.',
+        dangerZone: 'Zone de Danger',
+        dangerZoneDesc: 'Ces actions ne peuvent pas être annulées',
+        deleteAccount: 'Supprimer le Compte'
+    },
+    de: {
+        dashboard: 'Dashboard',
+        rewards: 'Belohnungen',
+        products: 'Produkte',
+        loyaltyCard: 'Treuekarte',
+        faq: 'FAQ',
+        account: 'Konto',
+        logout: 'Abmelden',
+        points: 'Punkte',
+        welcomeBack: 'Willkommen zurück',
+        memberSince: 'Mitglied Seit',
+        availablePoints: 'Verfügbare Punkte',
+        accountSettings: 'Kontoeinstellungen',
+        languageApplied: 'Sprache Angewendet',
+        languageAppliedDesc: 'Die Seite wird jetzt aktualisiert, um in Ihrer gewählten Sprache angezeigt zu werden.',
+        accountInfo: 'Kontoinformationen',
+        accountNumber: 'Kontonummer',
+        discordUsername: 'Discord-Benutzername',
+        pointsBalance: 'Punktestand',
+        updateProfile: 'Profil Aktualisieren',
+        displayName: 'Anzeigename',
+        update: 'Aktualisieren',
+        email: 'E-Mail',
+        emailCannotChange: 'E-Mail kann aus Sicherheitsgründen nicht geändert werden',
+        linkedDiscord: 'Verknüpftes Discord-Konto',
+        linkedRoblox: 'Verknüpftes Roblox-Konto',
+        changePassword: 'Passwort Ändern',
+        currentPassword: 'Aktuelles Passwort',
+        newPassword: 'Neues Passwort',
+        confirmPassword: 'Neues Passwort bestätigen',
+        updatePassword: 'Passwort Aktualisieren',
+        languagePreferences: 'Spracheinstellungen',
+        displayLanguage: 'Anzeigesprache',
+        apply: 'Anwenden',
+        websiteRefresh: 'Die Website wird aktualisiert, um in der gewählten Sprache angezeigt zu werden.',
+        dangerZone: 'Gefahrenzone',
+        dangerZoneDesc: 'Diese Aktionen können nicht rückgängig gemacht werden',
+        deleteAccount: 'Konto Löschen'
+    }
+};
+
+function t(key) {
+    return translations[currentLanguage]?.[key] || translations['en'][key] || key;
+}
+
+function applyLanguage() {
+    const selectedLang = document.getElementById('language-select')?.value;
+    if (selectedLang) {
+        localStorage.setItem('mycirkle_language', selectedLang);
+        showNotification(
+            t('languageApplied'),
+            t('languageAppliedDesc'),
+            'success'
+        );
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    }
+}
+
 // Notification System
 function showNotification(title, message, type = 'info') {
     const modal = document.getElementById('notification-modal');
@@ -1642,52 +1823,52 @@ function showAccount() {
     if (accountContent) {
         accountContent.innerHTML = `
             <div class="content-header">
-                <h2 class="content-title">Account Settings</h2>
+                <h2 class="content-title">${t('accountSettings')}</h2>
                 <p class="content-subtitle">Manage your profile and preferences</p>
             </div>
             
             <div class="section-card mb-4">
-                <h3 class="section-title">Account Information</h3>
+                <h3 class="section-title">${t('accountInfo')}</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="bg-gray-50 p-4 rounded-lg">
-                        <p class="text-xs text-gray-500 mb-1">Account Number</p>
+                        <p class="text-xs text-gray-500 mb-1">${t('accountNumber')}</p>
                         <p class="font-mono font-semibold text-black">${currentUser?.accountId || 'N/A'}</p>
                     </div>
                     <div class="bg-gray-50 p-4 rounded-lg">
-                        <p class="text-xs text-gray-500 mb-1">Discord Username</p>
+                        <p class="text-xs text-gray-500 mb-1">${t('discordUsername')}</p>
                         <p class="font-semibold text-black">${currentUser?.username || 'N/A'}</p>
                     </div>
                     <div class="bg-gray-50 p-4 rounded-lg">
-                        <p class="text-xs text-gray-500 mb-1">Member Since</p>
+                        <p class="text-xs text-gray-500 mb-1">${t('memberSince')}</p>
                         <p class="font-semibold text-black">${currentUser?.memberSince || 'N/A'}</p>
                     </div>
                     <div class="bg-gray-50 p-4 rounded-lg">
-                        <p class="text-xs text-gray-500 mb-1">Points Balance</p>
-                        <p class="font-semibold text-blue-600">${currentUser?.points || 0} points</p>
+                        <p class="text-xs text-gray-500 mb-1">${t('pointsBalance')}</p>
+                        <p class="font-semibold text-blue-600">${currentUser?.points || 0} ${t('points')}</p>
                     </div>
                 </div>
             </div>
             
             <div class="section-card">
-                <h3 class="section-title">Update Profile</h3>
+                <h3 class="section-title">${t('updateProfile')}</h3>
                 <div class="settings-group">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Display Name</label>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">${t('displayName')}</label>
                     <div class="flex gap-2">
                         <input type="text" id="edit-name" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" value="${currentUser?.fullName || ''}">
-                        <button onclick="updateDisplayName()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update</button>
+                        <button onclick="updateDisplayName()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">${t('update')}</button>
                     </div>
                 </div>
                 
                 <div class="settings-group">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">${t('email')}</label>
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                         <p class="text-gray-700 font-medium">${currentUser?.email || 'Not provided'}</p>
-                        <p class="text-xs text-gray-500 mt-1">🔒 Email cannot be changed for security reasons</p>
+                        <p class="text-xs text-gray-500 mt-1">🔒 ${t('emailCannotChange')}</p>
                     </div>
                 </div>
                 
                 <div class="settings-group">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Linked Discord Account</label>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">${t('linkedDiscord')}</label>
                     <div class="linked-account-display">
                         <img src="${currentUser?.avatar ? 'https://cdn.discordapp.com/avatars/' + currentUser.id + '/' + currentUser.avatar + '.png' : 'https://cdn.discordapp.com/embed/avatars/0.png'}" alt="Discord Avatar">
                         <div class="linked-account-info">
@@ -1699,7 +1880,7 @@ function showAccount() {
                 </div>
                 
                 <div class="settings-group">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Linked Roblox Account</label>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">${t('linkedRoblox')}</label>
                     ${currentUser?.robloxUsername ? `
                         <div class="linked-account-display">
                             <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${currentUser.robloxUserId || '1'}&width=150&height=150&format=png" alt="Roblox Avatar" onerror="this.src='https://www.roblox.com/headshot-thumbnail/image?userId=1&width=150&height=150&format=png'">
@@ -1718,24 +1899,60 @@ function showAccount() {
                 </div>
                 
                 <div class="settings-group">
-                    <label class="block text-gray-700 text-sm font-medium mb-2">Change Password</label>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">${t('changePassword')}</label>
                     <div class="space-y-2">
-                        <input type="password" id="edit-old-pass" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" placeholder="Current password">
-                        <input type="password" id="edit-new-pass" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" placeholder="New password">
-                        <input type="password" id="edit-confirm-pass" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" placeholder="Confirm new password">
-                        <button onclick="updatePassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">Update Password</button>
+                        <input type="password" id="edit-old-pass" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" placeholder="${t('currentPassword')}">
+                        <input type="password" id="edit-new-pass" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" placeholder="${t('newPassword')}">
+                        <input type="password" id="edit-confirm-pass" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" placeholder="${t('confirmPassword')}">
+                        <button onclick="updatePassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">${t('updatePassword')}</button>
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Requires verification code sent to Discord</p>
                 </div>
                 
+                <div class="section-card mb-4">
+                    <h3 class="section-title">${t('languagePreferences')}</h3>
+                    <div class="settings-group">
+                        <label class="block text-gray-700 text-sm font-medium mb-2">${t('displayLanguage')}</label>
+                        <div class="flex gap-2">
+                            <select id="language-select" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white">
+                                <option value="en">🇬🇧 English</option>
+                                <option value="es">🇪🇸 Español (Spanish)</option>
+                                <option value="fr">🇫🇷 Français (French)</option>
+                                <option value="de">🇩🇪 Deutsch (German)</option>
+                                <option value="pt">🇵🇹 Português (Portuguese)</option>
+                                <option value="it">🇮🇹 Italiano (Italian)</option>
+                                <option value="nl">🇳🇱 Nederlands (Dutch)</option>
+                                <option value="pl">🇵🇱 Polski (Polish)</option>
+                                <option value="ru">🇷🇺 Русский (Russian)</option>
+                                <option value="ja">🇯🇵 日本語 (Japanese)</option>
+                                <option value="zh">🇨🇳 中文 (Chinese)</option>
+                                <option value="ko">🇰🇷 한국어 (Korean)</option>
+                                <option value="ar">🇸🇦 العربية (Arabic)</option>
+                                <option value="hi">🇮🇳 हिन्दी (Hindi)</option>
+                                <option value="tr">🇹🇷 Türkçe (Turkish)</option>
+                            </select>
+                            <button onclick="applyLanguage()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">${t('apply')}</button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">${t('websiteRefresh')}</p>
+                    </div>
+                </div>
+                
                 <div class="danger-zone">
-                    <h3 class="danger-title">Danger Zone</h3>
-                    <p class="danger-subtitle">These actions cannot be undone</p>
-                    <button onclick="deleteAccount()" class="danger-btn">Delete Account</button>
+                    <h3 class="danger-title">${t('dangerZone')}</h3>
+                    <p class="danger-subtitle">${t('dangerZoneDesc')}</p>
+                    <button onclick="deleteAccount()" class="danger-btn">${t('deleteAccount')}</button>
                 </div>
             </div>
         `;
         accountContent.classList.remove('hidden');
+        
+        // Set the selected language in the dropdown
+        setTimeout(() => {
+            const langSelect = document.getElementById('language-select');
+            if (langSelect) {
+                langSelect.value = currentLanguage;
+            }
+        }, 100);
     }
     updateNavActive('account');
 }
@@ -1760,7 +1977,7 @@ function showLoyaltyCard() {
                     <!-- Front of card -->
                     <div id="card-front" class="absolute w-full h-full rounded-2xl shadow-2xl p-8 text-white debit-card-front flex flex-col justify-between" style="backface-visibility: hidden; transform-style: preserve-3d;">
                         <div class="flex justify-end items-center gap-3">
-                            <img src="https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png" alt="Logo" class="w-12 h-12 object-contain">
+                            <img src="https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png" alt="Logo" class="w-12 h-12 object-contain">
                             <h3 class="text-3xl font-bold tracking-wider">MyCirkle</h3>
                         </div>
                         
