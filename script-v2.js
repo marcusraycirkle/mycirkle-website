@@ -1073,6 +1073,7 @@ async function handlePreferencesSubmit() {
     const acceptedAge = document.getElementById('accept-age').checked;
     const acceptedMarketing = document.getElementById('accept-marketing').checked;
     const acceptedTerms = document.getElementById('accept-terms').checked;
+    const referralCodeInput = document.getElementById('referral-code-input').value.trim().toUpperCase();
     
     if (!country || !timezone) {
         showNotification('Missing Information', 'Please select your country and timezone.', 'warning');
@@ -1089,6 +1090,27 @@ async function handlePreferencesSubmit() {
         return;
     }
     
+    // Validate referral code if provided
+    let validatedReferralCode = null;
+    if (referralCodeInput) {
+        try {
+            const validateResponse = await fetch(`${WORKER_URL}/api/validate-referral?code=${referralCodeInput}&discordId=${currentUser.id}`);
+            const validateData = await validateResponse.json();
+            
+            if (validateData.valid) {
+                validatedReferralCode = referralCodeInput;
+                console.log('✅ Referral code validated:', validatedReferralCode);
+            } else {
+                showNotification('Invalid Referral Code', validateData.message || 'The referral code you entered is invalid or has already been used by you.', 'error');
+                return;
+            }
+        } catch (error) {
+            console.error('Error validating referral code:', error);
+            showNotification('Validation Error', 'Could not validate referral code. Please try again.', 'error');
+            return;
+        }
+    }
+    
     // Add preferences to user data
     currentUser.country = country;
     currentUser.timezone = timezone;
@@ -1097,6 +1119,7 @@ async function handlePreferencesSubmit() {
     currentUser.acceptedMarketing = acceptedMarketing;
     currentUser.acceptedTerms = true;
     currentUser.termsAcceptedDate = new Date().toISOString();
+    currentUser.usedReferralCode = validatedReferralCode; // Store for later
     localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
     
     // VERIFICATION REQUIRED BEFORE ACCOUNT CREATION
@@ -1106,13 +1129,13 @@ async function handlePreferencesSubmit() {
         'account creation',
         async (verificationCode) => {
             // Code verified, now proceed with signup
-            await completeSignup(country, timezone, language, acceptedMarketing);
+            await completeSignup(country, timezone, language, acceptedMarketing, validatedReferralCode);
         }
     );
 }
 
 // Complete signup after verification
-async function completeSignup(country, timezone, language, acceptedMarketing) {
+async function completeSignup(country, timezone, language, acceptedMarketing, referralCode = null) {
     showPage('confirm');
     
     // Save to Google Sheets and send welcome DM
@@ -1135,7 +1158,8 @@ async function completeSignup(country, timezone, language, acceptedMarketing) {
                 robloxUserId: currentUser.robloxUserId || '',
                 robloxDisplayName: currentUser.robloxDisplayName || '',
                 acceptedMarketing: acceptedMarketing,
-                accountNumber: currentUser.accountId || generateAccountId()
+                accountNumber: currentUser.accountId || generateAccountId(),
+                referralCode: referralCode // Include referral code
             })
         });
         
@@ -1146,9 +1170,17 @@ async function completeSignup(country, timezone, language, acceptedMarketing) {
                 currentUser.accountId = result.accountNumber;
                 currentUser.accountNumber = result.accountNumber; // Store both for compatibility
             }
-            // Set welcome bonus points
-            currentUser.points = 5;
-            currentPoints = 5;
+            // Set welcome bonus points (5 base + 75 if referral used)
+            const basePoints = 5;
+            const referralBonus = referralCode ? 75 : 0;
+            currentUser.points = basePoints + referralBonus;
+            currentPoints = basePoints + referralBonus;
+            
+            if (referralCode && result.referralApplied) {
+                console.log('✅ Referral bonus applied: +75 points');
+                // Track activity
+                addActivity('referral_completed', `Used referral code ${referralCode}`, 75);
+            }
             
             // Mark signup as complete
             currentUser.signupComplete = true;
