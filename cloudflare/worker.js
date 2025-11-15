@@ -2002,7 +2002,7 @@ export default {
                                                     description: `You have received **${tokensToAward} tokens** for buying **${product.name || 'a product'}**!`,
                                                     color: 0x10b981,
                                                     thumbnail: {
-                                                        url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                                                        url: 'https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png'
                                                     },
                                                     fields: [
                                                         { name: '🎁 Product', value: product.name || 'Unknown', inline: false },
@@ -2012,7 +2012,7 @@ export default {
                                                     ],
                                                     footer: {
                                                         text: 'MyCirkle Loyalty Program',
-                                                        icon_url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                                                        icon_url: 'https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png'
                                                     },
                                                     timestamp: new Date().toISOString()
                                                 }]
@@ -2173,7 +2173,7 @@ export default {
                                         description: `You have received **${tokensToAward} tokens** for buying **${productName || 'a product'}**!`,
                                         color: 0x10b981,
                                         thumbnail: {
-                                            url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                                            url: 'https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png'
                                         },
                                         fields: [
                                             { name: '🎁 Product', value: productName || 'Unknown', inline: false },
@@ -2183,7 +2183,7 @@ export default {
                                         ],
                                         footer: {
                                             text: 'MyCirkle Loyalty Program',
-                                            icon_url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                                            icon_url: 'https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png'
                                         },
                                         timestamp: new Date().toISOString()
                                     }]
@@ -2248,7 +2248,7 @@ export default {
                             description: `You have received **250 tokens** for buying **Test Product**!`,
                             color: 0x10b981,
                             thumbnail: {
-                                url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                                url: 'https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png'
                             },
                             fields: [
                                 { name: '🎁 Product', value: 'Test Product (Sample Item)', inline: false },
@@ -2258,7 +2258,7 @@ export default {
                             ],
                             footer: {
                                 text: 'This is a test message from MyCirkle',
-                                icon_url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                                icon_url: 'https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png'
                             },
                             timestamp: new Date().toISOString()
                         }]
@@ -3567,7 +3567,7 @@ async function sendBulkEmails(env, users, subject, message) {
 // Send welcome email
 async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
     const headerImageUrl = 'https://i.postimg.cc/hPdGLf78/cirkledevtest.png'; // MyCirkle header image
-    const logoImageUrl = 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'; // MyCirkle logo
+    const logoImageUrl = 'https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png'; // MyCirkle logo
     
     // Use verified Resend domain
     const fromEmail = 'MyCirkle <mycirkle@notifications.cirkledevelopment.co.uk>';
