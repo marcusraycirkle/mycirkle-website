@@ -3432,64 +3432,65 @@ async function handleAdminConfigCommand(interaction, env) {
     const action = options.find(opt => opt.name === 'action')?.value;
     
     if (action === 'suspend') {
-        try {
-            // Get all users from KV
-            const list = await env.USERS_KV.list({ prefix: 'user:' });
-            
-            if (!list || !list.keys || list.keys.length === 0) {
-                return jsonResponse({
-                    type: 4,
-                    data: {
+        // Acknowledge immediately to prevent timeout
+        const response = jsonResponse({ type: 5 }); // Type 5 = Deferred response
+        
+        // Process in background
+        (async () => {
+            try {
+                // Get all users from KV
+                const list = await env.USERS_KV.list({ prefix: 'user:', limit: 100 });
+                
+                if (!list || !list.keys || list.keys.length === 0) {
+                    await sendFollowupMessage(interaction, env, {
                         content: '❌ No users found in the system.',
                         flags: 64
-                    }
-                });
-            }
-            
-            // Fetch user data and build select menu options
-            const userOptions = [];
-            for (const key of list.keys.slice(0, 25)) { // Discord limit: 25 options
-                try {
-                    const userData = await env.USERS_KV.get(key.name, 'json');
-                    if (userData && userData.discordId) {
-                        const isSuspended = userData.suspended === true;
-                        const emoji = isSuspended ? '⚠️' : '✅';
-                        const status = isSuspended ? '[SUSPENDED]' : '[Active]';
-                        const label = `${emoji} ${userData.robloxUsername || 'Unknown'} ${status}`;
-                        
-                        userOptions.push({
-                            label: label.substring(0, 100), // Discord limit
-                            value: userData.discordId,
-                            description: `${userData.points || 0} points`,
-                            emoji: isSuspended ? '⚠️' : undefined
-                        });
-                    }
-                } catch (err) {
-                    console.error('Error fetching user:', key.name, err);
+                    });
+                    return;
                 }
-            }
-            
-            if (userOptions.length === 0) {
-                return jsonResponse({
-                    type: 4,
-                    data: {
+                
+                // Fetch user data in parallel (faster)
+                const userPromises = list.keys.slice(0, 25).map(async (key) => {
+                    try {
+                        const userData = await env.USERS_KV.get(key.name, 'json');
+                        if (userData && userData.discordId) {
+                            const isSuspended = userData.suspended === true;
+                            const emoji = isSuspended ? '⚠️' : '✅';
+                            const status = isSuspended ? '[SUSPENDED]' : '[Active]';
+                            const label = `${emoji} ${userData.robloxUsername || 'Unknown'} ${status}`;
+                            
+                            return {
+                                label: label.substring(0, 100),
+                                value: userData.discordId,
+                                description: `${userData.points || 0} points`,
+                                emoji: isSuspended ? '⚠️' : undefined
+                            };
+                        }
+                    } catch (err) {
+                        console.error('Error fetching user:', key.name, err);
+                    }
+                    return null;
+                });
+                
+                const userOptions = (await Promise.all(userPromises)).filter(u => u !== null);
+                
+                if (userOptions.length === 0) {
+                    await sendFollowupMessage(interaction, env, {
                         content: '❌ No valid users found.',
                         flags: 64
-                    }
-                });
-            }
-            
-            // Return message with select menu
-            return jsonResponse({
-                type: 4,
-                data: {
+                    });
+                    return;
+                }
+                
+                // Send follow-up with select menu
+                await sendFollowupMessage(interaction, env, {
                     content: '🛡️ **User Suspension Manager**\n\nSelect a user to suspend or unsuspend:',
                     components: [
                         {
-                            type: 1, // Action Row
+                            type: 1,
                             components: [
                                 {
-                                    type: 3, // Select Menu
+                                    type: 3,
                                     custom_id: 'suspend_user_select',
                                     placeholder: 'Choose a user...',
                                     options: userOptions
@@ -3497,19 +3498,18 @@ async function handleAdminConfigCommand(interaction, env) {
                             ]
                         }
                     ],
-                    flags: 64 // Ephemeral
-                }
-            });
-        } catch (error) {
-            console.error('Admin config error:', error);
-            return jsonResponse({
-                type: 4,
-                data: {
+                    flags: 64
+                });
+            } catch (error) {
+                console.error('Admin config error:', error);
+                await sendFollowupMessage(interaction, env, {
                     content: '❌ Error loading user list.',
                     flags: 64
-                }
-            });
-        }
+                });
+            }
+        })();
+        
+        return response;
     }
     
     return jsonResponse({
@@ -3518,6 +3518,21 @@ async function handleAdminConfigCommand(interaction, env) {
             content: '❌ Unknown action',
             flags: 64
         }
+    });
+}
+
+async function sendFollowupMessage(interaction, env, messageData) {
+    const BOT_TOKEN = env.DISCORD_BOT_TOKEN;
+    if (!BOT_TOKEN) return;
+    
+    const webhookUrl = `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}`;
+    
+    await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(messageData)
     });
 }
 
