@@ -3617,6 +3617,8 @@ async function sendBulkEmails(env, users, subject, message) {
     
     // Use verified Resend domain
     const fromEmail = 'MyCirkle <mycirkle@notifications.cirkledevelopment.co.uk>';
+    const headerImageUrl = 'https://www.dropbox.com/scl/fi/7chi01vofepeowexh8gk3/cirkledevtest.png?rlkey=qbrgav91n9vw63o7tv2ktphsw&st=e9zza41p&dl=1';
+    const logoImageUrl = 'https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png';
     
     for (const user of users) {
         try {
@@ -3638,7 +3640,7 @@ async function sendBulkEmails(env, users, subject, message) {
                     from: fromEmail,
                     to: [user.email],
                     subject: personalizedSubject,
-                    html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;"><h1 style="color: white; margin: 0;">MyCirkle</h1></div><div style="padding: 30px; background: #f9fafb;"><div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${personalizedMessage.split('\n').map(line => `<p style="color: #374151; line-height: 1.6;">${line}</p>`).join('')}</div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development. All rights reserved.</p><p style="color: #6b7280; margin: 5px 0 0 0; font-size: 11px;">To unsubscribe from future marketing emails, please open a support ticket in the MyCirkle Category.</p></div></div>`
+                    html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;"><div style="text-align: center; padding: 0; margin: 0;"><img src="${headerImageUrl}" alt="MyCirkle Header" width="600" height="auto" style="width: 100%; max-width: 600px; height: auto; display: block; margin: 0; padding: 0; border: 0; outline: none;" /></div><div style="text-align: center; padding: 20px 0;"><img src="${logoImageUrl}" alt="MyCirkle Logo" width="80" height="80" style="width: 80px; height: 80px; display: block; margin: 0 auto; border: 0; outline: none;" /></div><div style="padding: 30px; background: #f9fafb;"><div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${personalizedMessage.split('\n').map(line => `<p style="color: #374151; line-height: 1.6;">${line}</p>`).join('')}</div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development. All rights reserved.</p><p style="color: #6b7280; margin: 5px 0 0 0; font-size: 11px;">To unsubscribe from future marketing emails, please open a support ticket in the MyCirkle Category.</p></div></div>`
                 })
             });
             
@@ -3653,7 +3655,7 @@ async function sendBulkEmails(env, users, subject, message) {
 
 // Send welcome email
 async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
-    const headerImageUrl = 'https://i.postimg.cc/hPdGLf78/cirkledevtest.png'; // MyCirkle header image
+    const headerImageUrl = 'https://www.dropbox.com/scl/fi/7chi01vofepeowexh8gk3/cirkledevtest.png?rlkey=qbrgav91n9vw63o7tv2ktphsw&st=e9zza41p&dl=1'; // MyCirkle header image
     const logoImageUrl = 'https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png'; // MyCirkle logo
     
     // Use verified Resend domain
@@ -3863,7 +3865,8 @@ async function removeFromEmailHistory(env, emailToRemove) {
 
 // Send account deleted email
 async function sendAccountDeletedEmail(env, email, firstName) {
-    const headerImageUrl = 'https://i.postimg.cc/hPdGLf78/cirkledevtest.png';
+    const headerImageUrl = 'https://www.dropbox.com/scl/fi/7chi01vofepeowexh8gk3/cirkledevtest.png?rlkey=qbrgav91n9vw63o7tv2ktphsw&st=e9zza41p&dl=1';
+    const logoImageUrl = 'https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png';
     
     // Use verified Resend domain
     const fromEmail = 'MyCirkle <mycirkle@notifications.cirkledevelopment.co.uk>';
@@ -3882,11 +3885,13 @@ async function sendAccountDeletedEmail(env, email, firstName) {
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
                     <!-- Header Image -->
                     <div style="text-align: center; padding: 0; margin: 0;">
-                        <img src="${headerImageUrl}" alt="" style="width: 100%; max-width: 600px; display: block; margin: 0; border: 0;" />
+                        <img src="${headerImageUrl}" alt="MyCirkle Header" width="600" height="auto" style="width: 100%; max-width: 600px; height: auto; display: block; margin: 0; padding: 0; border: 0; outline: none;" />
                     </div>
                     
-                    <!-- Spacing -->
-                    <div style="height: 20px;"></div>
+                    <!-- Logo -->
+                    <div style="text-align: center; padding: 20px 0;">
+                        <img src="${logoImageUrl}" alt="MyCirkle Logo" width="80" height="80" style="width: 80px; height: 80px; display: block; margin: 0 auto; border: 0; outline: none;" />
+                    </div>
                     
                     <!-- Content -->
                     <div style="padding: 30px; background: #f9fafb;">
