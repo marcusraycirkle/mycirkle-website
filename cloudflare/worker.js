@@ -1905,6 +1905,128 @@ export default {
                     console.log('⚠️ No products found in hub data');
                 }
                 
+                // Check for new products and award points
+                const cachedData = await env.USERS_KV.get(cacheKey, 'json');
+                let newProductsDetected = [];
+                let pointsAwarded = 0;
+                
+                if (cachedData && cachedData.products) {
+                    // Compare current products with cached products
+                    const cachedProductIds = new Set(cachedData.products.map(p => p.id || p._id || p.productId));
+                    
+                    for (const product of userProducts) {
+                        const productId = product.id || product._id || product.productId;
+                        if (!cachedProductIds.has(productId)) {
+                            // New product detected!
+                            console.log('🎉 NEW PRODUCT DETECTED:', product.name);
+                            newProductsDetected.push(product);
+                            
+                            // Award points based on product price
+                            const price = product.price || 0;
+                            let tokensToAward = 150; // Default: ≤100 Robux
+                            if (price > 500) {
+                                tokensToAward = 400;
+                            } else if (price > 100) {
+                                tokensToAward = 250;
+                            }
+                            
+                            pointsAwarded += tokensToAward;
+                            
+                            // Update user points
+                            const oldPoints = userData.points || 0;
+                            const oldTier = getTier(oldPoints);
+                            userData.points = oldPoints + tokensToAward;
+                            const newTier = getTier(userData.points);
+                            
+                            // Save to KV
+                            await env.USERS_KV.put(`user:${discordId}`, JSON.stringify(userData));
+                            
+                            console.log(`💰 Awarded ${tokensToAward} points for ${product.name} (${price} Robux)`);
+                            
+                            // Check tier upgrade
+                            if (newTier !== oldTier) {
+                                await sendTierUpgradeDM(env, discordId, oldTier, newTier, userData.points);
+                            }
+                            
+                            // Log to Discord webhook
+                            try {
+                                const logsWebhook = 'https://discord.com/api/webhooks/1436826617853902948/ZBLTXr0vbLpZbj-fhEy_EosA64VbyS2P6GQPFnR96qQ6ojg7l9QoZEmI65v7f0PyvXvX';
+                                await fetch(logsWebhook, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        embeds: [{
+                                            title: '🛍️ New Product Purchase Detected',
+                                            description: `<@${discordId}> purchased a new product!`,
+                                            color: 0x10b981,
+                                            fields: [
+                                                { name: '🎁 Product', value: product.name || 'Unknown', inline: false },
+                                                { name: '💰 Price', value: price ? `${price} Robux` : 'Unknown', inline: true },
+                                                { name: '➕ Tokens Earned', value: `+${tokensToAward}`, inline: true },
+                                                { name: '💎 Old Balance', value: `${oldPoints}`, inline: true },
+                                                { name: '✨ New Balance', value: `${userData.points}`, inline: true },
+                                                { name: '🏆 Tier', value: newTier, inline: true }
+                                            ],
+                                            timestamp: new Date().toISOString()
+                                        }]
+                                    })
+                                });
+                            } catch (webhookError) {
+                                console.error('Webhook error:', webhookError);
+                            }
+                            
+                            // Send DM to user
+                            const botToken = env.DISCORD_BOT_TOKEN;
+                            if (botToken) {
+                                try {
+                                    const channelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Authorization': `Bot ${botToken}`,
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({ recipient_id: discordId })
+                                    });
+                                    
+                                    if (channelResponse.ok) {
+                                        const channel = await channelResponse.json();
+                                        await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Authorization': `Bot ${botToken}`,
+                                                'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({
+                                                embeds: [{
+                                                    title: '🎉 Purchase Reward!',
+                                                    description: `You have received **${tokensToAward} tokens** for buying **${product.name || 'a product'}**!`,
+                                                    color: 0x10b981,
+                                                    thumbnail: {
+                                                        url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                                                    },
+                                                    fields: [
+                                                        { name: '🎁 Product', value: product.name || 'Unknown', inline: false },
+                                                        { name: '💰 Price', value: price ? `${price} Robux` : 'Unknown', inline: true },
+                                                        { name: '⭐ Tokens Earned', value: `+${tokensToAward}`, inline: true },
+                                                        { name: '💎 New Balance', value: `${userData.points} tokens`, inline: false }
+                                                    ],
+                                                    footer: {
+                                                        text: 'MyCirkle Loyalty Program',
+                                                        icon_url: 'https://i.postimg.cc/0yVSZyZP/anothermycirklelogo.png'
+                                                    },
+                                                    timestamp: new Date().toISOString()
+                                                }]
+                                            })
+                                        });
+                                    }
+                                } catch (dmError) {
+                                    console.error('DM error:', dmError);
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 // Cache the result for 24 hours
                 await env.USERS_KV.put(cacheKey, JSON.stringify({
                     products: userProducts,
@@ -1921,7 +2043,12 @@ export default {
                     userId: userData.robloxUserId,
                     discordId: discordId,
                     hubId: hubId,
-                    cached: false
+                    cached: false,
+                    newPurchases: newProductsDetected.length > 0 ? {
+                        count: newProductsDetected.length,
+                        products: newProductsDetected.map(p => p.name),
+                        pointsAwarded: pointsAwarded
+                    } : null
                 }, 200, corsHeaders);
             } catch (error) {
                 console.error('❌ Parcel API error:', error);
