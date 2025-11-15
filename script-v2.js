@@ -1480,12 +1480,69 @@ function showDashboard() {
         refreshRecentActivity();
     }, 200);
     
+    // Check daily login
+    checkDailyLogin();
+    
     // Show dashboard page and default content
     showPage('dashboard');
-    hideAllDashboardContent();
-    const dashContent = document.getElementById('dashboard-content');
-    if (dashContent) dashContent.classList.remove('hidden');
     updateNavActive('dashboard');
+}
+
+// Daily Login Check
+async function checkDailyLogin() {
+    if (!currentUser) return;
+    
+    const discordId = currentUser.discordId || currentUser.id;
+    
+    try {
+        const response = await fetch(`${WORKER_URL}/api/check-daily-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.alreadyLoggedIn) {
+            // User already logged in today, no popup
+            console.log('Already logged in today. Streak:', data.streak);
+            return;
+        }
+        
+        if (data.firstLoginToday) {
+            // Update current user points
+            currentUser.points = data.totalPoints;
+            currentUser.loginStreak = data.newStreak;
+            currentUser.lastLoginDate = new Date().toISOString().split('T')[0];
+            localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+            
+            // Update all point displays
+            updateAllPointDisplays();
+            
+            // Refresh activity feed
+            refreshRecentActivity();
+            
+            // Show appropriate notification
+            if (data.isStreakBonus) {
+                // 7-day streak bonus
+                showNotification(
+                    '🎉 7-Day Streak Bonus!',
+                    `Congratulations! You've earned 25 points for your 7-day login streak! Keep it up!`,
+                    'success'
+                );
+            } else {
+                // Regular daily login
+                const daysText = data.daysUntilBonus === 1 ? 'tomorrow' : `${data.daysUntilBonus} more days`;
+                showNotification(
+                    '👋 Welcome Back!',
+                    `You've earned 2 points for logging in today! Keep going for ${daysText} and you'll get a free 25 points on top of your daily logins!`,
+                    'success'
+                );
+            }
+        }
+    } catch (error) {
+        console.error('Daily login check error:', error);
+    }
 }
 
 // Menu Clicks

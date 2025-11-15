@@ -565,7 +565,9 @@ export default {
                     memberSince: memberSince || new Date().toISOString(),
                     referralCode: generateUserReferralCode(firstName), // Unique code for this user
                     usedReferralCode: referralApplied ? referralCode.trim().toUpperCase() : undefined,
-                    referralCount: 0 // Track how many people used this user's code
+                    referralCount: 0, // Track how many people used this user's code
+                    loginStreak: 0, // Daily login streak counter
+                    lastLoginDate: null // Last login date (YYYY-MM-DD format)
                 };
 
                 // Save to Google Sheets directly
@@ -2079,6 +2081,102 @@ export default {
                 return jsonResponse({ activities }, 200, corsHeaders);
             } catch (error) {
                 console.error('Get activities error:', error);
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // Daily login check endpoint
+        if (path === '/api/check-daily-login' && request.method === 'POST') {
+            try {
+                const data = await request.json();
+                const { discordId } = data;
+                
+                if (!discordId) {
+                    return jsonResponse({ error: 'discordId required' }, 400, corsHeaders);
+                }
+                
+                // Get user data
+                const userData = await getUserData(discordId, env);
+                if (!userData) {
+                    return jsonResponse({ error: 'User not found' }, 404, corsHeaders);
+                }
+                
+                const now = new Date();
+                const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+                
+                // Check last login date
+                const lastLoginDate = userData.lastLoginDate || null;
+                const loginStreak = userData.loginStreak || 0;
+                
+                // If already logged in today, return existing data
+                if (lastLoginDate === today) {
+                    return jsonResponse({ 
+                        alreadyLoggedIn: true,
+                        streak: loginStreak,
+                        points: userData.points
+                    }, 200, corsHeaders);
+                }
+                
+                // Calculate new streak
+                let newStreak = loginStreak;
+                const yesterday = new Date(now);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                
+                if (lastLoginDate === yesterdayStr) {
+                    // Continued streak
+                    newStreak += 1;
+                } else if (lastLoginDate) {
+                    // Streak broken, reset to 1
+                    newStreak = 1;
+                } else {
+                    // First login ever
+                    newStreak = 1;
+                }
+                
+                // Calculate points reward
+                let pointsReward = 2; // Daily base reward
+                let isStreakBonus = false;
+                
+                if (newStreak % 7 === 0) {
+                    // 7th day bonus - give 25 points instead of 2
+                    pointsReward = 25;
+                    isStreakBonus = true;
+                }
+                
+                // Update user data
+                userData.points = (userData.points || 0) + pointsReward;
+                userData.lastLoginDate = today;
+                userData.loginStreak = newStreak;
+                
+                // Save to KV
+                await env.USERS_KV?.put(`user:${discordId}`, JSON.stringify(userData));
+                
+                // Add activity
+                const activities = JSON.parse(await env.USERS_KV?.get(`activities:${discordId}`) || '[]');
+                activities.unshift({
+                    type: isStreakBonus ? 'daily_reward' : 'login',
+                    description: isStreakBonus ? `7-day streak bonus! 🎉` : 'Daily login',
+                    points: pointsReward,
+                    timestamp: now.toISOString()
+                });
+                if (activities.length > 50) activities.length = 50;
+                await env.USERS_KV?.put(`activities:${discordId}`, JSON.stringify(activities));
+                
+                // Calculate days until next bonus
+                const daysUntilBonus = 7 - (newStreak % 7);
+                
+                return jsonResponse({ 
+                    firstLoginToday: true,
+                    pointsEarned: pointsReward,
+                    newStreak: newStreak,
+                    totalPoints: userData.points,
+                    isStreakBonus: isStreakBonus,
+                    daysUntilBonus: daysUntilBonus === 7 ? 7 : daysUntilBonus
+                }, 200, corsHeaders);
+                
+            } catch (error) {
+                console.error('Daily login check error:', error);
                 return jsonResponse({ error: error.message }, 500, corsHeaders);
             }
         }
