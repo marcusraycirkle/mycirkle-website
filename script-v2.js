@@ -57,6 +57,28 @@ async function saveReferralCode(code) {
     }
 }
 
+function showReferralModal() {
+    const modal = document.getElementById('referral-modal');
+    const code = getReferralCode();
+    const referralCodeModal = document.getElementById('referral-code-modal');
+    const referralCountModal = document.getElementById('referral-count-modal');
+    
+    if (referralCodeModal && code) {
+        referralCodeModal.textContent = code;
+    }
+    
+    if (referralCountModal && currentUser) {
+        referralCountModal.textContent = currentUser.referralCount || 0;
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+function closeReferralModal() {
+    const modal = document.getElementById('referral-modal');
+    modal.classList.add('hidden');
+}
+
 function copyReferralCode() {
     const code = getReferralCode();
     if (!code) return;

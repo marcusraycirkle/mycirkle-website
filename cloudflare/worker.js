@@ -632,6 +632,91 @@ export default {
                         await env.USERS_KV?.put(`activities:${discordId}`, JSON.stringify(newUserActivities));
                         
                         console.log(`✅ Referral bonus applied: ${firstName} used ${referrerData.firstName}'s code. Both awarded 75 points.`);
+                        
+                        // Send DM to new user about referral bonus
+                        try {
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                            const newUserChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                                    'Content-Type': 'application/json',
+                                    'User-Agent': 'MyCirkle-Loyalty/1.0'
+                                },
+                                body: JSON.stringify({ recipient_id: discordId })
+                            });
+                            
+                            if (newUserChannelResponse.ok) {
+                                const newUserChannel = await newUserChannelResponse.json();
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                                await fetch(`https://discord.com/api/v10/channels/${newUserChannel.id}/messages`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                                        'Content-Type': 'application/json',
+                                        'User-Agent': 'MyCirkle-Loyalty/1.0'
+                                    },
+                                    body: JSON.stringify({
+                                        embeds: [{
+                                            title: '🎉 Referral Bonus Earned!',
+                                            description: `You've earned **75 bonus points** for using **${referrerData.firstName}'s** referral code!`,
+                                            color: 0x10b981,
+                                            fields: [
+                                                { name: '💰 Bonus Points', value: '75 Points', inline: true },
+                                                { name: '👤 Referred By', value: referrerData.firstName, inline: true }
+                                            ],
+                                            footer: { text: 'Thanks for joining MyCirkle!' },
+                                            timestamp: new Date().toISOString()
+                                        }]
+                                    })
+                                });
+                            }
+                        } catch (dmError) {
+                            console.error('Error sending referral DM to new user:', dmError);
+                        }
+                        
+                        // Send DM to referrer about successful referral
+                        try {
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                            const referrerChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                                    'Content-Type': 'application/json',
+                                    'User-Agent': 'MyCirkle-Loyalty/1.0'
+                                },
+                                body: JSON.stringify({ recipient_id: referrerData.discordId })
+                            });
+                            
+                            if (referrerChannelResponse.ok) {
+                                const referrerChannel = await referrerChannelResponse.json();
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                                await fetch(`https://discord.com/api/v10/channels/${referrerChannel.id}/messages`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                                        'Content-Type': 'application/json',
+                                        'User-Agent': 'MyCirkle-Loyalty/1.0'
+                                    },
+                                    body: JSON.stringify({
+                                        embeds: [{
+                                            title: '🎊 Someone Used Your Referral Code!',
+                                            description: `**${firstName}** just signed up using your referral code! You both earned **75 bonus points**!`,
+                                            color: 0x667eea,
+                                            fields: [
+                                                { name: '💰 Your Bonus', value: '75 Points', inline: true },
+                                                { name: '👤 New Member', value: firstName, inline: true },
+                                                { name: '📊 Total Referrals', value: String(referrerData.referralCount), inline: true }
+                                            ],
+                                            footer: { text: 'Keep sharing your code to earn more!' },
+                                            timestamp: new Date().toISOString()
+                                        }]
+                                    })
+                                });
+                            }
+                        } catch (dmError) {
+                            console.error('Error sending referral DM to referrer:', dmError);
+                        }
                     } catch (refBonusError) {
                         console.error('Error applying referral bonus:', refBonusError);
                     }
@@ -3894,7 +3979,53 @@ async function sendBulkEmails(env, users, subject, message) {
                 })
             });
             
-            if (response.ok) sent.push(user.email);
+            if (response.ok) {
+                sent.push(user.email);
+                
+                // Send DM notification to user about the marketing email
+                if (user.discordId && env.DISCORD_BOT_TOKEN) {
+                    try {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        const dmChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                                'Content-Type': 'application/json',
+                                'User-Agent': 'MyCirkle-Loyalty/1.0'
+                            },
+                            body: JSON.stringify({ recipient_id: user.discordId })
+                        });
+                        
+                        if (dmChannelResponse.ok) {
+                            const dmChannel = await dmChannelResponse.json();
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                            await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                                    'Content-Type': 'application/json',
+                                    'User-Agent': 'MyCirkle-Loyalty/1.0'
+                                },
+                                body: JSON.stringify({
+                                    embeds: [{
+                                        title: '📧 New Marketing Email Sent',
+                                        description: `You've received a new marketing email from MyCirkle!\n\n**Subject:** ${personalizedSubject}`,
+                                        color: 0x3b82f6,
+                                        fields: [
+                                            { name: '📬 Check Your Inbox', value: `Email sent to: ${user.email}`, inline: false },
+                                            { name: '🚫 Want to Unsubscribe?', value: 'Open a support ticket in the **MyCirkle Category** to unsubscribe from marketing emails.', inline: false }
+                                        ],
+                                        footer: { text: 'MyCirkle Marketing' },
+                                        timestamp: new Date().toISOString()
+                                    }]
+                                })
+                            });
+                        }
+                    } catch (dmError) {
+                        console.error(`Error sending marketing email DM to ${user.discordId}:`, dmError);
+                    }
+                }
+            }
         } catch (error) {
             console.error(`Failed to send to ${user.email}:`, error);
         }
