@@ -135,6 +135,7 @@ function getActivityIcon(type) {
         'product_verified': '📦',
         'referral_completed': '👥',
         'daily_reward': '🎯',
+        'tier_upgrade': '🏆',
         'signup': '✨',
         'login': '👋'
     };
@@ -1259,6 +1260,48 @@ async function refreshUserData() {
 }
 
 // Update all point displays across the application
+function getTierFromPoints(points) {
+    if (points >= 2000) return 'Diamond';
+    if (points >= 1000) return 'Gold';
+    if (points >= 750) return 'Silver';
+    return 'Bronze';
+}
+
+async function checkTierChange(oldPoints, newPoints) {
+    const oldTier = getTierFromPoints(oldPoints);
+    const newTier = getTierFromPoints(newPoints);
+    
+    if (oldTier !== newTier && newPoints > oldPoints) {
+        // Tier increased! Award 50 bonus points
+        currentUser.points = newPoints + 50;
+        localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+        
+        // Update backend
+        await fetch(`${WORKER_URL}/api/update-user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.discordId || currentUser.id,
+                points: currentUser.points
+            })
+        });
+        
+        // Add activity
+        await addActivity('tier_upgrade', `Upgraded to ${newTier} tier! 🎉`, 50);
+        
+        // Show notification
+        showNotification(
+            `🎊 Tier Upgrade to ${newTier}!`,
+            `Congratulations! You've reached ${newTier} tier and earned a 50 point bonus!`,
+            'success'
+        );
+        
+        // Refresh displays
+        updateAllPointDisplays();
+        refreshRecentActivity();
+    }
+}
+
 function updateAllPointDisplays() {
     if (!currentUser) return;
     
@@ -1278,10 +1321,7 @@ function updateAllPointDisplays() {
     
     // Update tier displays
     const statTier = document.getElementById('stat-tier');
-    let tierName = 'Bronze';
-    if (points >= 2000) tierName = 'Diamond';
-    else if (points >= 1000) tierName = 'Gold';
-    else if (points >= 750) tierName = 'Silver';
+    const tierName = getTierFromPoints(points);
     if (statTier) statTier.textContent = tierName;
     
     console.log(`✅ Updated all displays to ${points} points (${tierName} tier)`);
@@ -1510,6 +1550,9 @@ async function checkDailyLogin() {
         }
         
         if (data.firstLoginToday) {
+            // Check for tier change before updating
+            const oldPoints = currentUser.points || 0;
+            
             // Update current user points
             currentUser.points = data.totalPoints;
             currentUser.loginStreak = data.newStreak;
@@ -1518,6 +1561,9 @@ async function checkDailyLogin() {
             
             // Update all point displays
             updateAllPointDisplays();
+            
+            // Check for tier upgrade
+            await checkTierChange(oldPoints, data.totalPoints);
             
             // Refresh activity feed
             refreshRecentActivity();
@@ -2478,14 +2524,6 @@ async function redeemReward(rewardType, customCost, customName) {
         '20% Discount': { cost: customCost || 1000, name: customName || '20% Product Discount' },
         'Commission Discount': { cost: customCost || 750, name: customName || '40% Commission Discount' },
         '@everyone Ping & Paid Ad': { cost: customCost || 1350, name: customName || '@everyone Ping & Paid Ad' },
-        'Free Product': { cost: customCost || 2000, name: customName || 'Free Product' }
-    };eem Reward
-async function redeemReward(rewardType, customCost, customName) {
-    // Define reward costs (can be overridden by parameters)
-    const rewards = {
-        'Daily Reward': { cost: customCost || 10, name: customName || 'Daily Reward' },
-        '20% Discount': { cost: customCost || 1000, name: customName || '20% Product Discount' },
-        'Commission Discount': { cost: customCost || 750, name: customName || '40% Commission Discount' },
         'Free Product': { cost: customCost || 2000, name: customName || 'Free Product' }
     };
     
