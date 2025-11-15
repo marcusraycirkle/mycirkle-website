@@ -1507,12 +1507,14 @@ async function renderProductsToDashboard() {
         
         // Check if response is ok
         if (!response.ok) {
-            console.warn('⚠️ Products API returned:', response.status);
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ Products API error:', response.status, errorData);
             productsListDash.innerHTML = `
                 <div class="text-center py-12 text-gray-500 col-span-full">
                     <div class="text-6xl mb-4">📦</div>
                     <p class="text-lg font-semibold mb-2">No products yet!</p>
                     <p class="text-sm">Your purchased products will appear here.</p>
+                    ${errorData.error ? `<p class="text-xs text-red-500 mt-2">${errorData.error}</p>` : ''}
                 </div>
             `;
             return;
