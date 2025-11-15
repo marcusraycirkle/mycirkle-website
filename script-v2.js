@@ -71,11 +71,13 @@ function showReferralModal() {
         referralCountModal.textContent = currentUser.referralCount || 0;
     }
     
+    modal.style.display = 'flex';
     modal.classList.remove('hidden');
 }
 
 function closeReferralModal() {
     const modal = document.getElementById('referral-modal');
+    modal.style.display = 'none';
     modal.classList.add('hidden');
 }
 
@@ -153,6 +155,7 @@ async function refreshRecentActivity() {
         if (data.activities && data.activities.length > 0) {
             activityContainer.innerHTML = data.activities.map(activity => {
                 const timeAgo = getTimeAgo(new Date(activity.timestamp));
+                const icon = activity.icon || getActivityIcon(activity.type);
                 const pointsDisplay = activity.points > 0 
                     ? `<span class="text-green-600 font-semibold">+${activity.points}</span>` 
                     : activity.points < 0 
@@ -162,7 +165,7 @@ async function refreshRecentActivity() {
                 return `
                     <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div class="flex items-center gap-3">
-                            <span class="text-2xl">${activity.icon}</span>
+                            <span class="text-2xl">${icon}</span>
                             <div>
                                 <p class="text-sm font-medium text-gray-900">${activity.description}</p>
                                 <p class="text-xs text-gray-500">${timeAgo}</p>
@@ -1963,14 +1966,65 @@ function showRewardsDefault() {
                         <div class="reward-icon">🆓</div>
                         <h4 class="reward-title">Free Product</h4>
                         <p class="reward-desc">Get any product for free</p>
-                        <button onclick="redeemReward('Free Product', 2000)" class="reward-btn">Redeem</button>
                     </div>
+                </div>
+            </div>
+            
+            <div class="section-card mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="section-title">Recent Redemptions</h3>
+                    <button onclick="loadRedemptionHistory()" class="text-blue-600 hover:text-blue-700 text-sm font-semibold">View All</button>
+                </div>
+                <div id="redemption-history" class="space-y-2">
+                    <p class="text-sm text-gray-500 text-center py-4">Loading redemption history...</p>
                 </div>
             </div>
         `;
     rewardsContent.classList.remove('hidden');
     updatePoints();
     updateNavActive('rewards');
+    
+    // Load redemption history
+    loadRedemptionHistory();
+}
+
+// Load Redemption History
+async function loadRedemptionHistory() {
+    const historyContainer = document.getElementById('redemption-history');
+    if (!historyContainer || !currentUser) return;
+    
+    try {
+        const response = await fetch(`${WORKER_URL}/api/get-redemptions?discordId=${currentUser.discordId || currentUser.id}&limit=5`);
+        const data = await response.json();
+        
+        if (data.redemptions && data.redemptions.length > 0) {
+            historyContainer.innerHTML = data.redemptions.map(redemption => {
+                const date = new Date(redemption.timestamp);
+                const timeAgo = getTimeAgo(date);
+                
+                return `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">🎟️</span>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">${redemption.rewardType}</p>
+                                <p class="text-xs text-gray-500">${timeAgo}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-bold text-red-600">-${redemption.pointsCost}</p>
+                            <p class="text-xs text-gray-500">${redemption.code ? redemption.code.substring(0, 19) + '...' : 'N/A'}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            historyContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No redemptions yet</p>';
+        }
+    } catch (error) {
+        console.error('Failed to load redemption history:', error);
+        historyContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No redemptions yet</p>';
+    }
 }
 
 function showFAQ() {
@@ -2516,7 +2570,11 @@ function setTarget(target) {
         btn.classList.add('bg-gray-200', 'text-gray-800');
     });
     
-    // Highlight clicked button
+    // Update progress
+    updatePoints();
+}
+
+// Redeem Reward
 async function redeemReward(rewardType, customCost, customName) {
     // Define reward costs (can be overridden by parameters)
     const rewards = {

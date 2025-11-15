@@ -1135,6 +1135,19 @@ export default {
                 // Generate redemption code
                 const code = generateRedemptionCode();
 
+                // Store redemption in history
+                const redemptionsKey = `redemptions:${discordId}`;
+                let redemptions = await env.USERS_KV.get(redemptionsKey, 'json') || [];
+                redemptions.unshift({
+                    rewardType,
+                    pointsCost,
+                    code,
+                    timestamp: new Date().toISOString()
+                });
+                // Keep only last 50 redemptions
+                if (redemptions.length > 50) redemptions.length = 50;
+                await env.USERS_KV.put(redemptionsKey, JSON.stringify(redemptions));
+
                 // Log to redemption webhook
                 const redemptionWebhook = env.REDEMPTION_WEBHOOK || 'https://discord.com/api/webhooks/1436826526883647569/mpdU8WILa-zH7hd3AI9wN6g2hUmNerpXbcq0WKzQeAEAL3A2MosB-56jvCRZtdYUPgGR';
                 try {
@@ -2081,6 +2094,30 @@ export default {
                 return jsonResponse({ activities }, 200, corsHeaders);
             } catch (error) {
                 console.error('Get activities error:', error);
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
+        // Get redemption history endpoint
+        if (path === '/api/get-redemptions' && request.method === 'GET') {
+            try {
+                const url = new URL(request.url);
+                const discordId = url.searchParams.get('discordId');
+                const limit = parseInt(url.searchParams.get('limit')) || 5;
+                
+                if (!discordId) {
+                    return jsonResponse({ error: 'discordId parameter required' }, 400, corsHeaders);
+                }
+                
+                const redemptionsKey = `redemptions:${discordId}`;
+                let redemptions = await env.USERS_KV.get(redemptionsKey, 'json') || [];
+                
+                // Return limited number
+                redemptions = redemptions.slice(0, limit);
+                
+                return jsonResponse({ redemptions }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Get redemptions error:', error);
                 return jsonResponse({ error: error.message }, 500, corsHeaders);
             }
         }
