@@ -3065,7 +3065,7 @@ async function sendBulkEmails(env, users, subject, message) {
                     from: fromEmail,
                     to: [user.email],
                     subject: personalizedSubject,
-                    html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;"><h1 style="color: white; margin: 0;">MyCirkle</h1></div><div style="padding: 30px; background: #f9fafb;"><div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${personalizedMessage.split('\n').map(line => `<p style="color: #374151; line-height: 1.6;">${line}</p>`).join('')}</div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development. All rights reserved.</p></div></div>`
+                    html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;"><h1 style="color: white; margin: 0;">MyCirkle</h1></div><div style="padding: 30px; background: #f9fafb;"><div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${personalizedMessage.split('\n').map(line => `<p style="color: #374151; line-height: 1.6;">${line}</p>`).join('')}</div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development. All rights reserved.</p><p style="color: #6b7280; margin: 5px 0 0 0; font-size: 11px;">To unsubscribe from future marketing emails, please open a support ticket in the MyCirkle Category.</p></div></div>`
                 })
             });
             
@@ -3132,6 +3132,7 @@ async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
                     <div style="background: #1f2937; padding: 20px; text-align: center;">
                         <p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development</p>
                         <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 11px;">You're receiving this because you signed up for MyCirkle Marketing Updates.</p>
+                        <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 11px;">To unsubscribe from future marketing emails, please open a support ticket in the MyCirkle Category.</p>
                     </div>
                 </div>
             `
