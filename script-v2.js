@@ -1969,6 +1969,7 @@ function showRewardsDefault() {
                         <div class="reward-icon">🆓</div>
                         <h4 class="reward-title">Free Product</h4>
                         <p class="reward-desc">Get any product for free</p>
+                        <button onclick="redeemReward('Free Product', 2000)" class="reward-btn">Redeem</button>
                     </div>
                 </div>
             </div>
