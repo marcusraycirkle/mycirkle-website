@@ -2585,15 +2585,15 @@ function hexToUint8Array(hex) {
 async function checkAdminRole(member, env) {
     if (!member || !member.roles) return false;
     
-    // Check if user has admin/moderator role
-    // You can configure admin role IDs in environment variables
-    const adminRoleId = env.ADMIN_ROLE_ID; // Set this in Cloudflare secrets
+    // Required admin role ID
+    const REQUIRED_ADMIN_ROLE = '1436825229090623623';
     
-    if (adminRoleId && member.roles.includes(adminRoleId)) {
+    // Check if user has the specific admin role
+    if (member.roles.includes(REQUIRED_ADMIN_ROLE)) {
         return true;
     }
     
-    // Also check for Administrator permission
+    // Also check for Discord Administrator permission as fallback
     const permissions = parseInt(member.permissions || '0');
     const ADMINISTRATOR = 0x8;
     return (permissions & ADMINISTRATOR) === ADMINISTRATOR;
