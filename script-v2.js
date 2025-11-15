@@ -923,7 +923,8 @@ function showDashboard() {
     
     // Load products count
     if (currentUser.robloxUserId) {
-        fetch(`${WORKER_URL}/api/parcel/products?discordId=${currentUser.discordId}`)
+        const discordId = currentUser.discordId || currentUser.id;
+        fetch(`${WORKER_URL}/api/parcel/products?discordId=${discordId}`)
             .then(res => res.json())
             .then(data => {
                 if (statProducts && data.data) {
