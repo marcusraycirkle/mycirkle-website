@@ -2474,7 +2474,7 @@ function showLoyaltyCard() {
     // Update the loyalty card with user data
     setTimeout(() => updateLoyaltyCard(), 100);
 }
-Perfect. T
+
 function hideAllDashboardContent() {
     const contents = ['dashboard-content', 'rewards-content', 'products-content', 'loyalty-content', 'account-content', 'faq-content'];
     contents.forEach(id => {
