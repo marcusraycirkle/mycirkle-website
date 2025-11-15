@@ -1712,9 +1712,9 @@ export default {
                     }, 200, corsHeaders);
                 }
                 
-                // Fetch hub information to get products
+                // Fetch hub information to get all products
                 const hubId = 'prod_BwM387gLYcCa8qhERIH1JliOQ';
-                const hubUrl = `https://v2.parcelroblox.com/hubs/${hubId}`;
+                const hubUrl = `https://v2.parcelroblox.com/hub`;
                 console.log('🔗 Calling ParcelRoblox hub API:', hubUrl);
                 
                 const hubResponse = await fetch(hubUrl, {
@@ -1731,6 +1731,7 @@ export default {
                     console.error('❌ Hub fetch failed:', hubResponse.status, errorText);
                     return jsonResponse({ 
                         error: 'ParcelRoblox Hub API error',
+                        details: errorText,
                         data: [],
                         whitelisted: false,
                         userId: userData.robloxUserId
@@ -1738,10 +1739,9 @@ export default {
                 }
                 
                 const hubData = await hubResponse.json();
-                console.log('📦 Hub data:', JSON.stringify(hubData, null, 2));
+                console.log('📦 Hub response:', JSON.stringify(hubData, null, 2));
                 
-                // Check if user owns products from this hub
-                // Now check which products the user is whitelisted for
+                // Check what products the user is whitelisted for
                 const whitelistUrl = `https://v2.parcelroblox.com/whitelist/check/user_id/${userData.robloxUserId}`;
                 console.log('🔗 Checking user whitelist:', whitelistUrl);
                 
@@ -1752,20 +1752,44 @@ export default {
                     }
                 });
                 
+                console.log('📥 Whitelist API response status:', whitelistResponse.status);
+                
+                if (!whitelistResponse.ok) {
+                    const errorText = await whitelistResponse.text();
+                    console.error('❌ Whitelist check failed:', whitelistResponse.status, errorText);
+                    return jsonResponse({ 
+                        error: 'Could not fetch user products',
+                        details: errorText,
+                        data: [],
+                        whitelisted: false,
+                        userId: userData.robloxUserId
+                    }, 200, corsHeaders);
+                }
+                
+                const whitelistData = await whitelistResponse.json();
+                console.log('📦 Whitelist data:', JSON.stringify(whitelistData, null, 2));
+                
+                // Match hub products with user's whitelisted products
                 let userProducts = [];
-                if (whitelistResponse.ok) {
-                    const whitelistData = await whitelistResponse.json();
-                    console.log('📦 Whitelist data:', JSON.stringify(whitelistData, null, 2));
+                if (hubData.data && hubData.data.products && Array.isArray(hubData.data.products)) {
+                    const hubProducts = hubData.data.products;
+                    console.log('🏢 Hub has', hubProducts.length, 'total products');
                     
-                    // Get products from hub that the user is whitelisted for
-                    if (hubData.products && Array.isArray(hubData.products) && whitelistData.products && Array.isArray(whitelistData.products)) {
-                        userProducts = hubData.products.filter(product => 
-                            whitelistData.products.includes(product.id || product.productId || product._id)
-                        );
-                        console.log('✅ User owns', userProducts.length, 'products from this hub');
+                    if (whitelistData.products && Array.isArray(whitelistData.products)) {
+                        console.log('✅ User is whitelisted for', whitelistData.products.length, 'product(s)');
+                        
+                        // Filter hub products to only those the user is whitelisted for
+                        userProducts = hubProducts.filter(product => {
+                            const productId = product.id || product._id || product.productId;
+                            return whitelistData.products.includes(productId);
+                        });
+                        
+                        console.log('📦 User owns', userProducts.length, 'product(s) from this hub');
+                    } else {
+                        console.log('⚠️ No whitelisted products for this user');
                     }
                 } else {
-                    console.log('⚠️ Whitelist check failed, showing no products');
+                    console.log('⚠️ No products found in hub data');
                 }
                 
                 return jsonResponse({ 
