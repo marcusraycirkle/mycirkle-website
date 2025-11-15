@@ -1712,75 +1712,67 @@ export default {
                     }, 200, corsHeaders);
                 }
                 
-                // Check whitelist status first
-                const parcelApiKey = 'prod_BwM387gLYcCa8qhERIH1JliOQ';
-                const whitelistUrl = `https://v2.parcelroblox.com/whitelist/check/user_id/${userData.robloxUserId}`;
-                console.log('🔗 Calling ParcelRoblox whitelist API:', whitelistUrl);
+                // Fetch hub information to get products
+                const hubId = 'prod_BwM387gLYcCa8qhERIH1JliOQ';
+                const hubUrl = `https://v2.parcelroblox.com/hubs/${hubId}`;
+                console.log('🔗 Calling ParcelRoblox hub API:', hubUrl);
                 
-                const whitelistResponse = await fetch(whitelistUrl, {
+                const hubResponse = await fetch(hubUrl, {
                     headers: {
-                        'Authorization': `${parcelApiKey}`,
+                        'Authorization': `${hubId}`,
                         'Content-Type': 'application/json'
                     }
                 });
                 
-                console.log('📥 Whitelist API response status:', whitelistResponse.status);
+                console.log('📥 Hub API response status:', hubResponse.status);
                 
-                if (!whitelistResponse.ok) {
-                    const errorText = await whitelistResponse.text();
-                    console.error('❌ Whitelist check failed:', whitelistResponse.status, errorText);
+                if (!hubResponse.ok) {
+                    const errorText = await hubResponse.text();
+                    console.error('❌ Hub fetch failed:', hubResponse.status, errorText);
                     return jsonResponse({ 
-                        error: 'ParcelRoblox API error',
+                        error: 'ParcelRoblox Hub API error',
                         data: [],
                         whitelisted: false,
                         userId: userData.robloxUserId
                     }, 200, corsHeaders);
                 }
                 
-                const whitelistData = await whitelistResponse.json();
-                console.log('📦 Whitelist data:', JSON.stringify(whitelistData, null, 2));
+                const hubData = await hubResponse.json();
+                console.log('📦 Hub data:', JSON.stringify(hubData, null, 2));
                 
-                // Get user's owned products from whitelist data
-                let products = [];
-                if (whitelistData.products && Array.isArray(whitelistData.products)) {
-                    console.log('✅ Found', whitelistData.products.length, 'product IDs:', whitelistData.products);
+                // Check if user owns products from this hub
+                // Now check which products the user is whitelisted for
+                const whitelistUrl = `https://v2.parcelroblox.com/whitelist/check/user_id/${userData.robloxUserId}`;
+                console.log('🔗 Checking user whitelist:', whitelistUrl);
+                
+                const whitelistResponse = await fetch(whitelistUrl, {
+                    headers: {
+                        'Authorization': `${hubId}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                let userProducts = [];
+                if (whitelistResponse.ok) {
+                    const whitelistData = await whitelistResponse.json();
+                    console.log('📦 Whitelist data:', JSON.stringify(whitelistData, null, 2));
                     
-                    // Fetch details for each product
-                    products = await Promise.all(
-                        whitelistData.products.map(async (productId) => {
-                            try {
-                                console.log('📦 Fetching details for product:', productId);
-                                const productResponse = await fetch(`https://v2.parcelroblox.com/products/${productId}`, {
-                                    headers: {
-                                        'Authorization': `${parcelApiKey}`,
-                                        'Content-Type': 'application/json'
-                                    }
-                                });
-                                
-                                if (productResponse.ok) {
-                                    const productData = await productResponse.json();
-                                    console.log('✅ Product details:', productData);
-                                    return productData;
-                                } else {
-                                    console.error('❌ Failed to fetch product:', productId, productResponse.status);
-                                }
-                            } catch (err) {
-                                console.error(`❌ Exception fetching product ${productId}:`, err);
-                            }
-                            return null;
-                        })
-                    );
-                    
-                    products = products.filter(p => p !== null);
-                    console.log('📦 Final products array:', products.length, 'items');
+                    // Get products from hub that the user is whitelisted for
+                    if (hubData.products && Array.isArray(hubData.products) && whitelistData.products && Array.isArray(whitelistData.products)) {
+                        userProducts = hubData.products.filter(product => 
+                            whitelistData.products.includes(product.id || product.productId || product._id)
+                        );
+                        console.log('✅ User owns', userProducts.length, 'products from this hub');
+                    }
                 } else {
-                    console.log('⚠️ No products array in whitelist data');
+                    console.log('⚠️ Whitelist check failed, showing no products');
                 }
                 
                 return jsonResponse({ 
-                    data: products,
-                    whitelisted: whitelistData.whitelisted || false,
-                    userId: userData.robloxUserId
+                    data: userProducts,
+                    whitelisted: userProducts.length > 0,
+                    userId: userData.robloxUserId,
+                    hubId: hubId
                 }, 200, corsHeaders);
             } catch (error) {
                 console.error('❌ Parcel API error:', error);
