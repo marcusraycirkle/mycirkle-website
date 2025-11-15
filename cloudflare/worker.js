@@ -2547,6 +2547,145 @@ async function handleDiscordInteraction(request, env) {
         }
     }
 
+    // Handle modal submissions
+    if (interaction.type === 5) {
+        const customId = interaction.data.custom_id;
+        
+        // Check admin permission
+        const isAdmin = await checkAdminRole(interaction.member, env);
+        if (!isAdmin) {
+            return jsonResponse({
+                type: 4,
+                data: {
+                    content: '❌ You do not have permission to perform this action.',
+                    flags: 64
+                }
+            });
+        }
+        
+        if (customId === 'suspend_modal') {
+            const discordId = interaction.data.components[0].components[0].value.trim();
+            const adminUser = interaction.member?.user || interaction.user;
+            
+            // Validate Discord ID format
+            if (!/^\d{17,20}$/.test(discordId)) {
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ Invalid Discord ID format. Must be 17-20 digits.',
+                        flags: 64
+                    }
+                });
+            }
+            
+            try {
+                // Get user data
+                const userData = await getUserData(discordId, env);
+                
+                if (!userData) {
+                    return jsonResponse({
+                        type: 4,
+                        data: {
+                            content: `❌ User with ID \`${discordId}\` not found in the system.`,
+                            flags: 64
+                        }
+                    });
+                }
+                
+                // Toggle suspension status
+                const wasSuspended = userData.suspended === true;
+                userData.suspended = !wasSuspended;
+                userData.suspendedAt = wasSuspended ? null : new Date().toISOString();
+                userData.suspendedBy = wasSuspended ? null : adminUser.id;
+                
+                // Save updated user data
+                await env.USERS_KV.put(`user:${discordId}`, JSON.stringify(userData));
+                
+                const action = wasSuspended ? 'unsuspended' : 'suspended';
+                const emoji = wasSuspended ? '✅' : '⚠️';
+                
+                // Send DM to user (try, but don't fail if we can't)
+                try {
+                    const dmChannelResponse = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ recipient_id: discordId })
+                    });
+                    
+                    if (dmChannelResponse.ok) {
+                        const dmChannel = await dmChannelResponse.json();
+                        await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                embeds: [{
+                                    title: wasSuspended ? '✅ Account Unsuspended' : '⚠️ Account Suspended',
+                                    description: wasSuspended 
+                                        ? 'Your MyCirkle account has been unsuspended. You can now access the dashboard and earn points again.'
+                                        : 'Your MyCirkle account has been suspended. Please contact an administrator if you believe this was done in error.',
+                                    color: wasSuspended ? 0x10b981 : 0xef4444,
+                                    footer: { text: 'MyCirkle Account Management' },
+                                    timestamp: new Date().toISOString()
+                                }]
+                            })
+                        });
+                    }
+                } catch (dmError) {
+                    console.log('Could not send DM:', dmError);
+                }
+                
+                // Log to admin webhook
+                const adminLogsWebhook = 'https://discord.com/api/webhooks/1436826617853902948/ZBLTXr0vbLpZbj-fhEy_EosA64VbyS2P6GQPFnR96qQ6ojg7l9QoZEmI65v7f0PyvXvX';
+                try {
+                    await fetch(adminLogsWebhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            embeds: [{
+                                title: `${emoji} User ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+                                description: `<@${discordId}> has been ${action}`,
+                                color: wasSuspended ? 0x10b981 : 0xef4444,
+                                fields: [
+                                    { name: '👤 User', value: `<@${discordId}>`, inline: true },
+                                    { name: '🆔 User ID', value: discordId, inline: true },
+                                    { name: '👨‍💼 Admin', value: `<@${adminUser.id}>`, inline: true },
+                                    { name: '📊 Account', value: userData.robloxUsername || 'Unknown', inline: true }
+                                ],
+                                footer: { text: '🛡️ User Management' },
+                                timestamp: new Date().toISOString()
+                            }]
+                        })
+                    });
+                } catch (webhookError) {
+                    console.error('Webhook error:', webhookError);
+                }
+                
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: `${emoji} Successfully ${action} **${userData.robloxUsername || 'User'}** (<@${discordId}>)\n\n📊 **Account Details:**\n• Roblox: ${userData.robloxUsername || 'Unknown'}\n• Points: ${userData.points || 0}\n• Status: ${wasSuspended ? 'Active' : 'Suspended'}`,
+                        flags: 64
+                    }
+                });
+            } catch (error) {
+                console.error('Suspension error:', error);
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ Error updating user suspension status: ' + error.message,
+                        flags: 64
+                    }
+                });
+            }
+        }
+    }
+
     return jsonResponse({ type: 4, data: { content: 'Unknown interaction type' } });
 }
 
@@ -3432,92 +3571,31 @@ async function handleAdminConfigCommand(interaction, env) {
     const action = options.find(opt => opt.name === 'action')?.value;
     
     if (action === 'suspend') {
-        // Acknowledge immediately to prevent timeout
-        console.log('🔄 AdminConfig: Sending deferred response...');
-        const response = jsonResponse({ type: 5 }); // Type 5 = Deferred response
-        
-        // Process in background using context.waitUntil would be ideal, but we'll handle it differently
-        setTimeout(async () => {
-            console.log('🔄 AdminConfig: Processing user list...');
-            try {
-                // Get all users from KV
-                const list = await env.USERS_KV.list({ prefix: 'user:', limit: 100 });
-                console.log(`📊 AdminConfig: Found ${list.keys?.length || 0} users`);
-                
-                if (!list || !list.keys || list.keys.length === 0) {
-                    console.log('❌ AdminConfig: No users found');
-                    await sendFollowupMessage(interaction, env, {
-                        content: '❌ No users found in the system.',
-                        flags: 64
-                    });
-                    return;
-                }
-                
-                // Fetch user data in parallel (faster)
-                const userPromises = list.keys.slice(0, 25).map(async (key) => {
-                    try {
-                        const userData = await env.USERS_KV.get(key.name, 'json');
-                        if (userData && userData.discordId) {
-                            const isSuspended = userData.suspended === true;
-                            const emoji = isSuspended ? '⚠️' : '✅';
-                            const status = isSuspended ? '[SUSPENDED]' : '[Active]';
-                            const label = `${emoji} ${userData.robloxUsername || 'Unknown'} ${status}`;
-                            
-                            return {
-                                label: label.substring(0, 100),
-                                value: userData.discordId,
-                                description: `${userData.points || 0} points`,
-                                emoji: isSuspended ? '⚠️' : undefined
-                            };
-                        }
-                    } catch (err) {
-                        console.error('Error fetching user:', key.name, err);
+        // Show modal for Discord ID input (instant response, no KV fetching)
+        return jsonResponse({
+            type: 9, // Type 9 = Modal response
+            data: {
+                custom_id: 'suspend_modal',
+                title: 'Suspend/Unsuspend User',
+                components: [
+                    {
+                        type: 1,
+                        components: [
+                            {
+                                type: 4, // Text input
+                                custom_id: 'discord_id_input',
+                                label: 'Discord User ID',
+                                style: 1, // Short text
+                                placeholder: 'Enter the Discord ID (e.g., 1234567890)',
+                                required: true,
+                                min_length: 17,
+                                max_length: 20
+                            }
+                        ]
                     }
-                    return null;
-                });
-                
-                const userOptions = (await Promise.all(userPromises)).filter(u => u !== null);
-                console.log(`✅ AdminConfig: Built ${userOptions.length} user options`);
-                
-                if (userOptions.length === 0) {
-                    console.log('❌ AdminConfig: No valid users');
-                    await sendFollowupMessage(interaction, env, {
-                        content: '❌ No valid users found.',
-                        flags: 64
-                    });
-                    return;
-                }
-                
-                // Send follow-up with select menu
-                console.log('📤 AdminConfig: Sending follow-up with select menu...');
-                await sendFollowupMessage(interaction, env, {
-                    content: '🛡️ **User Suspension Manager**\n\nSelect a user to suspend or unsuspend:',
-                    components: [
-                        {
-                            type: 1,
-                            components: [
-                                {
-                                    type: 3,
-                                    custom_id: 'suspend_user_select',
-                                    placeholder: 'Choose a user...',
-                                    options: userOptions
-                                }
-                            ]
-                        }
-                    ],
-                    flags: 64
-                });
-                console.log('✅ AdminConfig: Follow-up sent successfully');
-            } catch (error) {
-                console.error('❌ AdminConfig error:', error);
-                await sendFollowupMessage(interaction, env, {
-                    content: '❌ Error loading user list: ' + error.message,
-                    flags: 64
-                });
+                ]
             }
-        }, 0);
-        
-        return response;
+        });
     }
     
     return jsonResponse({
@@ -3529,25 +3607,6 @@ async function handleAdminConfigCommand(interaction, env) {
     });
 }
 
-async function sendFollowupMessage(interaction, env, messageData) {
-    const webhookUrl = `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}`;
-    
-    try {
-        const response = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(messageData)
-        });
-        
-        if (!response.ok) {
-            console.error('Follow-up failed:', response.status, await response.text());
-        }
-    } catch (error) {
-        console.error('Follow-up error:', error);
-    }
-}
 
 
 // ===== EMAIL FUNCTIONS =====
