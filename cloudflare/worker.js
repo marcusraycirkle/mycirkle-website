@@ -612,8 +612,14 @@ export default {
                             console.log('📋 Adding to Resend mailing list...');
                             const mailingResult = await addToMailingList(env, email, firstName, lastName);
                             console.log('✅ Added to mailing list:', mailingResult);
+                            
+                            // Send success webhook
+                            if (mailingResult.success) {
+                                console.log('🎉 Mailing list addition confirmed - sending success webhook');
+                            }
                         } catch (mailingError) {
                             console.error('⚠️ Failed to add to mailing list (non-critical):', mailingError.message);
+                            console.error('⚠️ Stack:', mailingError.stack);
                             // Continue signup process even if mailing list fails
                         }
                         
