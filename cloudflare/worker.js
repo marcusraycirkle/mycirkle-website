@@ -607,10 +607,15 @@ export default {
                         const emailResult = await sendWelcomeEmail(env, email, firstName, finalAccountNumber, 5);
                         console.log('✅ Welcome email sent:', emailResult);
                         
-                        // Add to Resend mailing list
-                        console.log('📋 Adding to Resend mailing list...');
-                        const mailingResult = await addToMailingList(env, email, firstName, lastName);
-                        console.log('✅ Added to mailing list:', mailingResult);
+                        // Add to Resend mailing list - TRY/CATCH to prevent signup failure
+                        try {
+                            console.log('📋 Adding to Resend mailing list...');
+                            const mailingResult = await addToMailingList(env, email, firstName, lastName);
+                            console.log('✅ Added to mailing list:', mailingResult);
+                        } catch (mailingError) {
+                            console.error('⚠️ Failed to add to mailing list (non-critical):', mailingError.message);
+                            // Continue signup process even if mailing list fails
+                        }
                         
                         // Log to email dashboard (KV storage)
                         console.log('📊 Logging to email dashboard...');
@@ -3077,12 +3082,18 @@ async function addToMailingList(env, email, firstName, lastName) {
         console.log('  - Result:', JSON.stringify(result, null, 2));
         
         if (!response.ok) {
+            // Check if it's a duplicate contact error (409 or specific error message)
+            if (response.status === 409 || (result.message && result.message.includes('already exists'))) {
+                console.log('⚠️ Contact already exists in mailing list (this is OK):', email);
+                return { success: true, data: result, duplicate: true };
+            }
+            
             console.error('❌ Failed to add to mailing list:', result);
             throw new Error(`Resend API error: ${response.status} - ${JSON.stringify(result)}`);
         }
         
         console.log('✅ Successfully added to mailing list:', email);
-        return { success: true, data: result };
+        return { success: true, data: result, duplicate: false };
     } catch (error) {
         console.error('❌ Exception adding to mailing list:', error.message, error.stack);
         throw error; // Re-throw so signup process knows it failed
