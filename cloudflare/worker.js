@@ -405,12 +405,87 @@ export default {
         }
 
         // API: Signup with webhook notification
+        // Validate referral code endpoint
+        if (path === '/api/validate-referral' && request.method === 'GET') {
+            try {
+                const url = new URL(request.url);
+                const code = url.searchParams.get('code');
+                const discordId = url.searchParams.get('discordId');
+
+                if (!code || !discordId) {
+                    return jsonResponse({ 
+                        valid: false, 
+                        message: 'Missing required parameters' 
+                    }, 400, corsHeaders);
+                }
+
+                // Normalize code to uppercase
+                const normalizedCode = code.trim().toUpperCase();
+
+                // Find the user who owns this referral code
+                const allKeys = await env.USERS_KV?.list({ prefix: 'user:' });
+                let referrerData = null;
+                let referrerId = null;
+
+                for (const key of allKeys.keys) {
+                    const userData = await env.USERS_KV?.get(key.name);
+                    if (userData) {
+                        const user = JSON.parse(userData);
+                        if (user.referralCode && user.referralCode.toUpperCase() === normalizedCode) {
+                            referrerData = user;
+                            referrerId = user.discordId;
+                            break;
+                        }
+                    }
+                }
+
+                // Check if code exists
+                if (!referrerData) {
+                    return jsonResponse({ 
+                        valid: false, 
+                        message: 'Invalid referral code. Please check and try again.' 
+                    }, 200, corsHeaders);
+                }
+
+                // Check for self-referral
+                if (referrerId === discordId) {
+                    return jsonResponse({ 
+                        valid: false, 
+                        message: 'You cannot use your own referral code!' 
+                    }, 200, corsHeaders);
+                }
+
+                // Check if user has already used a referral code
+                const currentUserData = await getUserData(discordId, env);
+                if (currentUserData && currentUserData.usedReferralCode) {
+                    return jsonResponse({ 
+                        valid: false, 
+                        message: 'You have already used a referral code. Each account can only use one code.' 
+                    }, 200, corsHeaders);
+                }
+
+                // All checks passed
+                return jsonResponse({ 
+                    valid: true,
+                    referrerId: referrerId,
+                    referrerName: referrerData.firstName || 'Friend'
+                }, 200, corsHeaders);
+
+            } catch (error) {
+                console.error('Referral validation error:', error);
+                return jsonResponse({ 
+                    valid: false, 
+                    message: 'Error validating referral code' 
+                }, 500, corsHeaders);
+            }
+        }
+
         if (path === '/api/signup' && request.method === 'POST') {
             try {
                 const data = await request.json();
                 const { 
                     discordId, discordUsername, firstName, lastName, fullName, email, memberSince,
-                    country, timezone, language, robloxUsername, robloxUserId, robloxDisplayName, acceptedMarketing, accountNumber
+                    country, timezone, language, robloxUsername, robloxUserId, robloxDisplayName, acceptedMarketing, accountNumber, referralCode
                 } = data;
 
                 if (!discordId || !firstName || !lastName) {
@@ -431,7 +506,47 @@ export default {
                 // Generate account number if not provided
                 const finalAccountNumber = accountNumber || generateAccountNumber();
 
-                // Create user data object with 5 welcome points
+                // Process referral code if provided
+                let referralBonus = 0;
+                let referrerData = null;
+                let referralApplied = false;
+                
+                if (referralCode) {
+                    try {
+                        const normalizedCode = referralCode.trim().toUpperCase();
+                        
+                        // Find referrer by code
+                        const allKeys = await env.USERS_KV?.list({ prefix: 'user:' });
+                        for (const key of allKeys.keys) {
+                            const userData = await env.USERS_KV?.get(key.name);
+                            if (userData) {
+                                const user = JSON.parse(userData);
+                                if (user.referralCode && user.referralCode.toUpperCase() === normalizedCode) {
+                                    referrerData = user;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Validate referral
+                        if (referrerData && referrerData.discordId !== discordId) {
+                            referralBonus = 75;
+                            referralApplied = true;
+                        }
+                    } catch (refError) {
+                        console.error('Referral processing error:', refError);
+                    }
+                }
+
+                // Generate referral code for new user (format: NAME-XXXX)
+                const generateUserReferralCode = (firstName) => {
+                    const namePart = (firstName || 'USER').toUpperCase().substring(0, 4).padEnd(4, 'X');
+                    const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+                    return `${namePart}-${randomPart}`;
+                };
+
+                // Create user data object with base points + referral bonus
+                const totalPoints = 5 + referralBonus;
                 const newUserData = {
                     discordId,
                     discordUsername,
@@ -440,14 +555,17 @@ export default {
                     fullName: fullName || `${firstName} ${lastName}`,
                     firstName,
                     lastName,
-                    points: 5, // START WITH 5 POINTS
+                    points: totalPoints, // 5 base + 75 referral bonus if applicable
                     robloxUsername: robloxUsername || '',
                     robloxUserId: robloxUserId || '',
                     robloxDisplayName: robloxDisplayName || '',
                     country: country || '',
                     timezone: timezone || '',
                     language: language || '',
-                    memberSince: memberSince || new Date().toISOString()
+                    memberSince: memberSince || new Date().toISOString(),
+                    referralCode: generateUserReferralCode(firstName), // Unique code for this user
+                    usedReferralCode: referralApplied ? referralCode.trim().toUpperCase() : undefined,
+                    referralCount: 0 // Track how many people used this user's code
                 };
 
                 // Save to Google Sheets directly
@@ -467,7 +585,7 @@ export default {
                                     email,
                                     finalAccountNumber,
                                     newUserData.fullName,
-                                    5, // Initial points
+                                    totalPoints, // Initial points (5 base + referral bonus)
                                     robloxUsername || '',
                                     memberSince || new Date().toISOString()
                                 ]]
@@ -478,6 +596,55 @@ export default {
 
                 // Also save to KV for caching
                 await env.USERS_KV?.put(`user:${discordId}`, JSON.stringify(newUserData));
+
+                // Award referral bonus to referrer and log activities
+                if (referralApplied && referrerData) {
+                    try {
+                        // Award 75 points to referrer
+                        referrerData.points = (referrerData.points || 0) + 75;
+                        referrerData.referralCount = (referrerData.referralCount || 0) + 1;
+                        await env.USERS_KV?.put(`user:${referrerData.discordId}`, JSON.stringify(referrerData));
+                        
+                        // Add activity for referrer
+                        const referrerActivities = JSON.parse(await env.USERS_KV?.get(`activities:${referrerData.discordId}`) || '[]');
+                        referrerActivities.unshift({
+                            type: 'referral_completed',
+                            description: `${firstName} used your referral code!`,
+                            points: 75,
+                            timestamp: new Date().toISOString()
+                        });
+                        // Keep only last 50 activities
+                        if (referrerActivities.length > 50) referrerActivities.length = 50;
+                        await env.USERS_KV?.put(`activities:${referrerData.discordId}`, JSON.stringify(referrerActivities));
+                        
+                        // Add activity for new user
+                        const newUserActivities = [{
+                            type: 'referral_completed',
+                            description: `Used referral code: ${referralCode.trim().toUpperCase()}`,
+                            points: 75,
+                            timestamp: new Date().toISOString()
+                        }, {
+                            type: 'signup',
+                            description: 'Signed up for MyCirkle',
+                            points: 5,
+                            timestamp: new Date().toISOString()
+                        }];
+                        await env.USERS_KV?.put(`activities:${discordId}`, JSON.stringify(newUserActivities));
+                        
+                        console.log(`✅ Referral bonus applied: ${firstName} used ${referrerData.firstName}'s code. Both awarded 75 points.`);
+                    } catch (refBonusError) {
+                        console.error('Error applying referral bonus:', refBonusError);
+                    }
+                } else if (!referralApplied) {
+                    // Add signup activity for non-referral users
+                    const newUserActivities = [{
+                        type: 'signup',
+                        description: 'Signed up for MyCirkle',
+                        points: 5,
+                        timestamp: new Date().toISOString()
+                    }];
+                    await env.USERS_KV?.put(`activities:${discordId}`, JSON.stringify(newUserActivities));
+                }
 
                 // Send welcome DM
                 const botToken = env.DISCORD_BOT_TOKEN;
@@ -517,13 +684,13 @@ export default {
                                 body: JSON.stringify({
                                     embeds: [{
                                         title: '🎉 Welcome to MyCirkle!',
-                                        description: `Hi **${firstName}**! Your loyalty account has been created successfully.`,
+                                        description: `Hi **${firstName}**! Your loyalty account has been created successfully.${referralApplied ? '\n\n🎁 **Referral Bonus Applied!** You and your friend each earned 75 bonus points!' : ''}`,
                                         color: 0x00D9FF,
                                         fields: [
                                             { name: '📧 Email', value: email || 'Not provided', inline: true },
                                             { name: '🎮 Roblox', value: robloxUsername || 'Not linked', inline: true },
                                             { name: '🔢 Account Number', value: `\`${finalAccountNumber}\``, inline: false },
-                                            { name: '⭐ Points Balance', value: '**5 points** (Welcome Bonus!)', inline: true },
+                                            { name: '⭐ Points Balance', value: `**${totalPoints} points**${referralApplied ? ' (5 welcome + 75 referral bonus!)' : ' (Welcome Bonus!)'}`, inline: true },
                                             { name: '🎁 Tier', value: 'Bronze', inline: true },
                                             { name: '📅 Member Since', value: new Date().toLocaleDateString(), inline: true }
                                         ],
@@ -575,16 +742,16 @@ export default {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            content: `🎊 Everyone, please welcome <@${discordId}>!`,
+                            content: `🎊 Everyone, please welcome <@${discordId}>!${referralApplied ? ' 🎁 *Joined via referral!*' : ''}`,
                             embeds: [{
                                 title: `🌟 ${firstName} joined MyCirkle!`,
-                                description: `✨ **${firstName}** has joined the MyCirkle loyalty program and earned **5 welcome points**!\n\n💎 Start earning points and redeem amazing rewards!`,
+                                description: `✨ **${firstName}** has joined the MyCirkle loyalty program and earned **${totalPoints} points**!${referralApplied ? '\n\n🎁 **Referral Bonus!** Both the new member and their friend earned 75 bonus points!' : ''}\n\n💎 Start earning points and redeem amazing rewards!`,
                                 color: 0x00D9FF,
                                 thumbnail: {
                                     url: avatarUrl
                                 },
                                 fields: [
-                                    { name: '🎁 Welcome Bonus', value: '5 Points', inline: true },
+                                    { name: '🎁 Starting Points', value: `${totalPoints} Points${referralApplied ? ' (5 + 75 referral)' : ''}`, inline: true },
                                     { name: '🏆 Starting Tier', value: 'Bronze', inline: true },
                                     { name: '📅 Joined', value: new Date().toLocaleDateString(), inline: true }
                                 ],
@@ -604,7 +771,7 @@ export default {
                         
                         // Send welcome email
                         console.log('📨 Sending welcome email...');
-                        const emailResult = await sendWelcomeEmail(env, email, firstName, finalAccountNumber, 5);
+                        const emailResult = await sendWelcomeEmail(env, email, firstName, finalAccountNumber, totalPoints);
                         console.log('✅ Welcome email sent:', emailResult);
                         
                         // Add to Resend mailing list - TRY/CATCH to prevent signup failure
@@ -769,8 +936,8 @@ export default {
                         body: JSON.stringify({
                             embeds: [{
                                 title: '📋 Account Information - New Signup',
-                                description: `Complete account details for **${firstName} ${lastName}**`,
-                                color: 0x8b5cf6,
+                                description: `Complete account details for **${firstName} ${lastName}**${referralApplied ? ' 🎁 *Referral Signup*' : ''}`,
+                                color: referralApplied ? 0x10b981 : 0x8b5cf6,
                                 fields: [
                                     { name: '👤 Full Name', value: `${firstName} ${lastName}`, inline: true },
                                     { name: '📧 Email', value: email || 'Not provided', inline: true },
@@ -783,7 +950,8 @@ export default {
                                     { name: '🕐 Timezone', value: timezone || 'Not provided', inline: true },
                                     { name: '🗣️ Language', value: language || 'Not provided', inline: true },
                                     { name: '📬 Marketing Opt-in', value: acceptedMarketing ? 'Yes ✅' : 'No ❌', inline: true },
-                                    { name: '⭐ Starting Points', value: '5 points', inline: true },
+                                    { name: '🎁 Referral Source', value: referralApplied ? `Code: \`${referralCode.trim().toUpperCase()}\` (by ${referrerData.firstName})` : 'General signup', inline: false },
+                                    { name: '⭐ Starting Points', value: `${totalPoints} points${referralApplied ? ' (5 + 75 referral bonus)' : ''}`, inline: true },
                                     { name: '📅 Member Since', value: new Date(memberSince || Date.now()).toLocaleString(), inline: false }
                                 ],
                                 timestamp: new Date().toISOString()
@@ -802,7 +970,9 @@ export default {
                 return jsonResponse({ 
                     success: true, 
                     message: 'User registered',
-                    accountNumber: finalAccountNumber
+                    accountNumber: finalAccountNumber,
+                    referralApplied: referralApplied,
+                    totalPoints: totalPoints
                 }, 200, corsHeaders);
             } catch (error) {
                 return jsonResponse({ error: 'Signup failed', details: error.message }, 500, corsHeaders);
