@@ -1552,6 +1552,73 @@ export default {
             }
         }
 
+        // TEST: ParcelRoblox hub and ownership check
+        if (path === '/api/admin/test-parcel' && request.method === 'GET') {
+            try {
+                const url = new URL(request.url);
+                const discordId = url.searchParams.get('discordId') || '1088907566844739624';
+                const hubId = 'prod_BwM387gLYcCa8qhERIH1JliOQ';
+                
+                console.log('🧪 TEST: Discord ID:', discordId);
+                console.log('🧪 TEST: Hub ID:', hubId);
+                
+                // Fetch hub info
+                const hubUrl = `https://v2.parcelroblox.com/hub`;
+                const hubResponse = await fetch(hubUrl, {
+                    headers: {
+                        'Authorization': `${hubId}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const hubData = await hubResponse.json();
+                console.log('🧪 TEST: Hub data:', JSON.stringify(hubData, null, 2));
+                
+                // Test ownership check for first product
+                let ownershipResults = [];
+                if (hubData.data?.products && hubData.data.products.length > 0) {
+                    const testProduct = hubData.data.products[0];
+                    const productId = testProduct.id || testProduct._id || testProduct.productId;
+                    
+                    console.log('🧪 TEST: Checking ownership for product:', productId);
+                    const checkUrl = `https://v2.parcelroblox.com/whitelist/check/discord/${discordId}?product_id=${productId}`;
+                    console.log('🧪 TEST: Check URL:', checkUrl);
+                    
+                    const checkResponse = await fetch(checkUrl, {
+                        headers: {
+                            'Authorization': `${hubId}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const checkData = await checkResponse.json();
+                    console.log('🧪 TEST: Ownership check response:', JSON.stringify(checkData, null, 2));
+                    
+                    ownershipResults.push({
+                        productId,
+                        productName: testProduct.name,
+                        checkUrl,
+                        response: checkData
+                    });
+                }
+                
+                return jsonResponse({
+                    hubResponse: {
+                        status: hubResponse.status,
+                        data: hubData
+                    },
+                    ownershipResults,
+                    message: 'Check Cloudflare logs for detailed output'
+                }, 200, corsHeaders);
+            } catch (error) {
+                console.error('🧪 TEST: Error:', error);
+                return jsonResponse({ 
+                    error: error.message,
+                    stack: error.stack
+                }, 500, corsHeaders);
+            }
+        }
+
         // API: Get daily reward
         if (path === '/api/daily-reward' && request.method === 'GET') {
             try {
