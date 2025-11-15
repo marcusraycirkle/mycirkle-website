@@ -2859,36 +2859,50 @@ async function handleHelpCommand() {
 
 async function handleLeaderboardCommand(env) {
     try {
-        const spreadsheetId = env.SPREADSHEET_ID;
-        const sheetsApiKey = env.GOOGLE_SHEETS_API_KEY;
+        // Get all users from KV
+        const list = await env.USERS_KV.list({ prefix: 'user:' });
         
-        if (!spreadsheetId || !sheetsApiKey) {
-            return jsonResponse({ type: 4, data: { content: '❌ Leaderboard not configured', flags: 64 } });
+        if (!list || !list.keys || list.keys.length === 0) {
+            return jsonResponse({
+                type: 4,
+                data: {
+                    embeds: [{
+                        title: '🏆 MyCirkle Leaderboard',
+                        description: 'No users yet! Join MyCirkle to be the first on the leaderboard!',
+                        color: 0xfbbf24
+                    }]
+                }
+            });
         }
         
-        const getResponse = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1?key=${sheetsApiKey}`
-        );
-        const data = await getResponse.json();
-        const rows = data.values || [];
-        
+        // Fetch all user data
         const users = [];
-        for (let i = 1; i < rows.length; i++) {
-            if (rows[i][0] && rows[i][5]) {
-                users.push({
-                    name: rows[i][4] || rows[i][1] || 'Unknown',
-                    points: parseInt(rows[i][5]) || 0
-                });
+        for (const key of list.keys) {
+            try {
+                const userData = await env.USERS_KV.get(key.name, 'json');
+                if (userData && userData.points !== undefined) {
+                    users.push({
+                        name: userData.robloxUsername || userData.username || 'Unknown User',
+                        discordId: userData.discordId,
+                        points: parseInt(userData.points) || 0
+                    });
+                }
+            } catch (err) {
+                console.error('Error fetching user:', key.name, err);
             }
         }
         
+        // Sort by points (highest first)
         users.sort((a, b) => b.points - a.points);
+        
+        // Take top 10
         const topUsers = users.slice(0, 10);
         
+        // Build leaderboard text
         let leaderboardText = '';
         topUsers.forEach((user, index) => {
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-            leaderboardText += `${medal} **${user.name}** - ${user.points} pts\n`;
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `**${index + 1}.**`;
+            leaderboardText += `${medal} **${user.name}** - ${user.points.toLocaleString()} pts\n`;
         });
         
         return jsonResponse({
@@ -2896,14 +2910,22 @@ async function handleLeaderboardCommand(env) {
             data: {
                 embeds: [{
                     title: '🏆 MyCirkle Leaderboard',
-                    description: leaderboardText || 'No users yet!',
+                    description: leaderboardText || 'No users with points yet!',
                     color: 0xfbbf24,
-                    footer: { text: `Total Members: ${users.length}` }
+                    footer: { text: `Total Members: ${users.length}` },
+                    timestamp: new Date().toISOString()
                 }]
             }
         });
     } catch (error) {
-        return jsonResponse({ type: 4, data: { content: '❌ Error fetching leaderboard', flags: 64 } });
+        console.error('Leaderboard error:', error);
+        return jsonResponse({ 
+            type: 4, 
+            data: { 
+                content: '❌ Error fetching leaderboard. Please try again later.', 
+                flags: 64 
+            } 
+        });
     }
 }
 
