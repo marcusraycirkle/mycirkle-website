@@ -1497,6 +1497,30 @@ export default {
             }
         }
 
+        // TEST: Add contact to mailing list
+        if (path === '/api/admin/test-mailing-list' && request.method === 'POST') {
+            try {
+                const { email, firstName, lastName } = await request.json();
+                console.log('🧪 TEST: Adding contact to mailing list:', { email, firstName, lastName });
+                
+                const result = await addToMailingList(env, email, firstName, lastName);
+                console.log('🧪 TEST: Result:', result);
+                
+                return jsonResponse({ 
+                    success: true, 
+                    result,
+                    message: 'Check Cloudflare logs for detailed output'
+                }, 200, corsHeaders);
+            } catch (error) {
+                console.error('🧪 TEST: Error:', error);
+                return jsonResponse({ 
+                    success: false, 
+                    error: error.message,
+                    stack: error.stack 
+                }, 500, corsHeaders);
+            }
+        }
+
         // API: Get daily reward
         if (path === '/api/daily-reward' && request.method === 'GET') {
             try {
