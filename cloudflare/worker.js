@@ -2407,7 +2407,7 @@ async function handleDiscordInteraction(request, env) {
         const options = interaction.data.options || [];
         
         // Check if user is admin for admin commands
-        const adminCommands = ['givepoints', 'deductpoints', 'process', 'dailyreward'];
+        const adminCommands = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig'];
         if (adminCommands.includes(command)) {
             const isAdmin = await checkAdminRole(interaction.member, env);
             if (!isAdmin) {
@@ -2441,6 +2441,9 @@ async function handleDiscordInteraction(request, env) {
             case 'dailyreward':
                 return handleDailyRewardCommand(interaction, env);
             
+            case 'adminconfig':
+                return handleAdminConfigCommand(interaction, env);
+            
             default:
                 return jsonResponse({
                     type: 4,
@@ -2449,6 +2452,98 @@ async function handleDiscordInteraction(request, env) {
                         flags: 64
                     }
                 });
+        }
+    }
+
+    // Handle message component interactions (buttons, select menus)
+    if (interaction.type === 3) {
+        const customId = interaction.data.custom_id;
+        
+        // Check admin permission for suspension actions
+        const isAdmin = await checkAdminRole(interaction.member, env);
+        if (!isAdmin) {
+            return jsonResponse({
+                type: 4,
+                data: {
+                    content: '❌ You do not have permission to perform this action.',
+                    flags: 64
+                }
+            });
+        }
+        
+        if (customId === 'suspend_user_select') {
+            const selectedUserId = interaction.data.values[0];
+            const adminUser = interaction.member?.user || interaction.user;
+            
+            try {
+                // Get user data
+                const userData = await getUserData(selectedUserId, env);
+                
+                if (!userData) {
+                    return jsonResponse({
+                        type: 4,
+                        data: {
+                            content: '❌ User not found.',
+                            flags: 64
+                        }
+                    });
+                }
+                
+                // Toggle suspension status
+                const wasSuspended = userData.suspended === true;
+                userData.suspended = !wasSuspended;
+                userData.suspendedAt = wasSuspended ? null : new Date().toISOString();
+                userData.suspendedBy = wasSuspended ? null : adminUser.id;
+                
+                // Save updated user data
+                await env.USERS_KV.put(`user:${selectedUserId}`, JSON.stringify(userData));
+                
+                const action = wasSuspended ? 'unsuspended' : 'suspended';
+                const emoji = wasSuspended ? '✅' : '⚠️';
+                
+                // Log to admin webhook
+                const adminLogsWebhook = 'https://discord.com/api/webhooks/1436826617853902948/ZBLTXr0vbLpZbj-fhEy_EosA64VbyS2P6GQPFnR96qQ6ojg7l9QoZEmI65v7f0PyvXvX';
+                try {
+                    await fetch(adminLogsWebhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            embeds: [{
+                                title: `${emoji} User ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+                                description: `<@${selectedUserId}> has been ${action}`,
+                                color: wasSuspended ? 0x10b981 : 0xef4444,
+                                fields: [
+                                    { name: '👤 User', value: `<@${selectedUserId}>`, inline: true },
+                                    { name: '🆔 User ID', value: selectedUserId, inline: true },
+                                    { name: '👨‍💼 Admin', value: `<@${adminUser.id}>`, inline: true },
+                                    { name: '📊 Account', value: userData.robloxUsername || 'Unknown', inline: true }
+                                ],
+                                footer: { text: '🛡️ User Management' },
+                                timestamp: new Date().toISOString()
+                            }]
+                        })
+                    });
+                } catch (webhookError) {
+                    console.error('Webhook error:', webhookError);
+                }
+                
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: `${emoji} Successfully ${action} <@${selectedUserId}>`,
+                        flags: 64
+                    }
+                });
+            } catch (error) {
+                console.error('Suspension error:', error);
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ Error updating user suspension status.',
+                        flags: 64
+                    }
+                });
+            }
         }
     }
 
@@ -3330,6 +3425,100 @@ async function handleDailyRewardCommand(interaction, env) {
     } catch (error) {
         return jsonResponse({ type: 4, data: { content: '❌ Error', flags: 64 } });
     }
+}
+
+async function handleAdminConfigCommand(interaction, env) {
+    const options = interaction.data.options;
+    const action = options.find(opt => opt.name === 'action')?.value;
+    
+    if (action === 'suspend') {
+        try {
+            // Get all users from KV
+            const list = await env.USERS_KV.list({ prefix: 'user:' });
+            
+            if (!list || !list.keys || list.keys.length === 0) {
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ No users found in the system.',
+                        flags: 64
+                    }
+                });
+            }
+            
+            // Fetch user data and build select menu options
+            const userOptions = [];
+            for (const key of list.keys.slice(0, 25)) { // Discord limit: 25 options
+                try {
+                    const userData = await env.USERS_KV.get(key.name, 'json');
+                    if (userData && userData.discordId) {
+                        const isSuspended = userData.suspended === true;
+                        const emoji = isSuspended ? '⚠️' : '✅';
+                        const status = isSuspended ? '[SUSPENDED]' : '[Active]';
+                        const label = `${emoji} ${userData.robloxUsername || 'Unknown'} ${status}`;
+                        
+                        userOptions.push({
+                            label: label.substring(0, 100), // Discord limit
+                            value: userData.discordId,
+                            description: `${userData.points || 0} points`,
+                            emoji: isSuspended ? '⚠️' : undefined
+                        });
+                    }
+                } catch (err) {
+                    console.error('Error fetching user:', key.name, err);
+                }
+            }
+            
+            if (userOptions.length === 0) {
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ No valid users found.',
+                        flags: 64
+                    }
+                });
+            }
+            
+            // Return message with select menu
+            return jsonResponse({
+                type: 4,
+                data: {
+                    content: '🛡️ **User Suspension Manager**\n\nSelect a user to suspend or unsuspend:',
+                    components: [
+                        {
+                            type: 1, // Action Row
+                            components: [
+                                {
+                                    type: 3, // Select Menu
+                                    custom_id: 'suspend_user_select',
+                                    placeholder: 'Choose a user...',
+                                    options: userOptions
+                                }
+                            ]
+                        }
+                    ],
+                    flags: 64 // Ephemeral
+                }
+            });
+        } catch (error) {
+            console.error('Admin config error:', error);
+            return jsonResponse({
+                type: 4,
+                data: {
+                    content: '❌ Error loading user list.',
+                    flags: 64
+                }
+            });
+        }
+    }
+    
+    return jsonResponse({
+        type: 4,
+        data: {
+            content: '❌ Unknown action',
+            flags: 64
+        }
+    });
 }
 
 
