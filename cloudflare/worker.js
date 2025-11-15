@@ -3089,8 +3089,10 @@ async function sendWelcomeEmail(env, email, firstName, accountNumber, points) {
 async function addToMailingList(env, email, firstName, lastName) {
     try {
         console.log('📧 Adding to Resend mailing list:', { email, firstName, lastName });
+        const audienceId = env.RESEND_AUDIENCE_ID || '22e67837-6cf5-426e-8c49-234b619a521f';
+        console.log('📧 Using audience ID:', audienceId);
         
-        const response = await fetch('https://api.resend.com/audiences/78618937-ef3f-45f7-a1ce-8549070384a5/contacts', {
+        const response = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${env.RESEND_API_KEY}`,
@@ -3134,7 +3136,7 @@ async function addToMailingList(env, email, firstName, lastName) {
 async function removeFromMailingList(env, email) {
     try {
         console.log('🗑️ Removing from mailing list:', email);
-        const audienceId = '78618937-ef3f-45f7-a1ce-8549070384a5';
+        const audienceId = env.RESEND_AUDIENCE_ID || '22e67837-6cf5-426e-8c49-234b619a521f';
         const response = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts/${email}`, {
             method: 'DELETE',
             headers: {
@@ -3157,7 +3159,7 @@ async function removeFromMailingList(env, email) {
 // Get mailing list contacts from Resend
 async function getMailingListContacts(env) {
     try {
-        const audienceId = '78618937-ef3f-45f7-a1ce-8549070384a5';
+        const audienceId = env.RESEND_AUDIENCE_ID || '22e67837-6cf5-426e-8c49-234b619a521f';
         const response = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
             method: 'GET',
             headers: {
