@@ -419,15 +419,54 @@ function t(key) {
 function applyLanguage() {
     const selectedLang = document.getElementById('language-select')?.value;
     if (selectedLang) {
+        currentLanguage = selectedLang;
         localStorage.setItem('mycirkle_language', selectedLang);
+        
+        // Update translations immediately
+        translateUIElements();
+        
         showNotification(
             t('languageApplied'),
             t('languageAppliedDesc'),
             'success'
         );
+        
+        // Refresh current page content
         setTimeout(() => {
-            window.location.reload();
-        }, 1500);
+            const currentPage = document.querySelector('.page:not(.hidden)')?.id;
+            if (currentPage === 'dashboard') {
+                showDashboard();
+            } else if (currentPage === 'rewards-page') {
+                showRewards();
+            } else if (currentPage === 'products-page') {
+                showProducts();
+            } else if (currentPage === 'loyalty-page') {
+                showLoyaltyCard();
+            } else if (currentPage === 'account-page') {
+                showAccount();
+            } else if (currentPage === 'faq-page') {
+                showFAQ();
+            }
+        }, 1000);
+    }
+}
+
+function translateUIElements() {
+    // Update navigation labels
+    const navLabels = document.querySelectorAll('.nav-label');
+    if (navLabels.length >= 6) {
+        navLabels[0].textContent = t('dashboard');
+        navLabels[1].textContent = t('rewards');
+        navLabels[2].textContent = t('products');
+        navLabels[3].textContent = t('loyaltyCard');
+        navLabels[4].textContent = t('faq');
+        navLabels[5].textContent = t('account');
+    }
+    
+    // Update logout button
+    const logoutBtn = document.querySelector('.logout-btn');
+    if (logoutBtn && !logoutBtn.querySelector('span')) {
+        logoutBtn.innerHTML = `<span>🚪</span> ${t('logout')}`;
     }
 }
 
@@ -1424,6 +1463,9 @@ function showDashboard() {
     
     console.log('Showing dashboard for user:', currentUser);
     
+    // Translate UI elements based on selected language
+    translateUIElements();
+    
     // Start auto-refresh when entering dashboard
     startPointsAutoRefresh();
     
@@ -1449,11 +1491,10 @@ function showDashboard() {
     const fullName = currentUser.fullName || `${currentUser.firstName} ${currentUser.lastName}`;
     const profileNameEl = document.getElementById('dash-profile-name');
     const memberSinceEl = document.getElementById('member-since');
-    const availablePointsEl = document.getElementById('available-points');
     
     if (profileNameEl) profileNameEl.textContent = fullName;
     if (memberSinceEl) memberSinceEl.textContent = currentUser.memberSince || new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    if (availablePointsEl) availablePointsEl.textContent = currentUser.points || 0;
+    // Don't set points here - let updateAllPointDisplays handle it after refresh
     
     // Update greeting in dashboard content
     setTimeout(() => {
@@ -1878,6 +1919,14 @@ function showRewards() {
                     </div>
                     
                     <div class="reward-card">
+                        <span class="reward-badge">1350 PTS</span>
+                        <div class="reward-icon">📢</div>
+                        <h4 class="reward-title">@everyone Ping & Ad</h4>
+                        <p class="reward-desc">Free @everyone ping + Paid Ad spot</p>
+                        <button onclick="redeemReward('@everyone Ping & Paid Ad', 1350)" class="reward-btn">Redeem</button>
+                    </div>
+                    
+                    <div class="reward-card">
                         <span class="reward-badge">2000 PTS</span>
                         <div class="reward-icon">🆓</div>
                         <h4 class="reward-title">Free Product</h4>
@@ -1886,8 +1935,19 @@ function showRewards() {
                     </div>
                 </div>
             </div>
+            
+            <div class="section-card mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="section-title">Recent Redemptions</h3>
+                    <button onclick="loadRedemptionHistory()" class="text-blue-600 hover:text-blue-700 text-sm font-semibold">View All</button>
+                </div>
+                <div id="redemption-history" class="space-y-2">
+                    <p class="text-sm text-gray-500 text-center py-4">Loading redemption history...</p>
+                </div>
+            </div>
         `;
                 updatePoints();
+                loadRedemptionHistory();
             })
             .catch(error => {
                 console.error('Failed to fetch daily reward:', error);
