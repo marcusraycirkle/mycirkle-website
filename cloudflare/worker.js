@@ -3433,15 +3433,19 @@ async function handleAdminConfigCommand(interaction, env) {
     
     if (action === 'suspend') {
         // Acknowledge immediately to prevent timeout
+        console.log('🔄 AdminConfig: Sending deferred response...');
         const response = jsonResponse({ type: 5 }); // Type 5 = Deferred response
         
-        // Process in background
-        (async () => {
+        // Process in background using context.waitUntil would be ideal, but we'll handle it differently
+        setTimeout(async () => {
+            console.log('🔄 AdminConfig: Processing user list...');
             try {
                 // Get all users from KV
                 const list = await env.USERS_KV.list({ prefix: 'user:', limit: 100 });
+                console.log(`📊 AdminConfig: Found ${list.keys?.length || 0} users`);
                 
                 if (!list || !list.keys || list.keys.length === 0) {
+                    console.log('❌ AdminConfig: No users found');
                     await sendFollowupMessage(interaction, env, {
                         content: '❌ No users found in the system.',
                         flags: 64
@@ -3473,8 +3477,10 @@ async function handleAdminConfigCommand(interaction, env) {
                 });
                 
                 const userOptions = (await Promise.all(userPromises)).filter(u => u !== null);
+                console.log(`✅ AdminConfig: Built ${userOptions.length} user options`);
                 
                 if (userOptions.length === 0) {
+                    console.log('❌ AdminConfig: No valid users');
                     await sendFollowupMessage(interaction, env, {
                         content: '❌ No valid users found.',
                         flags: 64
@@ -3483,6 +3489,7 @@ async function handleAdminConfigCommand(interaction, env) {
                 }
                 
                 // Send follow-up with select menu
+                console.log('📤 AdminConfig: Sending follow-up with select menu...');
                 await sendFollowupMessage(interaction, env, {
                     content: '🛡️ **User Suspension Manager**\n\nSelect a user to suspend or unsuspend:',
                     components: [
@@ -3500,14 +3507,15 @@ async function handleAdminConfigCommand(interaction, env) {
                     ],
                     flags: 64
                 });
+                console.log('✅ AdminConfig: Follow-up sent successfully');
             } catch (error) {
-                console.error('Admin config error:', error);
+                console.error('❌ AdminConfig error:', error);
                 await sendFollowupMessage(interaction, env, {
-                    content: '❌ Error loading user list.',
+                    content: '❌ Error loading user list: ' + error.message,
                     flags: 64
                 });
             }
-        })();
+        }, 0);
         
         return response;
     }
@@ -3522,18 +3530,23 @@ async function handleAdminConfigCommand(interaction, env) {
 }
 
 async function sendFollowupMessage(interaction, env, messageData) {
-    const BOT_TOKEN = env.DISCORD_BOT_TOKEN;
-    if (!BOT_TOKEN) return;
-    
     const webhookUrl = `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}`;
     
-    await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(messageData)
-    });
+    try {
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(messageData)
+        });
+        
+        if (!response.ok) {
+            console.error('Follow-up failed:', response.status, await response.text());
+        }
+    } catch (error) {
+        console.error('Follow-up error:', error);
+    }
 }
 
 
