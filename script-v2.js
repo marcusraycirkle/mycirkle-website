@@ -857,8 +857,16 @@ function startPointsAutoRefresh() {
     pointsRefreshInterval = setInterval(async () => {
         if (currentUser && currentUser.discordId) {
             const oldPoints = currentUser.points || 0;
+            const wasSuspended = currentUser.suspended === true;
             const refreshed = await refreshUserData();
             if (refreshed) {
+                // Check if user was just suspended
+                if (!wasSuspended && currentUser.suspended === true) {
+                    console.log('🚨 User has been suspended');
+                    showSuspensionModal();
+                    return;
+                }
+                
                 const newPoints = currentUser.points || 0;
                 if (newPoints !== oldPoints) {
                     console.log(`🔄 Points changed: ${oldPoints} → ${newPoints}`);
@@ -928,20 +936,19 @@ function showDashboard() {
         return;
     }
     
-    // Check if user is suspended
-    if (currentUser.suspended === true) {
-        showSuspensionModal();
-        return;
-    }
-    
     console.log('Showing dashboard for user:', currentUser);
     
     // Start auto-refresh when entering dashboard
     startPointsAutoRefresh();
     
-    // Refresh user data from API immediately
+    // Refresh user data from API immediately - THIS MUST HAPPEN FIRST
     refreshUserData().then(refreshed => {
         if (refreshed) {
+            // Check if user is suspended AFTER refresh
+            if (currentUser.suspended === true) {
+                showSuspensionModal();
+                return;
+            }
             updateAllPointDisplays();
         }
     });
