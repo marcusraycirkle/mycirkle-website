@@ -1905,6 +1905,14 @@ function showRewardsDefault() {
                     </div>
                     
                     <div class="reward-card">
+                        <span class="reward-badge">1350 PTS</span>
+                        <div class="reward-icon">📢</div>
+                        <h4 class="reward-title">@everyone Ping & Ad</h4>
+                        <p class="reward-desc">Free @everyone ping + Paid Ad spot</p>
+                        <button onclick="redeemReward('@everyone Ping & Paid Ad', 1350)" class="reward-btn">Redeem</button>
+                    </div>
+                    
+                    <div class="reward-card">
                         <span class="reward-badge">2000 PTS</span>
                         <div class="reward-icon">🆓</div>
                         <h4 class="reward-title">Free Product</h4>
@@ -2463,14 +2471,15 @@ function setTarget(target) {
     });
     
     // Highlight clicked button
-    event.target.classList.remove('bg-gray-200', 'text-gray-800');
-    event.target.classList.add('bg-blue-600', 'text-white');
-    
-    updateProgress();
-    setProgressTarget(target);
-}
-
-// Redeem Reward
+async function redeemReward(rewardType, customCost, customName) {
+    // Define reward costs (can be overridden by parameters)
+    const rewards = {
+        'Daily Reward': { cost: customCost || 10, name: customName || 'Daily Reward' },
+        '20% Discount': { cost: customCost || 1000, name: customName || '20% Product Discount' },
+        'Commission Discount': { cost: customCost || 750, name: customName || '40% Commission Discount' },
+        '@everyone Ping & Paid Ad': { cost: customCost || 1350, name: customName || '@everyone Ping & Paid Ad' },
+        'Free Product': { cost: customCost || 2000, name: customName || 'Free Product' }
+    };eem Reward
 async function redeemReward(rewardType, customCost, customName) {
     // Define reward costs (can be overridden by parameters)
     const rewards = {
