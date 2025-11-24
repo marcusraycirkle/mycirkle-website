@@ -522,17 +522,17 @@ function handlePayload(payload) {
                 // Wrap async calls in IIFE
                 (async () => {
                     try {
+                        await awardPoints(owner_id, pointsToAward, `Created a discussion thread`);
+                        await sendActivityDM(owner_id, pointsToAward, `Created a discussion thread`);
+                    } catch (err) {
+                        console.error('❌ Error awarding thread points:', err.message);
+                    }
+                })();
+            }
             break;
 
         case 11: // Heartbeat ACK
             heartbeatAcked = true;
-            // Silent - heartbeat acknowledged
-            break;
-
-        case 1: // Heartbeat request
-            ws.send(JSON.stringify({ op: 1, d: null }));
-            break;
-        case 11: // Heartbeat ACK
             // Silent - heartbeat acknowledged
             break;
 
