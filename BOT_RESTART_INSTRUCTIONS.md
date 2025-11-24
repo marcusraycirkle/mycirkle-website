@@ -16,7 +16,17 @@ Render's free tier spins down services after 15 minutes of inactivity. The bot n
 3. Upgrade to a paid plan ($7/month minimum)
 4. Paid plans keep services running 24/7
 
-### Option 2: Use UptimeRobot (Free Keep-Alive)
+### Option 2: Use BetterStack (Free Keep-Alive - Recommended)
+1. Go to https://betterstack.com/uptime and create free account
+2. Create New Monitor:
+   - Monitor Type: HTTP
+   - URL: `https://your-bot-service.onrender.com/health`
+   - Check Frequency: 3 minutes (or 1 minute on paid)
+   - Name: MyCirkle Bot
+3. Save monitor - BetterStack will ping your bot to keep it awake
+4. Bonus: Get incident alerts if bot actually goes down
+
+### Option 3: Use UptimeRobot (Free Alternative)
 1. Go to https://uptimerobot.com/ and create free account
 2. Add New Monitor:
    - Monitor Type: HTTP(s)
@@ -25,7 +35,7 @@ Render's free tier spins down services after 15 minutes of inactivity. The bot n
    - Monitoring Interval: 5 minutes
 3. Save monitor - this will ping your bot every 5 minutes to keep it awake
 
-### Option 3: Use Cron-Job.org (Free Keep-Alive)
+### Option 4: Use Cron-Job.org (Free Alternative)
 1. Go to https://cron-job.org/ and create free account
 2. Create new cronjob:
    - Title: MyCirkle Bot Keep-Alive
