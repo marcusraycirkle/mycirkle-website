@@ -1,33 +1,42 @@
 # Bot Restart Instructions - Activity Rewards Fix
 
 ## Issue
-- Users not receiving points every 5th message
-- Users not getting DMs when they earn activity points
-- Leaderboard showing old balances
+- Bot goes to "sleep" after about a minute on Render free tier
+- Users not receiving points every 5th message when bot is asleep
+- Commands still work but bot shows offline
 
 ## Root Cause
-The bot on Render needs to be restarted to pick up the code changes.
+Render's free tier spins down services after 15 minutes of inactivity. The bot needs external requests to stay alive.
 
 ## Solution
 
-### 1. Restart the Bot on Render
+### Option 1: Upgrade Render Plan (Recommended)
 1. Go to https://dashboard.render.com/
-2. Find your "mycirkle-bot" service
-3. Click "Manual Deploy" → "Clear build cache & deploy"
-4. OR click the three dots menu → "Restart"
+2. Select your bot service
+3. Upgrade to a paid plan ($7/month minimum)
+4. Paid plans keep services running 24/7
 
-### 2. Verify Bot is Working
-After restart, check:
-- Bot status shows "Online" in Discord
-- Send 5 messages in a tracked channel (IDs: `1365306074319683707` or `1315050837520809984`)
-- You should receive:
-  - 2 points added to your account
-  - A DM from the bot
-  - A message in the channel confirming points
+### Option 2: Use UptimeRobot (Free Keep-Alive)
+1. Go to https://uptimerobot.com/ and create free account
+2. Add New Monitor:
+   - Monitor Type: HTTP(s)
+   - Friendly Name: MyCirkle Bot
+   - URL: `https://your-bot-service.onrender.com/health`
+   - Monitoring Interval: 5 minutes
+3. Save monitor - this will ping your bot every 5 minutes to keep it awake
 
-### 3. Verify Leaderboard
-- Run `/leaderboard` command in Discord
-- Balances should show current points from KV storage
+### Option 3: Use Cron-Job.org (Free Keep-Alive)
+1. Go to https://cron-job.org/ and create free account
+2. Create new cronjob:
+   - Title: MyCirkle Bot Keep-Alive
+   - URL: `https://your-bot-service.onrender.com/health`
+   - Schedule: Every 5 minutes
+3. Enable the job
+
+### Get Your Render URL
+1. Go to https://dashboard.render.com/
+2. Click on your bot service
+3. Copy the URL at the top (looks like: `https://mycirkle-bot-xxxx.onrender.com`)
 
 ## Current Configuration
 - **Tracked Channels**: `1365306074319683707`, `1315050837520809984`

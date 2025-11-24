@@ -45,6 +45,15 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
     console.log(`🌐 Health check server running on port ${PORT}`);
+    
+    // Self-ping every 5 minutes to prevent Render from spinning down
+    setInterval(() => {
+        http.get(`http://localhost:${PORT}/health`, (res) => {
+            console.log('🏓 Self-ping to stay alive');
+        }).on('error', (err) => {
+            console.error('❌ Self-ping failed:', err.message);
+        });
+    }, 5 * 60 * 1000); // 5 minutes
 });
 
 // Minimal WebSocket connection to Discord Gateway
@@ -53,6 +62,7 @@ const https = require('https');
 
 let ws = null;
 let heartbeatInterval = null;
+let heartbeatAcked = true;
 let sessionId = null;
 let resumeGatewayUrl = null;
 let lastConfigFetch = null;
@@ -368,9 +378,19 @@ function connect() {
         handlePayload(payload);
     });
 
-    ws.on('close', (code) => {
-        console.log(`❌ Connection closed with code: ${code}`);
-        if (heartbeatInterval) clearInterval(heartbeatInterval);
+    ws.on('close', (code, reason) => {
+        console.log(`❌ Connection closed with code: ${code}, reason: ${reason}`);
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+        }
+        
+        // Don't keep session info on certain close codes
+        if (code === 4004 || code === 4010 || code === 4011 || code === 4012 || code === 4013 || code === 4014) {
+            console.log('⚠️ Non-resumable close code, clearing session');
+            sessionId = null;
+            resumeGatewayUrl = null;
+        }
         
         // Reconnect after 5 seconds
         setTimeout(() => {
@@ -394,7 +414,14 @@ function handlePayload(payload) {
             
             // Start heartbeat
             heartbeatInterval = setInterval(() => {
+                if (!heartbeatAcked) {
+                    console.warn('⚠️ Heartbeat not acknowledged, reconnecting...');
+                    ws.close();
+                    return;
+                }
+                
                 if (ws.readyState === WebSocket.OPEN) {
+                    heartbeatAcked = false;
                     ws.send(JSON.stringify({ op: 1, d: null }));
                 }
             }, heartbeat_interval);
@@ -416,7 +443,7 @@ function handlePayload(payload) {
                     op: 2,
                     d: {
                         token: BOT_TOKEN,
-                        intents: (1 << 9) | (1 << 15), // GUILD_MESSAGES (512) + MESSAGE_CONTENT (32768) = 33280
+                        intents: (1 << 0) | (1 << 9) | (1 << 15), // GUILDS (1) + GUILD_MESSAGES (512) + MESSAGE_CONTENT (32768) = 33281
                         properties: {
                             os: 'linux',
                             browser: 'mycirkle-bot',
@@ -495,15 +522,16 @@ function handlePayload(payload) {
                 // Wrap async calls in IIFE
                 (async () => {
                     try {
-                        await awardPoints(owner_id, pointsToAward, `Created a discussion thread`);
-                        await sendActivityDM(owner_id, pointsToAward, `Created a discussion thread`);
-                    } catch (err) {
-                        console.error('❌ Error awarding thread points:', err.message);
-                    }
-                })();
-            }
             break;
 
+        case 11: // Heartbeat ACK
+            heartbeatAcked = true;
+            // Silent - heartbeat acknowledged
+            break;
+
+        case 1: // Heartbeat request
+            ws.send(JSON.stringify({ op: 1, d: null }));
+            break;
         case 11: // Heartbeat ACK
             // Silent - heartbeat acknowledged
             break;
