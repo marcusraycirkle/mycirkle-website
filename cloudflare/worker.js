@@ -1,4 +1,116 @@
-// cloudflare/worker.js - MyCirkle Loyalty Program Backend - UPDATED
+// cloudflare/worker.js - MyCirkle Loyalty Program Backend - MAINTENANCE MODE
+export default {
+    async fetch(request, env, ctx) {
+        // MAINTENANCE MODE - Return maintenance page for all requests
+        const maintenanceHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyCirkle - Maintenance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            text-align: center;
+        }
+        .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+        h2 {
+            color: #667eea;
+            font-size: 24px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        p {
+            color: #666;
+            line-height: 1.8;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        .status {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 25px 0;
+            border-radius: 8px;
+            text-align: left;
+        }
+        .status strong {
+            color: #f59e0b;
+        }
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🔒</div>
+        <h1>Temporarily Unavailable</h1>
+        <h2>We'll Be Back Soon!</h2>
+        
+        <p>MyCirkle is currently undergoing emergency maintenance while we enhance our security systems.</p>
+        
+        <div class="status">
+            <strong>🛡️ SENTINEL Security Enhancement In Progress</strong><br>
+            We are implementing additional security measures to ensure the safety and integrity of our platform.
+        </div>
+        
+        <p><strong>We sincerely apologize for any inconvenience.</strong></p>
+        <p>Our team is working diligently to restore full service as quickly as possible.</p>
+        
+        <div class="footer">
+            <p>Thank you for your patience and understanding.</p>
+            <p>— The MyCirkle Development Team</p>
+        </div>
+    </div>
+</body>
+</html>
+        `;
+        
+        return new Response(maintenanceHTML, {
+            status: 503,
+            headers: {
+                'Content-Type': 'text/html',
+                'Retry-After': '3600'
+            }
+        });
+    }
+};
+
+// ============ ALL SYSTEMS DISABLED DURING MAINTENANCE ============
+/*
+// ORIGINAL CODE PRESERVED BELOW - DO NOT DELETE
+
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
@@ -4538,4 +4650,7 @@ async function sendTierUpgradeDM(env, userId, oldTier, newTier, points) {
         console.error('Tier upgrade DM error:', error);
     }
 }
+
+*/
+// ============ END OF PRESERVED CODE ============
 
