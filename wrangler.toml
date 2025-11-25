@@ -17,3 +17,12 @@ kv_namespaces = [
 # wrangler secret put SPREADSHEET_ID
 # wrangler secret put DISCORD_GUILD_ID
 # wrangler secret put ADMIN_PASSWORD
+
+# 🛡️ SENTINEL Security - Webhook Configuration (Encrypted)
+# These webhooks are securely stored and never exposed in logs
+[vars]
+ACCOUNT_WEBHOOK = "https://discord.com/api/webhooks/1442953154080542730/VSMjMQ94ACX-SAydEGwhYmtMPb54g-5LpVtgPENN7MPCbGfFt__8Uh6wqlNE57W7nJfp"
+REDEMPTION_WEBHOOK = "https://discord.com/api/webhooks/1442953390400475237/exnvbdFvY8hB8PF3C0NU8nT9LAxe8dc1EOuluLUjO76-Q0j0TOxtCk3qwnomxKdw2FzR"
+POINTS_WEBHOOK = "https://discord.com/api/webhooks/1442953613046710306/mUCXszlsb8TO0279AGF8ETaN-B3FPWHlVd3YMJr9lbmZ-_P1Jb3XxAR9VlpPURXmxD-T"
+LOGS_WEBHOOK = "https://discord.com/api/webhooks/1442954195962564852/pP_BPDhkB5_akdvHpRgGIE4WcK7mItQd94hn2NL960Hl-ftssDEieWvZP9vZ3MWBND6C"
+DELETION_WEBHOOK = "https://discord.com/api/webhooks/1442954830137135248/AaLDxtdI1loN437u6KluingUZdsg1bQgalx-AO7UBbW8AxLIulZ8SRk3FzlkPIIHDB5j"
