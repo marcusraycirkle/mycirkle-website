@@ -5,3 +5,13 @@
 *.pem
 secrets.json
 credentials.json
+
+# Security - Never commit these
+configure-webhooks.sh
+secure-webhooks.py
+*.log
+deploy-log.txt
+cloudflare/worker-extracted*.js
+cloudflare/worker-new.js
+cloudflare/worker-secure.js
+cloudflare/worker-maintenance-backup.js
