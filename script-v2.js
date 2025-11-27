@@ -2809,8 +2809,10 @@ async function redeemReward(rewardType, customCost, customName) {
             updateAllPointDisplays();
             
             // Show reward code
-            document.getElementById('reward-code').textContent = data.code;
-            document.getElementById('redeem-name').textContent = currentUser.firstName || currentUser.fullName || 'Friend';
+            const rewardCodeEl = document.getElementById('reward-code');
+            const redeemNameEl = document.getElementById('redeem-name');
+            if (rewardCodeEl) rewardCodeEl.textContent = data.code;
+            if (redeemNameEl) redeemNameEl.textContent = currentUser.firstName || currentUser.fullName || 'Friend';
             
             // Initialize scratch canvas
             initScratchCanvas();
@@ -2818,10 +2820,14 @@ async function redeemReward(rewardType, customCost, customName) {
             // Remove loading with success animation
             const overlay = document.getElementById('redemption-loading');
             if (overlay) {
-                overlay.querySelector('h3').textContent = '🎉 Success!';
-                overlay.querySelector('.bg-purple-50 p').textContent = '✨ Your reward is ready!';
+                const titleEl = overlay.querySelector('h3');
+                const messageEl = overlay.querySelector('.bg-gradient-to-r p');
+                if (titleEl) titleEl.textContent = '🎉 Success!';
+                if (messageEl) messageEl.textContent = '✨ Your reward is ready!';
                 setTimeout(() => {
-                    document.body.removeChild(overlay);
+                    if (document.body.contains(overlay)) {
+                        document.body.removeChild(overlay);
+                    }
                     showPage('redeem');
                 }, 800);
             } else {
