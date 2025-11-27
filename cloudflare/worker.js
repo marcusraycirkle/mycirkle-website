@@ -957,7 +957,7 @@ export default {
                     // Add small delay before webhook
                     await new Promise(resolve => setTimeout(resolve, 100));
                     
-                    await fetch(welcomeChannelWebhook, {
+                    await fetch(webhookUrl1, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1017,7 +1017,7 @@ export default {
                         // Send marketing webhook notification
                         console.log('🔔 Sending marketing signup webhook...');
                         const webhookUrl2 = getWebhooks(env).ACCOUNT;
-                        await fetch(marketingWebhook, {
+                        await fetch(webhookUrl2, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -1071,7 +1071,7 @@ export default {
                         // Send role assignment confirmation webhook
                         const webhookUrl3 = getWebhooks(env).ACCOUNT;
                         try {
-                            await fetch(roleWebhook, {
+                            await fetch(webhookUrl3, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -1097,7 +1097,7 @@ export default {
                         // Send failure webhook
                         const webhookUrl4 = getWebhooks(env).ACCOUNT;
                         try {
-                            await fetch(roleWebhook, {
+                            await fetch(webhookUrl4, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -1124,7 +1124,7 @@ export default {
                     // Send error webhook
                     const webhookUrl5 = getWebhooks(env).ACCOUNT;
                     try {
-                        await fetch(roleWebhook, {
+                        await fetch(webhookUrl5, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -1149,7 +1149,7 @@ export default {
                 const webhookUrl6 = getWebhooks(env).ACCOUNT;
                 try {
                     await new Promise(resolve => setTimeout(resolve, 300));
-                    const webhookResponse = await fetch(accountWebhook, {
+                    const webhookResponse = await fetch(webhookUrl6, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1283,7 +1283,7 @@ export default {
                 // Log to redemption webhook
                 const redemptionWebhook = getWebhooks(env).REDEMPTION;
                 try {
-                    await fetch(redemptionWebhook, {
+                    await fetch(getWebhooks(env).REDEMPTION, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1640,7 +1640,7 @@ export default {
 
                 // Send webhook notification about account deletion
                 try {
-                    const deletionWebhook = 'https://discord.com/api/webhooks/1439026719326470164/-8qt_MMRzD55-Tr5BkV5AbuoC3lAa5NTc1hGBJ3dLn48kAXuZyQxmLHFouaNu9cnxc_X';
+                    const deletionWebhook = getWebhooks(env).DELETION;
                     await fetch(deletionWebhook, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -2092,7 +2092,7 @@ export default {
                 // Log to activity logs channel
                 try {
                     const webhookUrl7 = getWebhooks(env).ACCOUNT;
-                    await fetch(logsWebhook, {
+                    await fetch(getWebhooks(env).LOGS, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -2553,7 +2553,7 @@ export default {
                             // Log to Discord webhook
                             try {
                                 const webhookUrl8 = getWebhooks(env).ACCOUNT;
-                                await fetch(logsWebhook, {
+                                await fetch(getWebhooks(env).LOGS, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
@@ -2727,7 +2727,7 @@ export default {
                 
                 // Log purchase to Discord
                 const webhookUrl9 = getWebhooks(env).ACCOUNT;
-                await fetch(logsWebhook, {
+                await fetch(getWebhooks(env).LOGS, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -3106,7 +3106,7 @@ async function handleDiscordInteraction(request, env) {
                 // Log to admin webhook
                 const webhookUrl10 = getWebhooks(env).ACCOUNT;
                 try {
-                    await fetch(adminLogsWebhook, {
+                    await fetch(getWebhooks(env).LOGS, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -3245,7 +3245,7 @@ async function handleDiscordInteraction(request, env) {
                 // Log to admin webhook
                 const webhookUrl11 = getWebhooks(env).ACCOUNT;
                 try {
-                    await fetch(adminLogsWebhook, {
+                    await fetch(getWebhooks(env).LOGS, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -3832,7 +3832,7 @@ async function handleGivePointsCommand(interaction, env) {
         }
         
         // Log to points activity webhook
-        const pointsWebhook = 'https://discord.com/api/webhooks/1436826449150742679/ExNLzfnEG3CCemhOpVxNxLrzH4U57ekFKhnm7td_FTNP9El2lJsxA8AsxcJKorziy9gw';
+        const pointsWebhook = getWebhooks(env).POINTS;
         try {
             await fetch(pointsWebhook, {
                 method: 'POST',
@@ -3939,7 +3939,7 @@ async function handleDeductPointsCommand(interaction, env) {
         }
         
         // Log to points activity webhook
-        const pointsWebhook = 'https://discord.com/api/webhooks/1436826449150742679/ExNLzfnEG3CCemhOpVxNxLrzH4U57ekFKhnm7td_FTNP9El2lJsxA8AsxcJKorziy9gw';
+        const pointsWebhook = getWebhooks(env).POINTS;
         try {
             await fetch(pointsWebhook, {
                 method: 'POST',
@@ -4076,7 +4076,7 @@ async function handleProcessCommand(interaction, env) {
                 });
             }
             
-            await fetch(redemptionWebhook, {
+            await fetch(getWebhooks(env).REDEMPTION, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ embeds: [embedData] })
@@ -4127,7 +4127,7 @@ async function handleDailyRewardCommand(interaction, env) {
         // Log to admin logs webhook
         const webhookUrl13 = getWebhooks(env).ACCOUNT;
         try {
-            await fetch(adminLogsWebhook, {
+            await fetch(getWebhooks(env).LOGS, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
