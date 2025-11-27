@@ -2693,40 +2693,45 @@ async function redeemReward(rewardType, customCost, customName) {
         return;
     }
     
-    // Show fun loading screen with steps
+    // Show fun loading screen with steps and animations
     const loadingOverlay = document.createElement('div');
     loadingOverlay.id = 'redemption-loading';
-    loadingOverlay.className = 'fixed inset-0 bg-gradient-to-br from-purple-600 via-pink-500 to-red-500 flex items-center justify-center z-50';
+    loadingOverlay.className = 'fixed inset-0 bg-gradient-to-br from-purple-600 via-pink-500 to-red-500 flex items-center justify-center z-50 animate-fade-in';
     loadingOverlay.innerHTML = `
-        <div class="bg-white p-10 rounded-3xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl max-w-md w-full mx-4 transform transition-all animate-scale-in">
             <div class="text-center">
-                <div class="relative inline-block">
+                <div class="relative inline-block mb-2">
                     <div class="loading-spinner-large"></div>
                     <div class="absolute inset-0 flex items-center justify-center">
-                        <span class="text-3xl" id="loading-emoji">🎁</span>
+                        <span class="text-4xl animate-bounce" id="loading-emoji">🎁</span>
                     </div>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-800 mt-6 mb-4">Processing Your Reward!</h3>
-                <div class="space-y-3 text-left">
-                    <div class="flex items-center" id="step-1">
+                <h3 class="text-2xl font-bold text-gray-800 mt-6 mb-4 animate-pulse">Processing Your Reward!</h3>
+                <div class="space-y-3 text-left mb-4">
+                    <div class="flex items-center transition-all duration-300" id="step-1">
                         <span class="text-2xl mr-3">⏳</span>
-                        <span class="text-gray-600">Verifying points balance...</span>
+                        <span class="text-gray-600 font-medium">Verifying points balance...</span>
                     </div>
-                    <div class="flex items-center" id="step-2">
+                    <div class="flex items-center transition-all duration-300" id="step-2">
                         <span class="text-2xl mr-3">⏳</span>
-                        <span class="text-gray-600">Generating reward code...</span>
+                        <span class="text-gray-600 font-medium">Generating reward code...</span>
                     </div>
-                    <div class="flex items-center" id="step-3">
+                    <div class="flex items-center transition-all duration-300" id="step-3">
                         <span class="text-2xl mr-3">⏳</span>
-                        <span class="text-gray-600">Updating your account...</span>
+                        <span class="text-gray-600 font-medium">Updating your account...</span>
                     </div>
-                    <div class="flex items-center" id="step-4">
+                    <div class="flex items-center transition-all duration-300" id="step-4">
                         <span class="text-2xl mr-3">⏳</span>
-                        <span class="text-gray-600">Notifying team...</span>
+                        <span class="text-gray-600 font-medium">Notifying team...</span>
                     </div>
                 </div>
-                <div class="mt-6 bg-purple-50 border-2 border-purple-200 rounded-lg p-3">
-                    <p class="text-sm text-purple-700 font-semibold">✨ Almost there! Hang tight...</p>
+                <div class="mt-6 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl p-4 animate-pulse">
+                    <p class="text-sm text-purple-700 font-bold">✨ Almost there! Hang tight...</p>
+                    <div class="mt-2 flex justify-center space-x-1">
+                        <span class="inline-block w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 0s"></span>
+                        <span class="inline-block w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></span>
+                        <span class="inline-block w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2758,6 +2763,16 @@ async function redeemReward(rewardType, customCost, customName) {
         if (step3) step3.querySelector('span').textContent = '✅';
     }, 1200);
     
+    // Set a timeout to prevent stuck loading
+    const timeoutId = setTimeout(() => {
+        const overlay = document.getElementById('redemption-loading');
+        if (overlay && document.body.contains(overlay)) {
+            document.body.removeChild(overlay);
+            clearInterval(emojiInterval);
+            showNotification('Timeout', 'Request took too long. Please check your connection and try again.', 'error');
+        }
+    }, 15000); // 15 second timeout
+    
     try {
         // Complete step 4 animation
         setTimeout(() => {
@@ -2775,6 +2790,8 @@ async function redeemReward(rewardType, customCost, customName) {
                 pointsCost: reward.cost
             })
         });
+        
+        clearTimeout(timeoutId);
         
         if (!response.ok) {
             throw new Error(`API returned status ${response.status}`);
@@ -2880,24 +2897,39 @@ function initScratchCanvas() {
 // Exit Redeem - reload user data and refresh to dashboard
 async function exitRedeem() {
     try {
-        // Show loading briefly
+        // Show fun loading screen
         const loading = document.createElement('div');
-        loading.className = 'fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50';
-        loading.innerHTML = '<div class="bg-white p-6 rounded-lg shadow-lg"><div class="loading-spinner"></div><p class="mt-3 text-gray-600">Refreshing...</p></div>';
+        loading.className = 'fixed inset-0 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center z-50';
+        loading.innerHTML = `
+            <div class="bg-white p-8 rounded-2xl shadow-2xl transform transition-all">
+                <div class="text-center">
+                    <div class="loading-spinner-large mb-4"></div>
+                    <p class="text-xl font-bold text-gray-800">Syncing your account...</p>
+                    <p class="text-sm text-gray-500 mt-2">🔄 Updating points & rewards</p>
+                </div>
+            </div>
+        `;
         document.body.appendChild(loading);
         
-        // Reload user data to sync points
+        // Reload user data to sync points across all devices
         if (currentUser && (currentUser.id || currentUser.discordId)) {
             await loadUserData();
+            // Force update all point displays
+            updateAllPointDisplays();
+            // Update localStorage
+            localStorage.setItem('points', currentPoints);
+            localStorage.setItem('user', JSON.stringify(currentUser));
         }
         
         // Remove loading
-        document.body.removeChild(loading);
+        if (document.body.contains(loading)) {
+            document.body.removeChild(loading);
+        }
         
-        // Return to dashboard (not rewards page directly)
-        showPage('dashboard');
+        // Return to rewards page with proper refresh
+        showPage('rewards');
         
-        // Refresh rewards display if needed
+        // Refresh rewards display
         updateAllPointDisplays();
     } catch (error) {
         console.error('Error refreshing:', error);

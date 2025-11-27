@@ -1283,8 +1283,9 @@ export default {
 
                 // Log to redemption webhook
                 const redemptionWebhook = getWebhooks(env).REDEMPTION;
+                console.log('🔔 Sending to REDEMPTION webhook:', redemptionWebhook ? 'SET' : 'NOT SET');
                 try {
-                    await fetch(getWebhooks(env).REDEMPTION, {
+                    await fetch(redemptionWebhook, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1304,8 +1305,9 @@ export default {
                             }]
                         })
                     });
+                    console.log('✅ Redemption webhook sent successfully');
                 } catch (webhookError) {
-                    console.error('Webhook error:', webhookError);
+                    console.error('❌ Webhook error:', webhookError);
                 }
 
                 return jsonResponse({ 
