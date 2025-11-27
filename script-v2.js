@@ -2919,12 +2919,32 @@ async function exitRedeem() {
         
         // Reload user data to sync points across all devices
         if (currentUser && (currentUser.id || currentUser.discordId)) {
-            await loadUserData();
-            // Force update all point displays
-            updateAllPointDisplays();
-            // Update localStorage
-            localStorage.setItem('points', currentPoints);
-            localStorage.setItem('user', JSON.stringify(currentUser));
+            try {
+                const userDataResponse = await fetch(`${WORKER_URL}/api/user-data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ discordId: currentUser.id || currentUser.discordId })
+                });
+                
+                if (userDataResponse.ok) {
+                    const userData = await userDataResponse.json();
+                    if (userData.discordId || userData.accountNumber) {
+                        // Update current user with fresh data
+                        currentUser = { ...currentUser, ...userData };
+                        currentPoints = userData.points || 0;
+                        
+                        // Update localStorage
+                        localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
+                        localStorage.setItem('points', currentPoints);
+                        
+                        // Force update all point displays
+                        updateAllPointDisplays();
+                    }
+                }
+            } catch (fetchError) {
+                console.warn('Could not refresh user data:', fetchError);
+                // Continue anyway with cached data
+            }
         }
         
         // Remove loading
