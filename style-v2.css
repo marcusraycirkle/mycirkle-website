@@ -2776,12 +2776,6 @@ select.modern-input option {
 
 /* ===== FOOTER FIX ===== */
 /* Footer stays at bottom */
-.footer {
-    position: fixed !important;
-    bottom: 0 !important;
-    opacity: 1 !important;
-}
-
 /* ===== TEXT COLOR FIXES ===== */
 .faq-question,
 .faq-question span {
