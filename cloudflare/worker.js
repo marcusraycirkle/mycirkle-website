@@ -94,7 +94,8 @@ function getWebhooks(env) {
         REDEMPTION: env.REDEMPTION_WEBHOOK || '',
         POINTS: env.POINTS_WEBHOOK || '',
         LOGS: env.LOGS_WEBHOOK || '',
-        DELETION: env.DELETION_WEBHOOK || ''
+        DELETION: env.DELETION_WEBHOOK || '',
+        WELCOME: env.WELCOME_WEBHOOK || ''
     };
 }
 
@@ -929,7 +930,7 @@ export default {
                 }
 
                 // Send public welcome message to channel with user's profile photo
-                const webhookUrl1 = getWebhooks(env).ACCOUNT;
+                const webhookUrl1 = getWebhooks(env).WELCOME;
                 try {
                     // Add delay to prevent rate limiting
                     await new Promise(resolve => setTimeout(resolve, 200));
@@ -1016,7 +1017,7 @@ export default {
                         
                         // Send marketing webhook notification
                         console.log('🔔 Sending marketing signup webhook...');
-                        const webhookUrl2 = getWebhooks(env).ACCOUNT;
+                        const webhookUrl2 = getWebhooks(env).LOGS;
                         await fetch(webhookUrl2, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
