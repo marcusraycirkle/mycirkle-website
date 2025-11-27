@@ -1494,6 +1494,23 @@ select {
     margin: 0 auto 30px;
 }
 
+/* Large Loading Spinner for Redemption */
+.loading-spinner-large {
+    width: 80px;
+    height: 80px;
+    border: 6px solid #f3f4f6;
+    border-top-color: #8b5cf6;
+    border-right-color: #ec4899;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 .loading-content h2 {
     color: #2d3748;
     margin-bottom: 10px;

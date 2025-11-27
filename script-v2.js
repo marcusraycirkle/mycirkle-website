@@ -2693,13 +2693,78 @@ async function redeemReward(rewardType, customCost, customName) {
         return;
     }
     
-    // Show loading
+    // Show fun loading screen with steps
     const loadingOverlay = document.createElement('div');
-    loadingOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-    loadingOverlay.innerHTML = '<div class="bg-white p-8 rounded-lg"><div class="loading-spinner"></div><p class="mt-4">Processing redemption...</p></div>';
+    loadingOverlay.id = 'redemption-loading';
+    loadingOverlay.className = 'fixed inset-0 bg-gradient-to-br from-purple-600 via-pink-500 to-red-500 flex items-center justify-center z-50';
+    loadingOverlay.innerHTML = `
+        <div class="bg-white p-10 rounded-3xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+            <div class="text-center">
+                <div class="relative inline-block">
+                    <div class="loading-spinner-large"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-3xl" id="loading-emoji">🎁</span>
+                    </div>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mt-6 mb-4">Processing Your Reward!</h3>
+                <div class="space-y-3 text-left">
+                    <div class="flex items-center" id="step-1">
+                        <span class="text-2xl mr-3">⏳</span>
+                        <span class="text-gray-600">Verifying points balance...</span>
+                    </div>
+                    <div class="flex items-center" id="step-2">
+                        <span class="text-2xl mr-3">⏳</span>
+                        <span class="text-gray-600">Generating reward code...</span>
+                    </div>
+                    <div class="flex items-center" id="step-3">
+                        <span class="text-2xl mr-3">⏳</span>
+                        <span class="text-gray-600">Updating your account...</span>
+                    </div>
+                    <div class="flex items-center" id="step-4">
+                        <span class="text-2xl mr-3">⏳</span>
+                        <span class="text-gray-600">Notifying team...</span>
+                    </div>
+                </div>
+                <div class="mt-6 bg-purple-50 border-2 border-purple-200 rounded-lg p-3">
+                    <p class="text-sm text-purple-700 font-semibold">✨ Almost there! Hang tight...</p>
+                </div>
+            </div>
+        </div>
+    `;
     document.body.appendChild(loadingOverlay);
     
+    // Animate loading steps
+    const emojis = ['🎁', '✨', '🎉', '🎊', '💝', '🌟'];
+    let emojiIndex = 0;
+    const emojiInterval = setInterval(() => {
+        const emojiEl = document.getElementById('loading-emoji');
+        if (emojiEl) {
+            emojiIndex = (emojiIndex + 1) % emojis.length;
+            emojiEl.textContent = emojis[emojiIndex];
+        }
+    }, 300);
+    
+    // Progress through steps
+    setTimeout(() => {
+        const step1 = document.getElementById('step-1');
+        if (step1) step1.querySelector('span').textContent = '✅';
+    }, 400);
+    setTimeout(() => {
+        const step2 = document.getElementById('step-2');
+        if (step2) step2.querySelector('span').textContent = '✅';
+    }, 800);
+    setTimeout(() => {
+        const step3 = document.getElementById('step-3');
+        if (step3) step3.querySelector('span').textContent = '✅';
+    }, 1200);
+    
     try {
+        // Complete step 4 animation
+        setTimeout(() => {
+            const step4 = document.getElementById('step-4');
+            if (step4) step4.querySelector('span').textContent = '✅';
+        }, 1600);
+        
         // Call API to redeem
         const response = await fetch(`${WORKER_URL}/api/redeem`, {
             method: 'POST',
@@ -2711,7 +2776,14 @@ async function redeemReward(rewardType, customCost, customName) {
             })
         });
         
+        if (!response.ok) {
+            throw new Error(`API returned status ${response.status}`);
+        }
+        
         const data = await response.json();
+        
+        // Clear emoji interval
+        clearInterval(emojiInterval);
         
         if (data.success) {
             // Update local points
@@ -2726,18 +2798,32 @@ async function redeemReward(rewardType, customCost, customName) {
             // Initialize scratch canvas
             initScratchCanvas();
             
-            // Remove loading
-            document.body.removeChild(loadingOverlay);
-            
-            showPage('redeem');
+            // Remove loading with success animation
+            const overlay = document.getElementById('redemption-loading');
+            if (overlay) {
+                overlay.querySelector('h3').textContent = '🎉 Success!';
+                overlay.querySelector('.bg-purple-50 p').textContent = '✨ Your reward is ready!';
+                setTimeout(() => {
+                    document.body.removeChild(overlay);
+                    showPage('redeem');
+                }, 800);
+            } else {
+                showPage('redeem');
+            }
         } else {
-            document.body.removeChild(loadingOverlay);
+            // Remove loading
+            const overlay = document.getElementById('redemption-loading');
+            if (overlay) document.body.removeChild(overlay);
+            clearInterval(emojiInterval);
             showNotification('Redemption Failed', data.error || 'Redemption failed. Please try again.', 'error');
         }
     } catch (error) {
-        document.body.removeChild(loadingOverlay);
+        // Always remove loading on error
+        const overlay = document.getElementById('redemption-loading');
+        if (overlay) document.body.removeChild(overlay);
+        clearInterval(emojiInterval);
         console.error('Redemption error:', error);
-        showNotification('Error', 'Failed to process redemption. Please try again.', 'error');
+        showNotification('Error', 'Failed to process redemption. Please try again later.', 'error');
     }
 }
 
@@ -2791,9 +2877,33 @@ function initScratchCanvas() {
     canvas.addEventListener('touchend', () => isScratching = false);
 }
 
-// Exit Redeem
-function exitRedeem() {
-    showPage('rewards');
+// Exit Redeem - reload user data and refresh to dashboard
+async function exitRedeem() {
+    try {
+        // Show loading briefly
+        const loading = document.createElement('div');
+        loading.className = 'fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50';
+        loading.innerHTML = '<div class="bg-white p-6 rounded-lg shadow-lg"><div class="loading-spinner"></div><p class="mt-3 text-gray-600">Refreshing...</p></div>';
+        document.body.appendChild(loading);
+        
+        // Reload user data to sync points
+        if (currentUser && (currentUser.id || currentUser.discordId)) {
+            await loadUserData();
+        }
+        
+        // Remove loading
+        document.body.removeChild(loading);
+        
+        // Return to dashboard (not rewards page directly)
+        showPage('dashboard');
+        
+        // Refresh rewards display if needed
+        updateAllPointDisplays();
+    } catch (error) {
+        console.error('Error refreshing:', error);
+        // Fallback to rewards page
+        showPage('rewards');
+    }
 }
 
 // Load user products from Parcel API
