@@ -44,9 +44,9 @@
 <body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
     
     <!-- Footer (always visible, positioned fixed) -->
-    <footer class="footer" style="display: flex; justify-content: space-between; align-items: center; gap: 15px;">
-        <span style="color: #000; font-weight: 500;">© Cirkle Development 2024 - https://discord.gg/245XzVPZd</span>
-        <div style="display: flex; align-items: center; gap: 15px;">
+    <footer class="footer" style="display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap;">
+        <span style="color: #000; font-weight: 500; text-align: center;">© Cirkle Development 2024 - https://discord.gg/245XzVPZd</span>
+        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap; justify-content: center;">
             <!-- SENTINEL Security Badge -->
             <div class="sentinel-badge" style="display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 8px 16px; border-radius: 25px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)';">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="animation: pulse-glow 2s ease-in-out infinite;">
@@ -103,12 +103,17 @@
         @media (max-width: 768px) {
             .footer {
                 flex-direction: column !important;
-                gap: 10px !important;
-                padding: 10px !important;
+                gap: 8px !important;
+                padding: 8px 10px !important;
+                padding-bottom: 12px !important;
+            }
+            
+            .footer span {
+                font-size: 0.75rem !important;
             }
             
             .sentinel-badge {
-                transform: scale(0.9);
+                transform: scale(0.85) !important;
             }
         }
     </style>

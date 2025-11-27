@@ -735,11 +735,17 @@ input::placeholder {
     background: transparent;
     opacity: 1;
     text-align: center;
-    padding: 15px 10px;
+    padding: 12px 20px;
+    padding-bottom: 15px;
     font-size: 0.85em;
     color: #ffffff;
     border: none;
-    z-index: 999;
+    z-index: 998;
+    pointer-events: none;
+}
+
+.footer > * {
+    pointer-events: auto;
 }
 
 /* ===== PROFILE SECTION ===== */
@@ -1872,6 +1878,7 @@ select.modern-input option {
 
 .sidebar-footer {
     padding: 1.5rem;
+    padding-bottom: 5rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
