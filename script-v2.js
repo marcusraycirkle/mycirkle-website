@@ -3263,25 +3263,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mobileBtn) {
         mobileBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
     }
-    
-    // Footer visibility on scroll
-    const footer = document.querySelector('.footer');
-    if (footer) {
-        const checkFooterVisibility = () => {
-            const scrollPosition = window.innerHeight + window.scrollY;
-            const pageHeight = document.documentElement.scrollHeight;
-            const atBottom = scrollPosition >= pageHeight - 50; // 50px threshold
-            
-            if (atBottom) {
-                footer.classList.add('visible');
-            } else {
-                footer.classList.remove('visible');
-            }
-        };
-        
-        window.addEventListener('scroll', checkFooterVisibility);
-        checkFooterVisibility(); // Check on load
-    }
 });
 
 // ===== NEW FEATURES FOR MYCIRKLE REDESIGN =====
