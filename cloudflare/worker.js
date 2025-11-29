@@ -1803,20 +1803,38 @@ export default {
                 const mailingList = await getMailingListContacts(env);
                 console.log('📋 Mailing list response:', { length: mailingList.length, sample: mailingList[0] });
                 
-                // If using Resend audience contacts directly
+                // Always fetch user data from Google Sheets to get points
+                console.log('📄 Fetching users from Google Sheets for points data...');
+                const allUsers = await getAllUsers(env);
+                console.log(`📄 Found ${allUsers.length} total users`);
+                
+                // Create email to user data map
+                const userDataMap = new Map();
+                allUsers.forEach(user => {
+                    if (user.email) {
+                        userDataMap.set(user.email.toLowerCase(), user);
+                    }
+                });
+                
+                // If using Resend audience contacts, merge with points data
                 if (recipients === 'all' && mailingList.length > 0) {
-                    console.log(`✅ Using ${mailingList.length} contacts directly from Resend audience`);
+                    console.log(`✅ Using ${mailingList.length} contacts from Resend audience`);
                     
-                    const targetUsers = mailingList.map(contact => ({
-                        email: contact.email,
-                        firstName: contact.first_name || 'Member',
-                        lastName: contact.last_name || '',
-                        fullName: `${contact.first_name || 'Member'} ${contact.last_name || ''}`.trim()
-                    }));
+                    const targetUsers = mailingList.map(contact => {
+                        const userData = userDataMap.get(contact.email.toLowerCase());
+                        return {
+                            email: contact.email,
+                            firstName: contact.first_name || 'Member',
+                            lastName: contact.last_name || '',
+                            fullName: `${contact.first_name || 'Member'} ${contact.last_name || ''}`.trim(),
+                            points: userData?.points || 0,
+                            discordId: userData?.discordId || null
+                        };
+                    });
                     
                     console.log(`🎯 Target users: ${targetUsers.length}`);
                     
-                    // Send emails via Resend
+                    // Send emails via Resend with rate limiting and progress updates
                     const sent = await sendBulkEmails(env, targetUsers, subject, message);
                     
                     // Log to history
@@ -1837,12 +1855,7 @@ export default {
                 const mailingEmails = new Set(mailingList.map(c => c.email));
                 console.log(`✅ Mailing list has ${mailingEmails.size} contacts`);
                 
-                // Get all users from Google Sheets
-                console.log('📄 Fetching users from Google Sheets...');
-                const allUsers = await getAllUsers(env);
-                console.log(`📄 Found ${allUsers.length} total users`);
-                
-                // Filter to only users who are in the mailing list
+                // Filter to only users who are in the mailing list (already have allUsers from above)
                 const users = allUsers.filter(u => u.email && mailingEmails.has(u.email));
                 
                 console.log(`Filtered to ${users.length} users who opted into marketing`);
@@ -1888,8 +1901,8 @@ export default {
                     return jsonResponse({ error: errorMsg }, 400, corsHeaders);
                 }
 
-                // Send emails via Resend
-                const sent = await sendBulkEmails(env, targetUsers, subject, message);
+                // Send emails via Resend with rate limiting and progress updates
+                const sent = await sendBulkEmailsWithProgress(env, targetUsers, subject, message);
                 
                 // Log to history
                 await logEmailHistory(env, {
@@ -4216,24 +4229,102 @@ async function handleAdminConfigCommand(interaction, env) {
 
 // ===== EMAIL FUNCTIONS =====
 
-// Send bulk emails via Resend
+// Send progress DM to admin
+async function sendProgressDM(env, messageId, totalEmails, sentCount, isComplete = false) {
+    const ADMIN_USER_ID = '1088907566844739624';
+    
+    try {
+        if (!env.DISCORD_BOT_TOKEN) return;
+        
+        // Get or create DM channel
+        const dmChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ recipient_id: ADMIN_USER_ID })
+        });
+        
+        if (!dmChannelResponse.ok) return;
+        const dmChannel = await dmChannelResponse.json();
+        
+        const percentage = Math.round((sentCount / totalEmails) * 100);
+        const progressBar = '█'.repeat(Math.floor(percentage / 5)) + '░'.repeat(20 - Math.floor(percentage / 5));
+        
+        const embed = {
+            title: isComplete ? '✅ Email Campaign Complete!' : '📧 Processing Email Campaign',
+            description: isComplete 
+                ? `Successfully sent **${sentCount}** out of **${totalEmails}** emails!`
+                : `Sending emails... Please wait.`,
+            color: isComplete ? 0x10b981 : 0x3b82f6,
+            fields: [
+                {
+                    name: '📊 Progress',
+                    value: `${progressBar} ${percentage}%\n**${sentCount}** / **${totalEmails}** emails sent`,
+                    inline: false
+                }
+            ],
+            footer: { text: isComplete ? 'Campaign finished' : 'Updating every 10 emails...' },
+            timestamp: new Date().toISOString()
+        };
+        
+        if (messageId) {
+            // Edit existing message
+            await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages/${messageId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ embeds: [embed] })
+            });
+        } else {
+            // Create new message
+            const response = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ embeds: [embed] })
+            });
+            
+            if (response.ok) {
+                const msg = await response.json();
+                return msg.id;
+            }
+        }
+    } catch (error) {
+        console.error('Error sending progress DM:', error);
+    }
+    return messageId;
+}
+
+// Send bulk emails via Resend with rate limiting
 async function sendBulkEmails(env, users, subject, message) {
     const sent = [];
+    const totalEmails = users.length;
+    let progressMessageId = null;
+    
+    // Send initial progress DM
+    progressMessageId = await sendProgressDM(env, null, totalEmails, 0);
     
     // Use verified Resend domain
     const fromEmail = 'MyCirkle <mycirkle@notifications.cirkledevelopment.co.uk>';
     const headerImageUrl = 'https://www.dropbox.com/scl/fi/7chi01vofepeowexh8gk3/cirkledevtest.png?rlkey=qbrgav91n9vw63o7tv2ktphsw&st=e9zza41p&dl=1';
     const logoImageUrl = 'https://raw.githubusercontent.com/marcusraycirkle/mycirkle-website/main/assets/mycirkle-logo.png';
     
-    for (const user of users) {
+    for (let i = 0; i < users.length; i++) {
+        const user = users[i];
         try {
             const personalizedMessage = message
-                .replace(/{{firstName}}/g, user.fullName?.split(' ')[0] || 'Friend')
-                .replace(/{{points}}/g, user.points || 5);
+                .replace(/{{firstName}}/g, user.fullName?.split(' ')[0] || user.firstName || 'Friend')
+                .replace(/{{points}}/g, user.points !== undefined ? user.points : 0);
             
             const personalizedSubject = subject
-                .replace(/{{firstName}}/g, user.fullName?.split(' ')[0] || 'Friend')
-                .replace(/{{points}}/g, user.points || 5);
+                .replace(/{{firstName}}/g, user.fullName?.split(' ')[0] || user.firstName || 'Friend')
+                .replace(/{{points}}/g, user.points !== undefined ? user.points : 0);
             
             const response = await fetch('https://api.resend.com/emails', {
                 method: 'POST',
@@ -4245,61 +4336,30 @@ async function sendBulkEmails(env, users, subject, message) {
                     from: fromEmail,
                     to: [user.email],
                     subject: personalizedSubject,
-                    html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;"><div style="text-align: center; padding: 0; margin: 0;"><img src="${headerImageUrl}" alt="MyCirkle Header" width="600" height="auto" style="width: 100%; max-width: 600px; height: auto; display: block; margin: 0; padding: 0; border: 0; outline: none;" /></div><div style="text-align: center; padding: 20px 0;"><img src="${logoImageUrl}" alt="MyCirkle Logo" width="80" height="80" style="width: 80px; height: 80px; display: block; margin: 0 auto; border: 0; outline: none;" /></div><div style="padding: 30px; background: #f9fafb;"><div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${personalizedMessage.split('\n').map(line => `<p style="color: #374151; line-height: 1.6;">${line}</p>`).join('')}</div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development. All rights reserved.</p><p style="color: #6b7280; margin: 5px 0 0 0; font-size: 11px;">To unsubscribe from future marketing emails, please open a support ticket in the MyCirkle Category.</p></div></div>`
+                    html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;"><div style="text-align: center; padding: 0; margin: 0;"><img src="${headerImageUrl}" alt="MyCirkle Header" width="600" height="auto" style="width: 100%; max-width: 600px; height: auto; display: block; margin: 0; padding: 0; border: 0; outline: none;" /></div><div style="text-align: center; padding: 20px 0;"><img src="${logoImageUrl}" alt="MyCirkle Logo" width="80" height="80" style="width: 80px; height: 80px; display: block; margin: 0 auto; border: 0; outline: none;" /></div><div style="padding: 30px; background: #f9fafb;"><div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"><div style="color: #374151; line-height: 1.6;">${personalizedMessage.replace(/\n/g, '<br>')}</div></div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 12px;">© ${new Date().getFullYear()} Cirkle Development. All rights reserved.</p><p style="color: #6b7280; margin: 5px 0 0 0; font-size: 11px;">To unsubscribe from future marketing emails, please open a support ticket in the MyCirkle Category.</p></div></div>`
                 })
             });
             
             if (response.ok) {
                 sent.push(user.email);
                 
-                // Send DM notification to user about the marketing email
-                if (user.discordId && env.DISCORD_BOT_TOKEN) {
-                    try {
-                        await new Promise(resolve => setTimeout(resolve, 200));
-                        const dmChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
-                                'Content-Type': 'application/json',
-                                'User-Agent': 'MyCirkle-Loyalty/1.0'
-                            },
-                            body: JSON.stringify({ recipient_id: user.discordId })
-                        });
-                        
-                        if (dmChannelResponse.ok) {
-                            const dmChannel = await dmChannelResponse.json();
-                            await new Promise(resolve => setTimeout(resolve, 100));
-                            await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
-                                    'Content-Type': 'application/json',
-                                    'User-Agent': 'MyCirkle-Loyalty/1.0'
-                                },
-                                body: JSON.stringify({
-                                    embeds: [{
-                                        title: '📧 New Marketing Email Sent',
-                                        description: `You've received a new marketing email from MyCirkle!\n\n**Subject:** ${personalizedSubject}`,
-                                        color: 0x3b82f6,
-                                        fields: [
-                                            { name: '📬 Check Your Inbox', value: `Email sent to: ${user.email}`, inline: false },
-                                            { name: '🚫 Want to Unsubscribe?', value: 'Open a support ticket in the **MyCirkle Category** to unsubscribe from marketing emails.', inline: false }
-                                        ],
-                                        footer: { text: 'MyCirkle Marketing' },
-                                        timestamp: new Date().toISOString()
-                                    }]
-                                })
-                            });
-                        }
-                    } catch (dmError) {
-                        console.error(`Error sending marketing email DM to ${user.discordId}:`, dmError);
-                    }
+                // Update progress DM every 10 emails or on last email
+                if ((i + 1) % 10 === 0 || i === users.length - 1) {
+                    progressMessageId = await sendProgressDM(env, progressMessageId, totalEmails, sent.length, i === users.length - 1);
                 }
+            }
+            
+            // Rate limit: 4 seconds between emails
+            if (i < users.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 4000));
             }
         } catch (error) {
             console.error(`Failed to send to ${user.email}:`, error);
         }
     }
+    
+    // Send final completion DM
+    await sendProgressDM(env, progressMessageId, totalEmails, sent.length, true);
     
     return sent;
 }
