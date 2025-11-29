@@ -1321,8 +1321,11 @@ async function refreshUserData() {
             if (data && data.discordId) {
                 // Update currentUser with fresh data from API
                 currentUser = { ...currentUser, ...data };
+                // Sync currentPoints with fresh data
+                currentPoints = data.points || currentUser.points || 0;
                 localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
-                console.log('✅ User data refreshed:', currentUser.points, 'points');
+                localStorage.setItem('points', currentPoints);
+                console.log('✅ User data refreshed:', currentPoints, 'points');
                 return true;
             }
         }
@@ -2699,9 +2702,15 @@ async function redeemReward(rewardType, customCost, customName) {
         return;
     }
     
-    // Check if user has enough points (use currentPoints which is now synced)
-    if (currentPoints < reward.cost) {
-        showNotification('Insufficient Points', `You need ${reward.cost} points to redeem this reward. You currently have ${currentPoints} points.`, 'warning');
+    // Sync currentPoints with currentUser.points before checking
+    if (currentUser && currentUser.points !== undefined) {
+        currentPoints = currentUser.points;
+    }
+    
+    // Check if user has enough points
+    const userPoints = currentUser?.points || currentPoints || 0;
+    if (userPoints < reward.cost) {
+        showNotification('Insufficient Points', `You need ${reward.cost} points to redeem this reward. You currently have ${userPoints} points.`, 'warning');
         return;
     }
     
@@ -3253,6 +3262,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileBtn = document.querySelector('.mobile-menu-btn');
     if (mobileBtn) {
         mobileBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+    }
+    
+    // Footer visibility on scroll
+    const footer = document.querySelector('.footer');
+    if (footer) {
+        const checkFooterVisibility = () => {
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const pageHeight = document.documentElement.scrollHeight;
+            const atBottom = scrollPosition >= pageHeight - 50; // 50px threshold
+            
+            if (atBottom) {
+                footer.classList.add('visible');
+            } else {
+                footer.classList.remove('visible');
+            }
+        };
+        
+        window.addEventListener('scroll', checkFooterVisibility);
+        checkFooterVisibility(); // Check on load
     }
 });
 

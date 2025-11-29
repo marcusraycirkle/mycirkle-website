@@ -734,7 +734,9 @@ input::placeholder {
     left: auto;
     width: 100%;
     background: transparent;
-    opacity: 1;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
     text-align: center;
     padding: 12px 20px;
     padding-bottom: 15px;
@@ -743,6 +745,11 @@ input::placeholder {
     border: none;
     z-index: 998;
     margin-top: auto;
+}
+
+.footer.visible {
+    opacity: 1;
+    visibility: visible;
 }
 
 .footer > * {
