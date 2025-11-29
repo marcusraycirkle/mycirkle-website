@@ -102,8 +102,52 @@
                 <!-- Message Body -->
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">Message:</label>
-                    <textarea id="message" rows="10" placeholder="Write your email message here... You can use {{firstName}} and {{points}} as placeholders." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"></textarea>
-                    <p class="text-xs text-gray-500 mt-2">💡 Pro tip: Use {{firstName}} to personalize and {{points}} to show their current points</p>
+                    
+                    <!-- Formatting Toolbar -->
+                    <div class="bg-gray-100 border border-gray-300 rounded-t-lg px-3 py-2 flex items-center gap-2 flex-wrap">
+                        <!-- Text Formatting -->
+                        <button type="button" onclick="formatText('bold')" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition font-bold" title="Bold">
+                            <strong>B</strong>
+                        </button>
+                        <button type="button" onclick="formatText('italic')" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition italic" title="Italic">
+                            <em>I</em>
+                        </button>
+                        <button type="button" onclick="formatText('underline')" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition underline" title="Underline">
+                            U
+                        </button>
+                        
+                        <div class="w-px h-6 bg-gray-300"></div>
+                        
+                        <!-- List Formatting -->
+                        <button type="button" onclick="formatText('bulletList')" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition" title="Bullet List">
+                            • List
+                        </button>
+                        <button type="button" onclick="formatText('numberedList')" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 transition" title="Numbered List">
+                            1. List
+                        </button>
+                        
+                        <div class="w-px h-6 bg-gray-300"></div>
+                        
+                        <!-- Font Size -->
+                        <div class="flex items-center gap-2 bg-white border border-gray-300 rounded px-3 py-1">
+                            <label for="font-size" class="text-sm text-gray-600">Size:</label>
+                            <input type="range" id="font-size" min="10" max="100" value="16" step="1" class="w-32" oninput="updateFontSizeDisplay(this.value)" onchange="applyFontSize(this.value)">
+                            <span id="font-size-display" class="text-sm font-semibold w-12 text-center">16pt</span>
+                        </div>
+                        
+                        <div class="w-px h-6 bg-gray-300"></div>
+                        
+                        <!-- Variables -->
+                        <button type="button" onclick="insertVariable('firstName')" class="px-3 py-1 bg-purple-100 border border-purple-300 rounded hover:bg-purple-200 transition text-sm" title="Insert First Name">
+                            {{firstName}}
+                        </button>
+                        <button type="button" onclick="insertVariable('points')" class="px-3 py-1 bg-blue-100 border border-blue-300 rounded hover:bg-blue-200 transition text-sm" title="Insert Points">
+                            {{points}}
+                        </button>
+                    </div>
+                    
+                    <textarea id="message" rows="10" placeholder="Write your email message here... Use the toolbar above for formatting." class="w-full px-4 py-3 border border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm" style="border-top: none; font-family: inherit;"></textarea>
+                    <p class="text-xs text-gray-500 mt-2">💡 Pro tip: Select text and use the toolbar to format it. Variables {{firstName}} and {{points}} will be replaced with actual user data.</p>
                 </div>
 
                 <!-- Preview -->
@@ -265,12 +309,18 @@ As always, thank you for your continued support! 💜
             const subject = document.getElementById('subject').value;
             const message = document.getElementById('message').value;
             
+            // Convert newlines to <br> and preserve HTML tags
+            const formattedMessage = message
+                .replace(/{{firstName}}/g, '<span class="bg-yellow-200 px-1 rounded">John</span>')
+                .replace(/{{points}}/g, '<span class="bg-blue-200 px-1 rounded">250</span>')
+                .replace(/\n/g, '<br>');
+            
             const previewHTML = `
                 <div class="border-b pb-3 mb-3">
                     <p class="text-xs text-gray-500 mb-1">Subject:</p>
                     <p class="font-bold">${subject || '(No subject)'}</p>
                 </div>
-                <div class="whitespace-pre-wrap text-sm">${message.replace(/{{firstName}}/g, '<span class="bg-yellow-200 px-1 rounded">John</span>').replace(/{{points}}/g, '<span class="bg-blue-200 px-1 rounded">250</span>') || '(No message)'}</div>
+                <div class="text-sm" style="line-height: 1.6;">${formattedMessage || '(No message)'}</div>
             `;
             document.getElementById('preview').innerHTML = previewHTML;
         }
@@ -278,6 +328,91 @@ As always, thank you for your continued support! 💜
         // Listen to input changes
         document.getElementById('subject').addEventListener('input', updatePreview);
         document.getElementById('message').addEventListener('input', updatePreview);
+        
+        // Text formatting functions
+        function formatText(type) {
+            const textarea = document.getElementById('message');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            
+            if (!selectedText) {
+                alert('Please select some text first!');
+                return;
+            }
+            
+            let formattedText = '';
+            
+            switch(type) {
+                case 'bold':
+                    formattedText = `<b>${selectedText}</b>`;
+                    break;
+                case 'italic':
+                    formattedText = `<i>${selectedText}</i>`;
+                    break;
+                case 'underline':
+                    formattedText = `<u>${selectedText}</u>`;
+                    break;
+                case 'bulletList':
+                    const bulletLines = selectedText.split('\n').map(line => line.trim() ? `• ${line.trim()}` : '').filter(line => line).join('\n');
+                    formattedText = bulletLines;
+                    break;
+                case 'numberedList':
+                    const numberedLines = selectedText.split('\n').filter(line => line.trim()).map((line, i) => `${i + 1}. ${line.trim()}`).join('\n');
+                    formattedText = numberedLines;
+                    break;
+            }
+            
+            textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+            textarea.focus();
+            textarea.selectionStart = start;
+            textarea.selectionEnd = start + formattedText.length;
+            updatePreview();
+        }
+        
+        function updateFontSizeDisplay(size) {
+            document.getElementById('font-size-display').textContent = size + 'pt';
+        }
+        
+        function applyFontSize(size) {
+            const textarea = document.getElementById('message');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            
+            if (!selectedText) {
+                alert('Please select some text first!');
+                document.getElementById('font-size').value = 16;
+                updateFontSizeDisplay(16);
+                return;
+            }
+            
+            const formattedText = `<span style="font-size: ${size}pt;">${selectedText}</span>`;
+            
+            textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+            textarea.focus();
+            textarea.selectionStart = start;
+            textarea.selectionEnd = start + formattedText.length;
+            updatePreview();
+            
+            // Reset slider
+            document.getElementById('font-size').value = 16;
+            updateFontSizeDisplay(16);
+        }
+        
+        function insertVariable(varName) {
+            const textarea = document.getElementById('message');
+            const cursorPos = textarea.selectionStart;
+            const textBefore = textarea.value.substring(0, cursorPos);
+            const textAfter = textarea.value.substring(cursorPos);
+            const variable = `{{${varName}}}`;
+            
+            textarea.value = textBefore + variable + textAfter;
+            textarea.focus();
+            textarea.selectionStart = cursorPos + variable.length;
+            textarea.selectionEnd = cursorPos + variable.length;
+            updatePreview();
+        }
 
         // Send email
         async function sendEmail() {
