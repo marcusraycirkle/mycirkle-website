@@ -1380,6 +1380,9 @@ function updateAllPointDisplays() {
     
     const points = currentUser.points || 0;
     
+    // Sync currentPoints variable with currentUser.points
+    currentPoints = points;
+    
     // Update dashboard points
     const availablePointsEl = document.getElementById('available-points');
     if (availablePointsEl) availablePointsEl.textContent = points;
@@ -1878,6 +1881,10 @@ function handleLogout() {
 function showRewards() {
     // Refresh points before showing rewards
     refreshUserData().then(() => {
+        // Sync currentPoints from currentUser
+        if (currentUser && currentUser.points !== undefined) {
+            currentPoints = currentUser.points;
+        }
         updateAllPointDisplays();
     });
     
@@ -2672,6 +2679,11 @@ function setTarget(target) {
 
 // Redeem Reward
 async function redeemReward(rewardType, customCost, customName) {
+    // Sync currentPoints from currentUser.points to ensure accuracy
+    if (currentUser && currentUser.points !== undefined) {
+        currentPoints = currentUser.points;
+    }
+    
     // Define reward costs (can be overridden by parameters)
     const rewards = {
         'Daily Reward': { cost: customCost || 10, name: customName || 'Daily Reward' },
@@ -2687,7 +2699,7 @@ async function redeemReward(rewardType, customCost, customName) {
         return;
     }
     
-    // Check if user has enough points
+    // Check if user has enough points (use currentPoints which is now synced)
     if (currentPoints < reward.cost) {
         showNotification('Insufficient Points', `You need ${reward.cost} points to redeem this reward. You currently have ${currentPoints} points.`, 'warning');
         return;
@@ -2803,9 +2815,11 @@ async function redeemReward(rewardType, customCost, customName) {
         clearInterval(emojiInterval);
         
         if (data.success) {
-            // Update local points
+            // Update local points in BOTH places
             currentPoints = data.newPoints;
+            currentUser.points = data.newPoints;
             localStorage.setItem('points', currentPoints);
+            localStorage.setItem('mycirkleUser', JSON.stringify(currentUser));
             updateAllPointDisplays();
             
             // Show reward code
