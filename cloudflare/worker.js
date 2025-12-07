@@ -3025,7 +3025,7 @@ async function handleDiscordInteraction(request, env) {
         const options = interaction.data.options || [];
         
         // Check if user is admin for admin commands
-        const adminCommands = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig'];
+        const adminCommands = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig', 'productembed'];
         if (adminCommands.includes(command)) {
             const isAdmin = await checkAdminRole(interaction.member, env);
             if (!isAdmin) {
@@ -3061,6 +3061,9 @@ async function handleDiscordInteraction(request, env) {
             
             case 'adminconfig':
                 return handleAdminConfigCommand(interaction, env);
+            
+            case 'productembed':
+                return handleProductEmbedCommand(interaction, env);
             
             default:
                 return jsonResponse({
@@ -4223,6 +4226,50 @@ async function handleAdminConfigCommand(interaction, env) {
             flags: 64
         }
     });
+}
+
+async function handleProductEmbedCommand(interaction, env) {
+    // Get the channel ID where the command was used
+    const channelId = interaction.channel_id;
+    
+    try {
+        // Send the embed to the channel (not as a reply)
+        await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                embeds: [{
+                    title: '<:fulllogo:1315278697443495968> Thanks for choosing Cirkle!',
+                    description: `Thank you for your interest in purchasing a product at Cirkle! This product can be found on:\n- <:cirkledev:1315278604736794745> [Our Website](https://shop.cirkledevelopment.co.uk)\n- 📦 [Our Product Hub](https://www.roblox.com/games/132122804601498/CD-Product-Hub)\n- <:clearlydev:1315671921987289119> [Our ClearlyDev](https://clearlydev.com/public-marketplace/real-technologies-corp)\n\nIf you have the time afterwards, it is highly appreciated if you left us a [review](https://discord.com/channels/1310656642672627752/1315679706745409566). If you require support, open a ticket in <#1315045336040869888> and click \`Product Support\`.\nThanks for choosing Cirkle once again!`,
+                    color: 0x5865F2,
+                    image: {
+                        url: 'https://media.discordapp.net/attachments/1315278404009988107/1319652298930257951/Utilities_960_x_540_px_680_x_240_px.png?ex=6936cd7a&is=69357bfa&hm=90ea3386fd57629ab2e9506a05e232ba58149f505715fd4839ff458abb3d8d8c&=&format=webp&quality=lossless&width=748&height=264'
+                    }
+                }]
+            })
+        });
+        
+        // Send a confirmation message (ephemeral)
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '✅ Product embed sent successfully!',
+                flags: 64 // Ephemeral
+            }
+        });
+    } catch (error) {
+        console.error('Product embed error:', error);
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '❌ Error sending product embed. Please try again.',
+                flags: 64
+            }
+        });
+    }
 }
 
 

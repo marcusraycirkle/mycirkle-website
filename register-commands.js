@@ -133,6 +133,10 @@ const commands = [
                 ]
             }
         ]
+    },
+    {
+        name: 'productembed',
+        description: '[ADMIN] Send product purchase information embed',
     }
 ];
 
@@ -158,7 +162,7 @@ async function registerCommands() {
         const data = await response.json();
         console.log('✅ Successfully registered commands:');
         data.forEach(cmd => {
-            const isAdmin = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig'].includes(cmd.name);
+            const isAdmin = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig', 'productembed'].includes(cmd.name);
             const prefix = isAdmin ? '🔒 [ADMIN] ' : '   ';
             console.log(`${prefix}/${cmd.name} - ${cmd.description}`);
         });
