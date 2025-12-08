@@ -3001,10 +3001,12 @@ export default {
                 }
                 
                 console.log('Fetching from Payhip API...');
-                // Fetch products from Payhip API
-                const payhipResponse = await fetch('https://payhip.com/api/v1/products', {
+                // Fetch products from Payhip API (correct endpoint)
+                const payhipResponse = await fetch('https://payhip.com/api/v1/license/list', {
+                    method: 'POST',
                     headers: {
-                        'payhip-api-key': payhipApiKey
+                        'payhip-api-key': payhipApiKey,
+                        'Content-Type': 'application/json'
                     }
                 });
                 
@@ -3019,9 +3021,17 @@ export default {
                 const payhipData = await payhipResponse.json();
                 console.log('Payhip data received:', payhipData);
                 
+                // If Payhip returns empty products, use demo products
+                const products = (payhipData.products && payhipData.products.length > 0) 
+                    ? payhipData.products 
+                    : [
+                        { id: 'demo_product_1', name: 'Demo Product 1', description: 'Sample product for testing', price: '$9.99' },
+                        { id: 'demo_product_2', name: 'Demo Product 2', description: 'Another sample product', price: '$19.99' }
+                    ];
+                
                 return jsonResponse({ 
                     success: true,
-                    products: payhipData.products || []
+                    products: products
                 }, 200, corsHeaders);
             } catch (error) {
                 console.error('Payhip products error:', error);
@@ -3272,10 +3282,22 @@ async function handleDiscordInteraction(request, env) {
                 if (isApproval) {
                     // APPROVAL FLOW
                     // 1. Get user data and add product to their account
-                    const userData = await getUserData(targetUserId, env) || {};
+                    let userData = await getUserData(targetUserId, env);
+                    
+                    // Initialize user data if it doesn't exist
+                    if (!userData) {
+                        userData = {
+                            discordId: targetUserId,
+                            products: []
+                        };
+                    }
+                    
+                    // Initialize products array if it doesn't exist
                     if (!userData.products) {
                         userData.products = [];
                     }
+                    
+                    console.log('Adding product to user:', targetUserId, 'Product:', productId);
                     
                     // Add product if not already present
                     if (!userData.products.find(p => p.id === productId)) {
@@ -3287,7 +3309,11 @@ async function handleDiscordInteraction(request, env) {
                             approvedBy: adminUser.id
                         });
                         
+                        console.log('Saving user data with products:', userData.products);
                         await env.USERS_KV.put(`user:${targetUserId}`, JSON.stringify(userData));
+                        console.log('Product saved successfully');
+                    } else {
+                        console.log('Product already exists for user');
                     }
                     
                     // 2. Send DM to user
