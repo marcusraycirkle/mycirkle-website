@@ -2985,36 +2985,85 @@ export default {
         // API: Get Payhip products
         if (path === '/api/payhip-products' && request.method === 'GET') {
             try {
-                // Payhip doesn't provide a product catalog API
-                // Products must be manually configured in environment variables or KV
+                console.log('Fetching Payhip products...');
                 
-                // Try to get products from KV first
-                let products = await env.USERS_KV?.get('payhip_products', { type: 'json' });
+                // Try to get products from cache first
+                let cachedProducts = await env.USERS_KV?.get('payhip_products_cache', { type: 'json' });
                 
-                if (!products || products.length === 0) {
-                    // Fallback to demo products
-                    products = [
-                        { id: 'demo_product_1', name: 'Demo Product 1', description: 'Sample product for testing', price: '$9.99' },
-                        { id: 'demo_product_2', name: 'Demo Product 2', description: 'Another sample product', price: '$19.99' },
-                        { id: 'demo_product_3', name: 'Demo Product 3', description: 'Third sample product', price: '$29.99' }
-                    ];
+                if (cachedProducts && cachedProducts.cached_at) {
+                    const cacheAge = Date.now() - new Date(cachedProducts.cached_at).getTime();
+                    // Use cache if less than 5 minutes old
+                    if (cacheAge < 300000) {
+                        console.log('Returning cached Payhip products');
+                        return jsonResponse({ 
+                            success: true,
+                            products: cachedProducts.products,
+                            cached: true
+                        }, 200, corsHeaders);
+                    }
                 }
                 
-                console.log('Returning products:', products);
+                // Fetch from your timeclock backend's Payhip sync endpoint
+                console.log('Fetching fresh products from Payhip sync endpoint...');
+                const syncResponse = await fetch('https://timeclock-backend.marcusray.workers.dev/api/finance/sync-payhip', {
+                    method: 'POST'
+                });
+                
+                console.log('Payhip sync response status:', syncResponse.status);
+                
+                if (!syncResponse.ok) {
+                    const errorText = await syncResponse.text();
+                    console.error('Payhip sync error:', syncResponse.status, errorText);
+                    throw new Error(`Payhip sync returned ${syncResponse.status}: ${errorText}`);
+                }
+                
+                const syncData = await syncResponse.json();
+                console.log('Payhip sync data received:', syncData.message);
+                console.log('Products count:', syncData.products?.length || 0);
+                
+                if (!syncData.success || !syncData.products || syncData.products.length === 0) {
+                    throw new Error('No products returned from Payhip');
+                }
+                
+                // Transform products to match our format
+                const products = syncData.products.map(product => ({
+                    id: product.payhipId || product.id,
+                    name: product.name,
+                    description: product.description || '',
+                    price: product.price ? `${product.price} Robux` : 'N/A'
+                }));
+                
+                console.log('Transformed products:', products.length);
+                
+                // Cache the results for 5 minutes
+                await env.USERS_KV?.put('payhip_products_cache', JSON.stringify({
+                    products: products,
+                    cached_at: new Date().toISOString()
+                }), {
+                    expirationTtl: 300
+                });
                 
                 return jsonResponse({ 
                     success: true,
-                    products: products
+                    products: products,
+                    source: 'payhip_sync',
+                    count: products.length
                 }, 200, corsHeaders);
             } catch (error) {
                 console.error('Payhip products error:', error);
+                
+                // Fallback to demo products
+                const fallbackProducts = [
+                    { id: 'demo_product_1', name: 'Demo Product 1', description: 'Sample product for testing', price: '$9.99' },
+                    { id: 'demo_product_2', name: 'Demo Product 2', description: 'Another sample product', price: '$19.99' },
+                    { id: 'demo_product_3', name: 'Demo Product 3', description: 'Third sample product', price: '$29.99' }
+                ];
+                
                 return jsonResponse({ 
                     success: true,
                     error: error.message,
-                    products: [
-                        { id: 'demo_product_1', name: 'Demo Product 1', description: 'Sample product for testing', price: '$9.99' },
-                        { id: 'demo_product_2', name: 'Demo Product 2', description: 'Another sample product', price: '$19.99' }
-                    ]
+                    products: fallbackProducts,
+                    source: 'fallback'
                 }, 200, corsHeaders);
             }
         }
