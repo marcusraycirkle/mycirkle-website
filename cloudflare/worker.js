@@ -2992,8 +2992,8 @@ export default {
                 
                 if (cachedProducts && cachedProducts.cached_at) {
                     const cacheAge = Date.now() - new Date(cachedProducts.cached_at).getTime();
-                    // Use cache if less than 5 minutes old
-                    if (cacheAge < 300000) {
+                    // Use cache if less than 10 minutes old
+                    if (cacheAge < 600000) {
                         console.log('Returning cached Payhip products');
                         return jsonResponse({ 
                             success: true,
@@ -3006,42 +3006,47 @@ export default {
                 // Fetch from your timeclock backend's Payhip sync endpoint
                 console.log('Fetching fresh products from Payhip sync endpoint...');
                 const syncResponse = await fetch('https://timeclock-backend.marcusray.workers.dev/api/finance/sync-payhip', {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
                 console.log('Payhip sync response status:', syncResponse.status);
                 
                 if (!syncResponse.ok) {
                     const errorText = await syncResponse.text();
-                    console.error('Payhip sync error:', syncResponse.status, errorText);
-                    throw new Error(`Payhip sync returned ${syncResponse.status}: ${errorText}`);
+                    console.error('Payhip sync failed, will use fallback');
+                    throw new Error(`Payhip sync returned ${syncResponse.status}`);
                 }
                 
                 const syncData = await syncResponse.json();
-                console.log('Payhip sync data received:', syncData.message);
-                console.log('Products count:', syncData.products?.length || 0);
+                console.log('Payhip sync successful, products count:', syncData.products?.length || 0);
                 
                 if (!syncData.success || !syncData.products || syncData.products.length === 0) {
                     throw new Error('No products returned from Payhip');
                 }
                 
-                // Transform products to match our format
+                // Transform products to match our format (strip sensitive HTML)
                 const products = syncData.products.map(product => ({
                     id: product.payhipId || product.id,
                     name: product.name,
-                    description: product.description || '',
+                    description: (product.description || '').replace(/<[^>]*>/g, '').substring(0, 200), // Strip HTML, limit length
                     price: product.price ? `${product.price} Robux` : 'N/A'
                 }));
                 
                 console.log('Transformed products:', products.length);
                 
-                // Cache the results for 5 minutes
+                // Cache the results for 10 minutes
                 await env.USERS_KV?.put('payhip_products_cache', JSON.stringify({
                     products: products,
                     cached_at: new Date().toISOString()
                 }), {
-                    expirationTtl: 300
+                    expirationTtl: 600
                 });
+                
+                // Also update the manual config as backup
+                await env.USERS_KV?.put('payhip_products', JSON.stringify(products));
                 
                 return jsonResponse({ 
                     success: true,
@@ -3052,8 +3057,21 @@ export default {
             } catch (error) {
                 console.error('Payhip products error:', error);
                 
-                // Fallback to demo products
-                const fallbackProducts = [
+                // Fallback to manually configured products in KV
+                console.log('Attempting to load manually configured products from KV...');
+                let fallbackProducts = await env.USERS_KV?.get('payhip_products', { type: 'json' });
+                
+                if (fallbackProducts && fallbackProducts.length > 0) {
+                    console.log('Using manually configured products:', fallbackProducts.length);
+                    return jsonResponse({ 
+                        success: true,
+                        products: fallbackProducts,
+                        source: 'manual_config'
+                    }, 200, corsHeaders);
+                }
+                
+                // Final fallback to demo products
+                fallbackProducts = [
                     { id: 'demo_product_1', name: 'Demo Product 1', description: 'Sample product for testing', price: '$9.99' },
                     { id: 'demo_product_2', name: 'Demo Product 2', description: 'Another sample product', price: '$19.99' },
                     { id: 'demo_product_3', name: 'Demo Product 3', description: 'Third sample product', price: '$29.99' }
