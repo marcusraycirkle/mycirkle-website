@@ -137,6 +137,30 @@ const commands = [
     {
         name: 'productembed',
         description: '[ADMIN] Send product purchase information embed',
+    },
+    {
+        name: 'removeproduct',
+        description: '[ADMIN] Remove a product from a user\'s dashboard',
+        options: [
+            {
+                name: 'user',
+                description: 'The user to remove the product from',
+                type: 6, // USER type
+                required: true
+            },
+            {
+                name: 'product',
+                description: 'Product ID or name to remove',
+                type: 3, // STRING type
+                required: true
+            },
+            {
+                name: 'reason',
+                description: 'Reason for removal',
+                type: 3, // STRING type
+                required: false
+            }
+        ]
     }
 ];
 

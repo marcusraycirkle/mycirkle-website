@@ -2985,49 +2985,22 @@ export default {
         // API: Get Payhip products
         if (path === '/api/payhip-products' && request.method === 'GET') {
             try {
-                const payhipApiKey = env.PAYHIP_API_KEY;
+                // Payhip doesn't provide a product catalog API
+                // Products must be manually configured in environment variables or KV
                 
-                console.log('Payhip API request - Key exists:', !!payhipApiKey);
+                // Try to get products from KV first
+                let products = await env.USERS_KV?.get('payhip_products', { type: 'json' });
                 
-                if (!payhipApiKey) {
-                    console.log('No Payhip API key, returning demo products');
-                    return jsonResponse({ 
-                        success: true,
-                        products: [
-                            { id: 'demo_product_1', name: 'Demo Product 1', description: 'Sample product for testing', price: '$9.99' },
-                            { id: 'demo_product_2', name: 'Demo Product 2', description: 'Another sample product', price: '$19.99' }
-                        ]
-                    }, 200, corsHeaders);
-                }
-                
-                console.log('Fetching from Payhip API...');
-                // Fetch products from Payhip API (correct endpoint)
-                const payhipResponse = await fetch('https://payhip.com/api/v1/license/list', {
-                    method: 'POST',
-                    headers: {
-                        'payhip-api-key': payhipApiKey,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                console.log('Payhip API response status:', payhipResponse.status);
-                
-                if (!payhipResponse.ok) {
-                    const errorText = await payhipResponse.text();
-                    console.error('Payhip API error:', payhipResponse.status, errorText);
-                    throw new Error(`Payhip API returned ${payhipResponse.status}: ${errorText}`);
-                }
-                
-                const payhipData = await payhipResponse.json();
-                console.log('Payhip data received:', payhipData);
-                
-                // If Payhip returns empty products, use demo products
-                const products = (payhipData.products && payhipData.products.length > 0) 
-                    ? payhipData.products 
-                    : [
+                if (!products || products.length === 0) {
+                    // Fallback to demo products
+                    products = [
                         { id: 'demo_product_1', name: 'Demo Product 1', description: 'Sample product for testing', price: '$9.99' },
-                        { id: 'demo_product_2', name: 'Demo Product 2', description: 'Another sample product', price: '$19.99' }
+                        { id: 'demo_product_2', name: 'Demo Product 2', description: 'Another sample product', price: '$19.99' },
+                        { id: 'demo_product_3', name: 'Demo Product 3', description: 'Third sample product', price: '$29.99' }
                     ];
+                }
+                
+                console.log('Returning products:', products);
                 
                 return jsonResponse({ 
                     success: true,
@@ -3195,7 +3168,7 @@ async function handleDiscordInteraction(request, env) {
         const options = interaction.data.options || [];
         
         // Check if user is admin for admin commands
-        const adminCommands = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig', 'productembed'];
+        const adminCommands = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig', 'productembed', 'removeproduct'];
         if (adminCommands.includes(command)) {
             const isAdmin = await checkAdminRole(interaction.member, env);
             if (!isAdmin) {
@@ -3234,6 +3207,9 @@ async function handleDiscordInteraction(request, env) {
             
             case 'productembed':
                 return handleProductEmbedCommand(interaction, env);
+            
+            case 'removeproduct':
+                return handleRemoveProductCommand(interaction, env);
             
             default:
                 return jsonResponse({
@@ -4661,6 +4637,133 @@ async function handleProductEmbedCommand(interaction, env) {
             type: 4,
             data: {
                 content: '❌ Error sending product embed. Please try again.',
+                flags: 64
+            }
+        });
+    }
+}
+
+async function handleRemoveProductCommand(interaction, env) {
+    const options = interaction.data.options;
+    const targetUser = options.find(opt => opt.name === 'user')?.value;
+    const productIdentifier = options.find(opt => opt.name === 'product')?.value;
+    const reason = options.find(opt => opt.name === 'reason')?.value || 'No reason provided';
+    const adminUser = interaction.member?.user || interaction.user;
+    
+    try {
+        // Get user data
+        let userData = await getUserData(targetUser, env);
+        
+        if (!userData || !userData.products || userData.products.length === 0) {
+            return jsonResponse({
+                type: 4,
+                data: {
+                    content: '❌ User has no products to remove.',
+                    flags: 64
+                }
+            });
+        }
+        
+        // Find and remove the product
+        const originalLength = userData.products.length;
+        const removedProducts = userData.products.filter(p => 
+            p.id === productIdentifier || p.name.toLowerCase().includes(productIdentifier.toLowerCase())
+        );
+        
+        userData.products = userData.products.filter(p => 
+            p.id !== productIdentifier && !p.name.toLowerCase().includes(productIdentifier.toLowerCase())
+        );
+        
+        if (userData.products.length === originalLength) {
+            return jsonResponse({
+                type: 4,
+                data: {
+                    content: `❌ Product "${productIdentifier}" not found for user <@${targetUser}>.`,
+                    flags: 64
+                }
+            });
+        }
+        
+        // Save updated user data
+        await env.USERS_KV.put(`user:${targetUser}`, JSON.stringify(userData));
+        
+        const removedProductName = removedProducts[0]?.name || productIdentifier;
+        
+        // Send DM to user
+        try {
+            const dmChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ recipient_id: targetUser })
+            });
+            
+            const dmChannel = await dmChannelResponse.json();
+            
+            await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    embeds: [{
+                        title: '⚠️ Product Access Removed',
+                        description: `Your access to **${removedProductName}** has been removed from your dashboard.`,
+                        color: 0xf59e0b,
+                        fields: [
+                            { name: '📦 Product', value: removedProductName, inline: false },
+                            { name: '📝 Reason', value: reason, inline: false }
+                        ],
+                        footer: { text: 'MyCirkle Product Access' },
+                        timestamp: new Date().toISOString()
+                    }]
+                })
+            });
+        } catch (dmError) {
+            console.error('Failed to send removal DM:', dmError);
+        }
+        
+        // Log to webhook
+        try {
+            await fetch(getWebhooks(env).LOGS, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    embeds: [{
+                        title: '🗑️ Product Removed',
+                        description: `Product access has been revoked`,
+                        color: 0xf59e0b,
+                        fields: [
+                            { name: '👤 User', value: `<@${targetUser}>`, inline: true },
+                            { name: '📦 Product', value: removedProductName, inline: true },
+                            { name: '👨‍💼 Admin', value: `<@${adminUser.id}>`, inline: true },
+                            { name: '📝 Reason', value: reason, inline: false }
+                        ],
+                        footer: { text: '🛡️ Product Management' },
+                        timestamp: new Date().toISOString()
+                    }]
+                })
+            });
+        } catch (webhookError) {
+            console.error('Webhook error:', webhookError);
+        }
+        
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: `✅ Removed **${removedProductName}** from <@${targetUser}>'s dashboard.\n📝 Reason: ${reason}`,
+                flags: 64
+            }
+        });
+    } catch (error) {
+        console.error('Remove product error:', error);
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '❌ Error removing product. Please try again.',
                 flags: 64
             }
         });
