@@ -991,7 +991,15 @@
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold">My Products</h2>
-                    <button onclick="showDashboard()" class="text-blue-600 hover:text-blue-700 font-semibold">← Back</button>
+                    <div class="flex gap-3">
+                        <button onclick="showAddProductModal()" class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition flex items-center gap-2">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                            </svg>
+                            Add New Product
+                        </button>
+                        <button onclick="showDashboard()" class="text-blue-600 hover:text-blue-700 font-semibold">← Back</button>
+                    </div>
                 </div>
                 
                 <div id="products-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1000,6 +1008,35 @@
             </div>
         </div>
     </section>
+
+    <!-- Add Product Modal -->
+    <div id="add-product-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold">Request New Product</h3>
+                <button onclick="hideAddProductModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            
+            <div id="product-selection-content">
+                <p class="text-gray-600 mb-4">Select a product from your Payhip store to request access:</p>
+                
+                <div id="payhip-products-loading" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-600 border-t-transparent"></div>
+                    <p class="mt-4 text-gray-600">Loading available products...</p>
+                </div>
+                
+                <div id="payhip-products-list" class="hidden space-y-3">
+                    <!-- Products will be loaded here -->
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+                    <button onclick="hideAddProductModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-lg font-semibold transition">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modern Account Details -->
     <section id="account" class="page min-h-screen">

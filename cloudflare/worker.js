@@ -2965,6 +2965,139 @@ export default {
             }
         }
 
+        // API: Get Payhip products
+        if (path === '/api/payhip-products' && request.method === 'GET') {
+            try {
+                const payhipApiKey = env.PAYHIP_API_KEY;
+                
+                if (!payhipApiKey) {
+                    return jsonResponse({ 
+                        error: 'Payhip API not configured',
+                        products: [
+                            { id: 'demo_product_1', name: 'Demo Product 1', description: 'Sample product for testing', price: '$9.99' },
+                            { id: 'demo_product_2', name: 'Demo Product 2', description: 'Another sample product', price: '$19.99' }
+                        ]
+                    }, 200, corsHeaders);
+                }
+                
+                // Fetch products from Payhip API
+                const payhipResponse = await fetch('https://payhip.com/api/v1/products', {
+                    headers: {
+                        'payhip-api-key': payhipApiKey
+                    }
+                });
+                
+                if (!payhipResponse.ok) {
+                    throw new Error(`Payhip API returned ${payhipResponse.status}`);
+                }
+                
+                const payhipData = await payhipResponse.json();
+                
+                return jsonResponse({ 
+                    success: true,
+                    products: payhipData.products || []
+                }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Payhip products error:', error);
+                return jsonResponse({ 
+                    error: error.message,
+                    products: [
+                        { id: 'demo_product_1', name: 'Demo Product 1', description: 'Sample product for testing', price: '$9.99' },
+                        { id: 'demo_product_2', name: 'Demo Product 2', description: 'Another sample product', price: '$19.99' }
+                    ]
+                }, 200, corsHeaders);
+            }
+        }
+
+        // API: Request product access
+        if (path === '/api/request-product' && request.method === 'POST') {
+            try {
+                const { discordId, productId, productName, userName } = await request.json();
+                
+                if (!discordId || !productId || !productName) {
+                    return jsonResponse({ error: 'Missing required fields' }, 400, corsHeaders);
+                }
+                
+                const botToken = env.DISCORD_BOT_TOKEN;
+                const requestsChannelId = env.PRODUCT_REQUESTS_CHANNEL_ID || '1315045336040869888'; // Default to support channel
+                
+                if (!botToken) {
+                    return jsonResponse({ error: 'Bot not configured' }, 500, corsHeaders);
+                }
+                
+                // Send embed to Discord with approve/deny buttons
+                const embedResponse = await fetch(`https://discord.com/api/v10/channels/${requestsChannelId}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        embeds: [{
+                            title: '🆕 New Product Request',
+                            description: `**${userName || `<@${discordId}>`}** has requested access to a product.`,
+                            color: 0x6366f1,
+                            fields: [
+                                { name: '👤 User', value: `<@${discordId}>`, inline: true },
+                                { name: '🆔 User ID', value: discordId, inline: true },
+                                { name: '📦 Product', value: productName, inline: false },
+                                { name: '🔖 Product ID', value: productId, inline: false }
+                            ],
+                            footer: { text: '⏰ Pending Approval' },
+                            timestamp: new Date().toISOString()
+                        }],
+                        components: [{
+                            type: 1,
+                            components: [
+                                {
+                                    type: 2,
+                                    style: 3,
+                                    label: 'Approve',
+                                    custom_id: `approve_product_${discordId}_${productId}`,
+                                    emoji: { name: '✅' }
+                                },
+                                {
+                                    type: 2,
+                                    style: 4,
+                                    label: 'Deny',
+                                    custom_id: `deny_product_${discordId}_${productId}`,
+                                    emoji: { name: '❌' }
+                                }
+                            ]
+                        }]
+                    })
+                });
+                
+                if (!embedResponse.ok) {
+                    const errorText = await embedResponse.text();
+                    throw new Error(`Discord API error: ${errorText}`);
+                }
+                
+                const messageData = await embedResponse.json();
+                
+                // Store request in KV for reference
+                await env.USERS_KV?.put(`product_request:${messageData.id}`, JSON.stringify({
+                    discordId,
+                    productId,
+                    productName,
+                    userName,
+                    requestedAt: new Date().toISOString(),
+                    status: 'pending'
+                }), {
+                    expirationTtl: 604800 // 7 days
+                });
+                
+                return jsonResponse({ 
+                    success: true,
+                    message: 'Product request sent successfully!',
+                    messageId: messageData.id
+                }, 200, corsHeaders);
+            } catch (error) {
+                console.error('Product request error:', error);
+                return jsonResponse({ error: error.message }, 500, corsHeaders);
+            }
+        }
+
         return new Response('Not Found', { status: 404, headers: corsHeaders });
     }
 };
@@ -3079,6 +3212,215 @@ async function handleDiscordInteraction(request, env) {
     // Handle message component interactions (buttons, select menus)
     if (interaction.type === 3) {
         const customId = interaction.data.custom_id;
+        
+        // Handle product request approve/deny buttons
+        if (customId.startsWith('approve_product_') || customId.startsWith('deny_product_')) {
+            const isApproval = customId.startsWith('approve_product_');
+            const parts = customId.split('_');
+            const targetUserId = parts[2];
+            const productId = parts.slice(3).join('_');
+            const adminUser = interaction.member?.user || interaction.user;
+            
+            // Check admin permission
+            const isAdmin = await checkAdminRole(interaction.member, env);
+            if (!isAdmin) {
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ You do not have permission to perform this action.',
+                        flags: 64
+                    }
+                });
+            }
+            
+            try {
+                const botToken = env.DISCORD_BOT_TOKEN;
+                
+                // Get the original message to extract product name
+                const messageId = interaction.message.id;
+                const channelId = interaction.channel_id;
+                const requestData = await env.USERS_KV?.get(`product_request:${messageId}`, { type: 'json' });
+                const productName = requestData?.productName || 'Unknown Product';
+                
+                if (isApproval) {
+                    // APPROVAL FLOW
+                    // 1. Get user data and add product to their account
+                    const userData = await getUserData(targetUserId, env) || {};
+                    if (!userData.products) {
+                        userData.products = [];
+                    }
+                    
+                    // Add product if not already present
+                    if (!userData.products.find(p => p.id === productId)) {
+                        userData.products.push({
+                            id: productId,
+                            name: productName,
+                            addedAt: new Date().toISOString(),
+                            addedBy: 'admin_approval',
+                            approvedBy: adminUser.id
+                        });
+                        
+                        await env.USERS_KV.put(`user:${targetUserId}`, JSON.stringify(userData));
+                    }
+                    
+                    // 2. Send DM to user
+                    try {
+                        const dmChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${botToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ recipient_id: targetUserId })
+                        });
+                        
+                        const dmChannel = await dmChannelResponse.json();
+                        
+                        await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${botToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                embeds: [{
+                                    title: '✅ Product Request Approved!',
+                                    description: `Your request for **${productName}** has been approved!`,
+                                    color: 0x10b981,
+                                    fields: [
+                                        { name: '📦 Product', value: productName, inline: false },
+                                        { name: '✨ Status', value: 'The product has been added to your dashboard', inline: false }
+                                    ],
+                                    footer: { text: 'MyCirkle Product Access' },
+                                    timestamp: new Date().toISOString()
+                                }]
+                            })
+                        });
+                    } catch (dmError) {
+                        console.error('Failed to send approval DM:', dmError);
+                    }
+                    
+                    // 3. Update the original embed to green with removed buttons
+                    await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bot ${botToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            embeds: [{
+                                ...interaction.message.embeds[0],
+                                color: 0x10b981,
+                                footer: { text: `✅ Approved by ${adminUser.username}` },
+                                timestamp: new Date().toISOString()
+                            }],
+                            components: []
+                        })
+                    });
+                    
+                    // Update request status in KV
+                    if (requestData) {
+                        requestData.status = 'approved';
+                        requestData.approvedBy = adminUser.id;
+                        requestData.approvedAt = new Date().toISOString();
+                        await env.USERS_KV.put(`product_request:${messageId}`, JSON.stringify(requestData), {
+                            expirationTtl: 604800
+                        });
+                    }
+                    
+                    return jsonResponse({
+                        type: 4,
+                        data: {
+                            content: `✅ Approved product access for <@${targetUserId}>`,
+                            flags: 64
+                        }
+                    });
+                } else {
+                    // DENIAL FLOW
+                    // 1. Send DM to user
+                    try {
+                        const dmChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${botToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ recipient_id: targetUserId })
+                        });
+                        
+                        const dmChannel = await dmChannelResponse.json();
+                        
+                        await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bot ${botToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                embeds: [{
+                                    title: '❌ Product Request Denied',
+                                    description: `Your request for **${productName}** has been denied.`,
+                                    color: 0xef4444,
+                                    fields: [
+                                        { name: '📦 Product', value: productName, inline: false },
+                                        { name: '💬 Note', value: 'Please contact an administrator if you believe this was in error.', inline: false }
+                                    ],
+                                    footer: { text: 'MyCirkle Product Access' },
+                                    timestamp: new Date().toISOString()
+                                }]
+                            })
+                        });
+                    } catch (dmError) {
+                        console.error('Failed to send denial DM:', dmError);
+                    }
+                    
+                    // 2. Update the original embed to red with removed buttons
+                    await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bot ${botToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            embeds: [{
+                                ...interaction.message.embeds[0],
+                                color: 0xef4444,
+                                footer: { text: `❌ Denied by ${adminUser.username}` },
+                                timestamp: new Date().toISOString()
+                            }],
+                            components: []
+                        })
+                    });
+                    
+                    // Update request status in KV
+                    if (requestData) {
+                        requestData.status = 'denied';
+                        requestData.deniedBy = adminUser.id;
+                        requestData.deniedAt = new Date().toISOString();
+                        await env.USERS_KV.put(`product_request:${messageId}`, JSON.stringify(requestData), {
+                            expirationTtl: 604800
+                        });
+                    }
+                    
+                    return jsonResponse({
+                        type: 4,
+                        data: {
+                            content: `❌ Denied product access for <@${targetUserId}>`,
+                            flags: 64
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Product approval/denial error:', error);
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ Error processing product request.',
+                        flags: 64
+                    }
+                });
+            }
+        }
         
         // Check admin permission for suspension actions
         const isAdmin = await checkAdminRole(interaction.member, env);

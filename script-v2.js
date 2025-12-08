@@ -3639,3 +3639,95 @@ async function confirmAccountDeletion(verificationCode) {
         alert('Failed to delete account: ' + error.message);
     }
 }
+
+// ===== PRODUCT REQUEST SYSTEM =====
+
+// Show add product modal
+async function showAddProductModal() {
+    const modal = document.getElementById('add-product-modal');
+    modal.classList.remove('hidden');
+    
+    // Load Payhip products
+    await loadPayhipProducts();
+}
+
+// Hide add product modal
+function hideAddProductModal() {
+    document.getElementById('add-product-modal').classList.add('hidden');
+}
+
+// Load available products from Payhip
+async function loadPayhipProducts() {
+    const loadingEl = document.getElementById('payhip-products-loading');
+    const listEl = document.getElementById('payhip-products-list');
+    
+    try {
+        const response = await fetch(`${WORKER_URL}/api/payhip-products`);
+        const data = await response.json();
+        
+        if (!data.success || !data.products || data.products.length === 0) {
+            loadingEl.innerHTML = '<p class="text-gray-600">No products available at this time.</p>';
+            return;
+        }
+        
+        loadingEl.classList.add('hidden');
+        listEl.classList.remove('hidden');
+        
+        listEl.innerHTML = data.products.map(product => `
+            <div class="border border-gray-200 rounded-lg p-4 hover:border-purple-500 transition cursor-pointer" onclick="requestProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}')">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-lg">${product.name}</h4>
+                        <p class="text-sm text-gray-600 mt-1">${product.description || 'No description'}</p>
+                        <p class="text-purple-600 font-bold mt-2">${product.price}</p>
+                    </div>
+                    <button class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+                        Request
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading Payhip products:', error);
+        loadingEl.innerHTML = '<p class="text-red-600">Error loading products. Please try again later.</p>';
+    }
+}
+
+// Request a product
+async function requestProduct(productId, productName) {
+    if (!currentUser || !currentUser.discordId) {
+        showNotification('Error', 'You must be logged in to request products.', 'error');
+        return;
+    }
+    
+    const confirmation = confirm(`Request access to "${productName}"?\n\nThis will send a request to administrators for approval.`);
+    if (!confirmation) return;
+    
+    try {
+        showNotification('Processing', 'Sending product request...', 'info');
+        
+        const response = await fetch(`${WORKER_URL}/api/request-product`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.discordId || currentUser.id,
+                productId: productId,
+                productName: productName,
+                userName: currentUser.fullName || currentUser.firstName || 'User'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            hideAddProductModal();
+            showNotification('Request Sent', 'Your product request has been submitted! You\'ll be notified once it\'s reviewed.', 'success');
+        } else {
+            showNotification('Error', data.error || 'Failed to send request. Please try again.', 'error');
+        }
+    } catch (error) {
+        console.error('Error requesting product:', error);
+        showNotification('Error', 'Failed to send request. Please try again later.', 'error');
+    }
+}
