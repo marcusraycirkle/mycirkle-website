@@ -1241,6 +1241,23 @@ export default {
             }
         }
 
+        // API: Get user data with products
+        if (path === '/api/user-data' && request.method === 'GET') {
+            try {
+                const discordId = url.searchParams.get('discordId');
+                
+                if (!discordId) {
+                    return jsonResponse({ error: 'Missing discordId' }, 400, corsHeaders);
+                }
+
+                const userData = await env.USERS_KV?.get(`user:${discordId}`, { type: 'json' }) || {};
+                
+                return jsonResponse(userData, 200, corsHeaders);
+            } catch (error) {
+                return jsonResponse({ error: 'Failed to fetch user data', details: error.message }, 500, corsHeaders);
+            }
+        }
+
         // API: Redeem reward
         if (path === '/api/redeem' && request.method === 'POST') {
             try {

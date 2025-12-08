@@ -2257,8 +2257,18 @@ function showProducts() {
     if (productsContent) {
         productsContent.innerHTML = `
             <div class="content-header">
-                <h2 class="content-title">My Products</h2>
-                <p class="content-subtitle">Products you've purchased</p>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="content-title">My Products</h2>
+                        <p class="content-subtitle">Products you've purchased</p>
+                    </div>
+                    <button onclick="showAddProductModal()" class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition flex items-center gap-2 shadow-lg">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Add New Product
+                    </button>
+                </div>
             </div>
             
             <div class="section-card">
@@ -2278,6 +2288,8 @@ async function renderProductsToDashboard() {
     if (!productsListDash || !currentUser) return;
 
     try {
+        // Check for ParcelRoblox products first (auto-detection)
+        await checkParcelRobloxProducts();
         const robloxUsername = currentUser.robloxUsername;
         if (!robloxUsername) {
             productsListDash.innerHTML = `
@@ -2316,6 +2328,24 @@ async function renderProductsToDashboard() {
         const data = await response.json();
         console.log('📦 Products API response data:', data);
 
+        // Fetch manually approved products from user data
+        let manualProducts = [];
+        try {
+            const userDataResponse = await fetch(`${WORKER_URL}/api/user-data?discordId=${encodeURIComponent(discordId)}`);
+            if (userDataResponse.ok) {
+                const userData = await userDataResponse.json();
+                if (userData.products && Array.isArray(userData.products)) {
+                    manualProducts = userData.products;
+                    console.log('📦 Found', manualProducts.length, 'manually approved products');
+                }
+            }
+        } catch (err) {
+            console.warn('Could not fetch manual products:', err);
+        }
+
+        // Combine ParcelRoblox products and manually approved products
+        const allProducts = [...(data.products || []), ...manualProducts];
+
         // Check for new purchases and show notification
         if (data.newPurchases && data.newPurchases.count > 0) {
             console.log('🎉 NEW PURCHASES DETECTED:', data.newPurchases);
@@ -2327,15 +2357,15 @@ async function renderProductsToDashboard() {
             setTimeout(() => location.reload(), 2000);
         }
 
-        if (data.products && data.products.length > 0) {
-            console.log('✅ Found', data.products.length, 'product(s)');
-            productsListDash.innerHTML = data.products.map(product => `
+        if (allProducts.length > 0) {
+            console.log('✅ Found', allProducts.length, 'total product(s)');
+            productsListDash.innerHTML = allProducts.map(product => `
                 <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition">
                     <div class="text-4xl mb-3 text-center">📦</div>
                     <h3 class="font-semibold text-lg mb-2">${product.name || 'Product'}</h3>
                     <p class="text-sm text-gray-600 mb-3">${product.description || 'Verified ownership'}</p>
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-gray-500">Owned</span>
+                        <span class="text-gray-500">${product.addedBy === 'admin_approval' ? 'Manually Approved' : 'Owned'}</span>
                         <span class="text-green-600 font-semibold">✓</span>
                     </div>
                 </div>
@@ -3641,6 +3671,26 @@ async function confirmAccountDeletion(verificationCode) {
 }
 
 // ===== PRODUCT REQUEST SYSTEM =====
+
+// Check ParcelRoblox for purchased products and auto-add them
+async function checkParcelRobloxProducts() {
+    if (!currentUser || !currentUser.discordId) return;
+    
+    try {
+        const response = await fetch(`${WORKER_URL}/api/parcel/products?discordId=${currentUser.discordId}&refresh=false`);
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        console.log('ParcelRoblox check:', data);
+        
+        // If new purchases detected, they're automatically added to the user's account
+        if (data.newPurchases && data.newPurchases.count > 0) {
+            showNotification('Success', `${data.newPurchases.count} new product(s) detected and added!`, 'success');
+        }
+    } catch (error) {
+        console.error('ParcelRoblox check error:', error);
+    }
+}
 
 // Show add product modal
 async function showAddProductModal() {
