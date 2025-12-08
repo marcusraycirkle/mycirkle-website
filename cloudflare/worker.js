@@ -3032,7 +3032,7 @@ export default {
                     id: product.payhipId || product.id,
                     name: product.name,
                     description: (product.description || '').replace(/<[^>]*>/g, '').substring(0, 200), // Strip HTML, limit length
-                    price: product.price ? `${product.price} Robux` : 'N/A'
+                    price: product.price ? `€${(product.price / 80).toFixed(2)}` : 'N/A' // Price in EUR (Robux converted to EUR approximation)
                 }));
                 
                 console.log('Transformed products:', products.length);
@@ -4754,6 +4754,12 @@ async function handleRemoveProductCommand(interaction, env) {
         // Save updated user data
         await env.USERS_KV.put(`user:${targetUser}`, JSON.stringify(userData));
         
+        console.log(`Product removed for user ${targetUser}:`, {
+            productId: productIdentifier,
+            removedProduct: removedProducts[0],
+            remainingProducts: userData.products.length
+        });
+        
         const removedProductName = removedProducts[0]?.name || productIdentifier;
         
         // Send DM to user
@@ -4782,7 +4788,8 @@ async function handleRemoveProductCommand(interaction, env) {
                         color: 0xf59e0b,
                         fields: [
                             { name: '📦 Product', value: removedProductName, inline: false },
-                            { name: '📝 Reason', value: reason, inline: false }
+                            { name: '📝 Reason', value: reason, inline: false },
+                            { name: '🔄 Action Required', value: 'Please refresh your dashboard to see the update.', inline: false }
                         ],
                         footer: { text: 'MyCirkle Product Access' },
                         timestamp: new Date().toISOString()
