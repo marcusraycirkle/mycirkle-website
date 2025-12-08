@@ -3715,7 +3715,9 @@ async function loadPayhipProducts() {
         const response = await fetch(`${WORKER_URL}/api/payhip-products`);
         const data = await response.json();
         
-        if (!data.success || !data.products || data.products.length === 0) {
+        console.log('Payhip products response:', data);
+        
+        if (!data.products || data.products.length === 0) {
             loadingEl.innerHTML = '<p class="text-gray-600">No products available at this time.</p>';
             return;
         }

@@ -2987,9 +2987,12 @@ export default {
             try {
                 const payhipApiKey = env.PAYHIP_API_KEY;
                 
+                console.log('Payhip API request - Key exists:', !!payhipApiKey);
+                
                 if (!payhipApiKey) {
+                    console.log('No Payhip API key, returning demo products');
                     return jsonResponse({ 
-                        error: 'Payhip API not configured',
+                        success: true,
                         products: [
                             { id: 'demo_product_1', name: 'Demo Product 1', description: 'Sample product for testing', price: '$9.99' },
                             { id: 'demo_product_2', name: 'Demo Product 2', description: 'Another sample product', price: '$19.99' }
@@ -2997,6 +3000,7 @@ export default {
                     }, 200, corsHeaders);
                 }
                 
+                console.log('Fetching from Payhip API...');
                 // Fetch products from Payhip API
                 const payhipResponse = await fetch('https://payhip.com/api/v1/products', {
                     headers: {
@@ -3004,11 +3008,16 @@ export default {
                     }
                 });
                 
+                console.log('Payhip API response status:', payhipResponse.status);
+                
                 if (!payhipResponse.ok) {
-                    throw new Error(`Payhip API returned ${payhipResponse.status}`);
+                    const errorText = await payhipResponse.text();
+                    console.error('Payhip API error:', payhipResponse.status, errorText);
+                    throw new Error(`Payhip API returned ${payhipResponse.status}: ${errorText}`);
                 }
                 
                 const payhipData = await payhipResponse.json();
+                console.log('Payhip data received:', payhipData);
                 
                 return jsonResponse({ 
                     success: true,
@@ -3017,6 +3026,7 @@ export default {
             } catch (error) {
                 console.error('Payhip products error:', error);
                 return jsonResponse({ 
+                    success: true,
                     error: error.message,
                     products: [
                         { id: 'demo_product_1', name: 'Demo Product 1', description: 'Sample product for testing', price: '$9.99' },
