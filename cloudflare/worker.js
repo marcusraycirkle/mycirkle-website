@@ -499,6 +499,52 @@ export default {
             }
         }
 
+        // MyCirkle Membership Verification API
+        // This endpoint checks if a Discord user has a MyCirkle membership
+        if (path === '/api/verify-membership' && request.method === 'POST') {
+            try {
+                const { discordId } = await request.json();
+                
+                if (!discordId) {
+                    return jsonResponse({ 
+                        error: 'Discord ID required',
+                        verified: false 
+                    }, 400, corsHeaders);
+                }
+                
+                // Check if user exists in MyCirkle database
+                const userData = await getUserData(discordId, env);
+                
+                if (userData && userData.accountNumber) {
+                    // User has a MyCirkle account
+                    return jsonResponse({
+                        verified: true,
+                        message: 'You have been verified as a MyCirkle member!',
+                        member: {
+                            discordUsername: userData.discordUsername,
+                            accountNumber: userData.accountNumber,
+                            points: userData.points || 0,
+                            memberSince: userData.memberSince,
+                            tier: getTier(userData.points || 0)
+                        }
+                    }, 200, corsHeaders);
+                } else {
+                    // User does not have a MyCirkle account
+                    return jsonResponse({
+                        verified: false,
+                        message: "I'm sorry. I could not find your MyCirkle account. Please check if you are on the right Discord account or sign up at my.cirkledevelopment.co.uk"
+                    }, 200, corsHeaders);
+                }
+            } catch (error) {
+                console.error('Membership verification error:', error);
+                return jsonResponse({ 
+                    error: 'Failed to verify membership',
+                    details: error.message,
+                    verified: false 
+                }, 500, corsHeaders);
+            }
+        }
+
         // Roblox API Proxy - User ID lookup
         if (path.startsWith('/api/roblox/user/') && request.method === 'GET') {
             try {

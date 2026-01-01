@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyCirkle Membership Verification Example</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .verify-btn {
+            background: linear-gradient(135deg, #00D9FF, #0099CC);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .verify-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4);
+        }
+        
+        .verify-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .status.loading {
+            background: #FFF9E6;
+            border: 2px solid #FFD700;
+            color: #997400;
+        }
+        
+        .status.success {
+            background: #E6FFE6;
+            border: 2px solid #00CC00;
+            color: #006600;
+        }
+        
+        .status.error {
+            background: #FFE6E6;
+            border: 2px solid #FF4444;
+            color: #990000;
+        }
+        
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #00D9FF;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .member-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .member-info h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .info-value {
+            color: #333;
+        }
+        
+        .discord-info {
+            background: #5865F2;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .discord-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🌟 MyCirkle Membership</h1>
+        <p class="subtitle">Verify your membership to access exclusive content</p>
+        
+        <!-- Simulated Discord User Info (Replace with actual OAuth data) -->
+        <div class="discord-info" id="discordInfo" style="display:none;">
+            <img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar" class="discord-avatar" id="discordAvatar">
+            <div>
+                <div style="font-weight: bold;" id="discordUsername">Discord User</div>
+                <div style="font-size: 12px; opacity: 0.9;">Connected via Discord</div>
+            </div>
+        </div>
+        
+        <button class="verify-btn" id="verifyBtn" onclick="verifyMembership()">
+            🎫 Verify MyCirkle Membership
+        </button>
+        
+        <div id="statusMessage"></div>
+    </div>
+
+    <script>
+        // REPLACE THESE WITH YOUR ACTUAL VALUES
+        const WORKER_API_URL = 'https://mycirkle-auth.marcusray.workers.dev'; // Your Cloudflare Worker URL
+        
+        // Simulated Discord user data (In production, get this from your Discord OAuth flow)
+        let currentDiscordUser = {
+            id: '123456789012345678', // Replace with actual Discord ID from OAuth
+            username: 'TestUser#1234',
+            avatar: null
+        };
+
+        // Initialize - Show Discord info if logged in
+        window.addEventListener('DOMContentLoaded', () => {
+            if (currentDiscordUser.id) {
+                const discordInfo = document.getElementById('discordInfo');
+                const username = document.getElementById('discordUsername');
+                const avatar = document.getElementById('discordAvatar');
+                
+                discordInfo.style.display = 'flex';
+                username.textContent = currentDiscordUser.username;
+                
+                if (currentDiscordUser.avatar) {
+                    avatar.src = `https://cdn.discordapp.com/avatars/${currentDiscordUser.id}/${currentDiscordUser.avatar}.png?size=256`;
+                }
+            }
+        });
+
+        async function verifyMembership() {
+            const btn = document.getElementById('verifyBtn');
+            const statusDiv = document.getElementById('statusMessage');
+            
+            // Disable button
+            btn.disabled = true;
+            
+            // Show loading state
+            statusDiv.className = 'status loading';
+            statusDiv.innerHTML = `
+                <div class="loader"></div>
+                <strong>Verifying your membership...</strong>
+                <div style="margin-top: 10px; font-size: 14px;">Please wait...</div>
+            `;
+            
+            try {
+                // Call the verification API
+                const response = await fetch(`${WORKER_API_URL}/api/verify-membership`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        discordId: currentDiscordUser.id
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.verified) {
+                    // Success - User is a MyCirkle member
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = `
+                        <strong>✅ ${data.message}</strong>
+                        <div class="member-info">
+                            <h3>👤 Member Details</h3>
+                            <div class="info-row">
+                                <span class="info-label">Discord Username:</span>
+                                <span class="info-value">${data.member.discordUsername || 'N/A'}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Account Number:</span>
+                                <span class="info-value">${data.member.accountNumber}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Points:</span>
+                                <span class="info-value">${data.member.points} 💰</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Tier:</span>
+                                <span class="info-value">${data.member.tier}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Member Since:</span>
+                                <span class="info-value">${data.member.memberSince || 'N/A'}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Here you can proceed with granting access to your blog content
+                    // For example, save verification status to localStorage
+                    localStorage.setItem('mycirkleVerified', 'true');
+                    localStorage.setItem('mycirkleMember', JSON.stringify(data.member));
+                    
+                    // Redirect or enable content after 2 seconds
+                    setTimeout(() => {
+                        // window.location.href = '/blog'; // Redirect to blog
+                        console.log('User verified - grant access to content');
+                    }, 2000);
+                    
+                } else {
+                    // Failed - User is not a member
+                    statusDiv.className = 'status error';
+                    statusDiv.innerHTML = `
+                        <strong>❌ Verification Failed</strong>
+                        <div style="margin-top: 10px;">${data.message}</div>
+                        <div style="margin-top: 15px; font-size: 14px;">
+                            <a href="https://my.cirkledevelopment.co.uk" target="_blank" 
+                               style="color: #0066cc; text-decoration: underline;">
+                                Sign up for MyCirkle →
+                            </a>
+                        </div>
+                    `;
+                    btn.disabled = false;
+                }
+                
+            } catch (error) {
+                // Error occurred
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <strong>❌ Error</strong>
+                    <div style="margin-top: 10px;">An error occurred while verifying your membership. Please try again.</div>
+                    <div style="margin-top: 10px; font-size: 12px; color: #999;">${error.message}</div>
+                `;
+                btn.disabled = false;
+            }
+        }
+
+        // Example: How to integrate with Discord OAuth
+        // After Discord OAuth login, you would have:
+        /*
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Check for Discord OAuth callback
+            const hash = window.location.hash;
+            if (hash.includes('discord-callback')) {
+                const params = new URLSearchParams(hash.split('?')[1]);
+                const userDataString = params.get('user');
+                if (userDataString) {
+                    const discordUser = JSON.parse(decodeURIComponent(userDataString));
+                    currentDiscordUser = {
+                        id: discordUser.id,
+                        username: discordUser.username + '#' + discordUser.discriminator,
+                        avatar: discordUser.avatar
+                    };
+                    
+                    // Save to localStorage or session
+                    localStorage.setItem('discordUser', JSON.stringify(currentDiscordUser));
+                    
+                    // Update UI
+                    document.getElementById('discordInfo').style.display = 'flex';
+                    document.getElementById('discordUsername').textContent = currentDiscordUser.username;
+                    if (currentDiscordUser.avatar) {
+                        document.getElementById('discordAvatar').src = 
+                            `https://cdn.discordapp.com/avatars/${currentDiscordUser.id}/${currentDiscordUser.avatar}.png?size=256`;
+                    }
+                    
+                    // Clean up URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            } else {
+                // Check if user is already logged in
+                const savedUser = localStorage.getItem('discordUser');
+                if (savedUser) {
+                    currentDiscordUser = JSON.parse(savedUser);
+                    // Update UI...
+                }
+            }
+        });
+        */
+    </script>
+</body>
+</html>
