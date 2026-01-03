@@ -1,0 +1,21 @@
+[Unit]
+Description=MyCirkle Discord Bot
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/mycirkle-bot
+Environment="BOT_TOKEN=YOUR_BOT_TOKEN_HERE"
+Environment="CONFIG_URL=https://mycirkle-auth.marcusray.workers.dev/api/bot-config"
+Environment="WORKER_API_URL=https://mycirkle-auth.marcusray.workers.dev"
+Environment="NODE_ENV=production"
+ExecStart=/usr/bin/node /home/YOUR_USERNAME/mycirkle-bot/bot.js
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=mycirkle-bot
+
+[Install]
+WantedBy=multi-user.target
