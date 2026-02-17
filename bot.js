@@ -443,7 +443,7 @@ function handlePayload(payload) {
                     op: 2,
                     d: {
                         token: BOT_TOKEN,
-                        intents: (1 << 0) | (1 << 9) | (1 << 15) | (1 << 20), // GUILDS (1) + GUILD_MESSAGES (512) + MESSAGE_CONTENT (32768) + MESSAGE_REACTIONS (1048576) = 1081857
+                        intents: (1 << 0) | (1 << 9) | (1 << 15) | (1 << 20) | (1 << 1), // GUILDS (1) + GUILD_MEMBERS (2) + GUILD_MESSAGES (512) + MESSAGE_CONTENT (32768) + MESSAGE_REACTIONS (1048576) = 1081859
                         properties: {
                             os: 'linux',
                             browser: 'mycirkle-bot',
@@ -532,18 +532,15 @@ function handlePayload(payload) {
                 // Handle reaction-based role assignment
                 const { user_id, channel_id, message_id, emoji } = d;
                 
-                // Ignore bot reactions
-                if (user_id === d.user?.id && d.user?.bot) break;
-                
                 // Check for advertising embed reaction (✅ emoji = U+2705)
                 if (emoji.name === '✅' && channel_id === '1323358326309916702') {
                     const roleId = '1323791955569938554';
-                    const guildId = '1310656642672627752'; // MyCirkle Discord server
+                    const guildId = d.guild_id || '1310656642672627752'; // MyCirkle Discord server
                     
                     console.log(`🎯 User ${user_id} reacted with ✅ to advertising embed`);
                     
                     // Add role to user
-                    setTimeout(async () => {
+                    (async () => {
                         try {
                             const response = await fetch(
                                 `https://discord.com/api/v10/guilds/${guildId}/members/${user_id}/roles/${roleId}`,
@@ -552,20 +549,176 @@ function handlePayload(payload) {
                                     headers: {
                                         'Authorization': `Bot ${BOT_TOKEN}`,
                                         'Content-Type': 'application/json'
-                                    }
+                                    },
+                                    body: JSON.stringify({})
                                 }
                             );
                             
                             if (response.ok) {
                                 console.log(`✅ Gave role ${roleId} to user ${user_id}`);
                             } else {
-                                console.error(`❌ Failed to give role: ${response.status}`);
+                                const responseText = await response.text();
+                                console.error(`❌ Failed to give role: ${response.status} - ${responseText}`);
                             }
                         } catch (error) {
                             console.error('❌ Error adding role:', error.message);
                         }
-                    }, 100);
+                    })();
                 }
+            } else if (t === 'MESSAGE_CREATE') {
+                // Handle advertisement channel messages
+                const { author, channel_id, content, id: message_id } = d;
+                
+                // Ignore bot messages
+                if (author.bot) break;
+                
+                const adChannels = ['1323358084265152594', '1323358165730852946', '1323358256881602692'];
+                if (!adChannels.includes(channel_id)) break;
+                
+                // Wrap in async IIFE
+                (async () => {
+                    // Check for inappropriate content
+                    const inappropriateWords = ['badword1', 'badword2', 'badword3']; // Add actual words as needed
+                    const hasMentions = content.includes('@everyone') || content.includes('@here') || content.includes('<@');
+                    const hasInappropriateContent = inappropriateWords.some(word => content.toLowerCase().includes(word));
+                    
+                    // Check for permanent Discord invite
+                    const discordInviteRegex = /discord\.gg\/([a-zA-Z0-9-]+)/gi;
+                    const hasDiscordInvite = discordInviteRegex.test(content);
+                    
+                    console.log(`📢 Message in ad channel ${channel_id} from ${author.username}`);
+                    
+                    let shouldDelete = false;
+                    let deleteReason = '';
+                    
+                    if (hasMentions) {
+                        shouldDelete = true;
+                        deleteReason = 'Your advertisement was deleted because it contains mentions (@everyone, @here, or user mentions), which are not allowed.';
+                    } else if (hasInappropriateContent) {
+                        shouldDelete = true;
+                        deleteReason = 'Your advertisement was deleted because it contains inappropriate language.';
+                    } else if (!hasDiscordInvite) {
+                        shouldDelete = true;
+                        deleteReason = 'Your advertisement was deleted because it does not contain a permanent Discord invite link. Please include a permanent invite (discord.gg/...) in your advertisement.';
+                    }
+                    
+                    if (shouldDelete) {
+                        // Delete the message
+                        await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages/${message_id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bot ${BOT_TOKEN}`
+                            }
+                        }).catch(err => console.error('Failed to delete message:', err));
+                        
+                        // Send DM to user
+                        try {
+                            const dmChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bot ${BOT_TOKEN}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ recipient_id: author.id })
+                            });
+                            
+                            if (!dmChannelResponse.ok) {
+                                console.error('Failed to create DM channel');
+                                return;
+                            }
+                            
+                            const dmChannel = await dmChannelResponse.json();
+                            
+                            await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bot ${BOT_TOKEN}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    embeds: [{
+                                        title: '❌ Advertisement Deleted',
+                                        description: deleteReason,
+                                        color: 0xef4444,
+                                        footer: { text: 'Cirkle Development' },
+                                        timestamp: new Date().toISOString()
+                                    }]
+                                })
+                            });
+                        } catch (error) {
+                            console.error('Error sending DM:', error.message);
+                        }
+                    } else {
+                        // Valid advertisement - send confirmation embed
+                        try {
+                            const confirmResponse = await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bot ${BOT_TOKEN}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    embeds: [{
+                                        title: '<:cirkledev:1315278604736794745> **Advert Shared** ✅',
+                                        description: `Thanks for sharing your ad, <@${author.id}>! You can come back in \`6\` hours to share again!\n\n> 👉 **Ads must have a permanent invite link**\n> ❗ **leaving will delete all posted ads.**\n\n**Thanks for advertising in Cirkle!**\nBy advertising in Cirkle Development, you agree to the rules and regulations provided by Cirkle. These can be seen here -> <#1323358326309916702>`,
+                                        color: 0x10b981,
+                                        footer: { text: 'Cirkle Development' },
+                                        timestamp: new Date().toISOString()
+                                    }]
+                                })
+                            });
+                            
+                            if (confirmResponse.ok) {
+                                console.log(`✅ Sent confirmation for ad from ${author.username}`);
+                            }
+                        } catch (error) {
+                            console.error('Error sending confirmation embed:', error.message);
+                        }
+                    }
+                })();
+            } else if (t === 'GUILD_MEMBER_REMOVE') {
+                // Handle user leaving - delete their ads
+                const { user, guild_id } = d;
+                const adChannels = ['1323358084265152594', '1323358165730852946', '1323358256881602692'];
+                
+                console.log(`👋 User ${user.username} left the server`);
+                
+                // Delete all messages from this user in ad channels
+                (async () => {
+                    for (const channelId of adChannels) {
+                        try {
+                            // Get messages from this user in the channel
+                            const messagesResponse = await fetch(
+                                `https://discord.com/api/v10/channels/${channelId}/messages?limit=100`,
+                                {
+                                    headers: {
+                                        'Authorization': `Bot ${BOT_TOKEN}`
+                                    }
+                                }
+                            );
+                            
+                            if (!messagesResponse.ok) continue;
+                            
+                            const messages = await messagesResponse.json();
+                            const userMessages = messages.filter(msg => msg.author.id === user.id);
+                            
+                            for (const msg of userMessages) {
+                                await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${msg.id}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Authorization': `Bot ${BOT_TOKEN}`
+                                    }
+                                }).catch(err => console.error('Failed to delete user message:', err));
+                            }
+                            
+                            if (userMessages.length > 0) {
+                                console.log(`🗑️ Deleted ${userMessages.length} messages from ${user.username} in channel ${channelId}`);
+                            }
+                        } catch (error) {
+                            console.error('Error deleting user messages:', error.message);
+                        }
+                    }
+                })();
             }
             break;
 
