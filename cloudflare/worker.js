@@ -3628,7 +3628,7 @@ Cirkle Development is proud to announce the first ever advanced and comprehensiv
                             embeds: [{
                                 title: 'Meet the Cirkle Development Team',
                                 color: 0x10b981,
-                                thumbnail: {
+                                image: {
                                     url: 'https://media.discordapp.net/attachments/1315674711719547003/1473328133297012787/meettheteam.png?ex=6995cf40&is=69947dc0&hm=95834a379fe3c1876ed434a6a72cb03793a1419c0e22b309d8ad99df40529ace&=&format=webp&quality=lossless'
                                 }
                             }],
@@ -3666,7 +3666,9 @@ Cirkle Development is proud to announce the first ever advanced and comprehensiv
 **Join Cirkle Development!** 
 🔗: https://discord.gg/2452XzVPZd
 🌐: **https://shop.cirkledevelopment.co.uk**
-🌐: **https://allcareers.cirkledevelopment.co.uk**`;
+🌐: **https://allcareers.cirkledevelopment.co.uk**
+
+https://media.discordapp.net/attachments/1315044517199740928/1439306370229866606/image.png?ex=691a0a03&is=6918b883&hm=aeba16a161182e3ccd1f3486718f5170e75c95559f0d2e92bfff016303ba2df6&=&format=webp&quality=lossless`;
 
             const messageId = interaction.message.id;
             const channelId = interaction.channel_id;
@@ -3678,7 +3680,7 @@ Cirkle Development is proud to announce the first ever advanced and comprehensiv
                 const isCurrentlyCodeblock = currentButtonLabel === 'Show normal';
                 
                 if (isCurrentlyCodeblock) {
-                    // Switch to normal
+                    // Switch to normal - show embed version
                     await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`, {
                         method: 'PATCH',
                         headers: {
@@ -3686,9 +3688,10 @@ Cirkle Development is proud to announce the first ever advanced and comprehensiv
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
+                            content: null,
                             embeds: [{
                                 title: 'Cirkle Development Advertisement',
-                                description: adContent,
+                                description: adContent.split('\n\nhttps://')[0],
                                 color: 0x10b981,
                                 image: {
                                     url: 'https://media.discordapp.net/attachments/1315044517199740928/1439306370229866606/image.png?ex=691a0a03&is=6918b883&hm=aeba16a161182e3ccd1f3486718f5170e75c95559f0d2e92bfff016303ba2df6&=&format=webp&quality=lossless'
@@ -3719,6 +3722,7 @@ Cirkle Development is proud to announce the first ever advanced and comprehensiv
                         },
                         body: JSON.stringify({
                             content: `\`\`\`\n${adContent}\n\`\`\``,
+                            embeds: [],
                             components: [
                                 {
                                     type: 1,
@@ -4983,7 +4987,7 @@ At Cirkle Development, we are committed to delivering top-tier products that sea
 <:clearlydev:1315671921987289119> [Our ClearlyDev Store](https://clearlydev.com/store/cirkle-development)
 <:roblox:1315671124901888061> [Join our Roblox Group!](https://www.roblox.com/communities/8321615/Cirkle-Development#!/about)`,
                         color: 0x10b981,
-                        thumbnail: {
+                        image: {
                             url: 'https://media.discordapp.net/attachments/1315278404009988107/1433584166447874221/cirkledevtest.png?ex=6995950b&is=6994438b&hm=047bf700e3b41554ac1ab9fc89cfa7467115ce8c7a7ab786e494405bfdf38561&=&format=webp&quality=lossless'
                         }
                     }
