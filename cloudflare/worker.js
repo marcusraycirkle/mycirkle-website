@@ -3324,6 +3324,9 @@ async function handleDiscordInteraction(request, env) {
             case 'removeproduct':
                 return handleRemoveProductCommand(interaction, env);
             
+            case 'embed':
+                return handleEmbedCommand(interaction, env);
+            
             default:
                 return jsonResponse({
                     type: 4,
@@ -3558,6 +3561,194 @@ async function handleDiscordInteraction(request, env) {
                     type: 4,
                     data: {
                         content: '❌ Error processing product request.',
+                        flags: 64
+                    }
+                });
+            }
+        }
+        
+        // Handle guidelines dropdown menu
+        if (customId === 'guidelines_dropdown') {
+            const selectedOption = interaction.data.values[0];
+            const botToken = env.DISCORD_BOT_TOKEN;
+            
+            try {
+                if (selectedOption === 'guidelines_ad') {
+                    // Send hidden ad message with codeblock button
+                    const adContent = `## INVITE | Cirkle Development 
+*"building connections, creating solutions"*
+
+Looking for sleek, modern products already made for your game? Look no further then Cirkle. With our bilingual customer service, veteran developers and reliable products.. you can rely on **us** for your needs.
+
+📦 **Why Choose Us?**
+- **Veteran Developers**: Stunning maps, immersive worlds, and unique assets tailored to your needs.
+- **Creative Scripting:** Smooth mechanics, custom features, and innovative game systems.
+- **Collaborative Approach:** We work with you every step of the way to ensure your ideas are in *our* product list.
+- **Unique Systems:** Cirkle Development uses many systems to ensure consistency. We use our one of a kind, custom, most advanced and streamlined Staffing Portal out of all tech groups! This ensures consistency and flexibility within our team 
+
+Cirkle Development is proud to announce the first ever advanced and comprehensive customer loyalty program, MyCirkle. A completely free and useful account with Cirkle Development! Literally send some chats, buy some products, enagage in events/giveaways to earn points! Join our discord server and signup in 2 minutes!
+
+**Join Cirkle Development!** 
+🔗: https://discord.gg/2452XzVPZd
+🌐: **https://shop.cirkledevelopment.co.uk**
+🌐: **https://allcareers.cirkledevelopment.co.uk**`;
+
+                    return jsonResponse({
+                        type: 4,
+                        data: {
+                            embeds: [{
+                                title: 'Cirkle Development Advertisement',
+                                description: adContent,
+                                color: 0x10b981,
+                                image: {
+                                    url: 'https://media.discordapp.net/attachments/1315044517199740928/1439306370229866606/image.png?ex=691a0a03&is=6918b883&hm=aeba16a161182e3ccd1f3486718f5170e75c95559f0d2e92bfff016303ba2df6&=&format=webp&quality=lossless'
+                                }
+                            }],
+                            components: [
+                                {
+                                    type: 1,
+                                    components: [
+                                        {
+                                            type: 2,
+                                            style: 1,
+                                            label: 'Show codeblock',
+                                            custom_id: 'ad_toggle_codeblock'
+                                        }
+                                    ]
+                                }
+                            ],
+                            flags: 64 // Ephemeral/hidden message
+                        }
+                    });
+                } else if (selectedOption === 'guidelines_team') {
+                    // Send hidden message with team image
+                    return jsonResponse({
+                        type: 4,
+                        data: {
+                            embeds: [{
+                                title: 'Meet the Cirkle Development Team',
+                                color: 0x10b981,
+                                thumbnail: {
+                                    url: 'https://media.discordapp.net/attachments/1315674711719547003/1473328133297012787/meettheteam.png?ex=6995cf40&is=69947dc0&hm=95834a379fe3c1876ed434a6a72cb03793a1419c0e22b309d8ad99df40529ace&=&format=webp&quality=lossless'
+                                }
+                            }],
+                            flags: 64 // Ephemeral/hidden message
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Guidelines dropdown error:', error);
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ Error loading selection.',
+                        flags: 64
+                    }
+                });
+            }
+        }
+        
+        // Handle codeblock toggle button
+        if (customId === 'ad_toggle_codeblock') {
+            const adContent = `## INVITE | Cirkle Development 
+*"building connections, creating solutions"*
+
+Looking for sleek, modern products already made for your game? Look no further then Cirkle. With our bilingual customer service, veteran developers and reliable products.. you can rely on **us** for your needs.
+
+📦 **Why Choose Us?**
+- **Veteran Developers**: Stunning maps, immersive worlds, and unique assets tailored to your needs.
+- **Creative Scripting:** Smooth mechanics, custom features, and innovative game systems.
+- **Collaborative Approach:** We work with you every step of the way to ensure your ideas are in *our* product list.
+- **Unique Systems:** Cirkle Development uses many systems to ensure consistency. We use our one of a kind, custom, most advanced and streamlined Staffing Portal out of all tech groups! This ensures consistency and flexibility within our team 
+
+Cirkle Development is proud to announce the first ever advanced and comprehensive customer loyalty program, MyCirkle. A completely free and useful account with Cirkle Development! Literally send some chats, buy some products, enagage in events/giveaways to earn points! Join our discord server and signup in 2 minutes!
+
+**Join Cirkle Development!** 
+🔗: https://discord.gg/2452XzVPZd
+🌐: **https://shop.cirkledevelopment.co.uk**
+🌐: **https://allcareers.cirkledevelopment.co.uk**`;
+
+            const messageId = interaction.message.id;
+            const channelId = interaction.channel_id;
+            
+            try {
+                // Get current message to check if it's in codeblock
+                const currentMessage = interaction.message;
+                const currentButtonLabel = currentMessage.components?.[0]?.components?.[0]?.label;
+                const isCurrentlyCodeblock = currentButtonLabel === 'Show normal';
+                
+                if (isCurrentlyCodeblock) {
+                    // Switch to normal
+                    await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            embeds: [{
+                                title: 'Cirkle Development Advertisement',
+                                description: adContent,
+                                color: 0x10b981,
+                                image: {
+                                    url: 'https://media.discordapp.net/attachments/1315044517199740928/1439306370229866606/image.png?ex=691a0a03&is=6918b883&hm=aeba16a161182e3ccd1f3486718f5170e75c95559f0d2e92bfff016303ba2df6&=&format=webp&quality=lossless'
+                                }
+                            }],
+                            components: [
+                                {
+                                    type: 1,
+                                    components: [
+                                        {
+                                            type: 2,
+                                            style: 1,
+                                            label: 'Show codeblock',
+                                            custom_id: 'ad_toggle_codeblock'
+                                        }
+                                    ]
+                                }
+                            ]
+                        })
+                    });
+                } else {
+                    // Switch to codeblock
+                    await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            content: `\`\`\`\n${adContent}\n\`\`\``,
+                            components: [
+                                {
+                                    type: 1,
+                                    components: [
+                                        {
+                                            type: 2,
+                                            style: 1,
+                                            label: 'Show normal',
+                                            custom_id: 'ad_toggle_codeblock'
+                                        }
+                                    ]
+                                }
+                            ]
+                        })
+                    });
+                }
+                
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: isCurrentlyCodeblock ? '✅ Switched to normal view' : '✅ Switched to codeblock view',
+                        flags: 64
+                    }
+                });
+            } catch (error) {
+                console.error('Codeblock toggle error:', error);
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ Error updating message.',
                         flags: 64
                     }
                 });
@@ -4710,6 +4901,268 @@ async function handleAdminConfigCommand(interaction, env) {
             flags: 64
         }
     });
+}
+
+async function handleEmbedCommand(interaction, env) {
+    const embedType = interaction.data.options.find(opt => opt.name === 'type')?.value;
+    
+    try {
+        if (embedType === 'guidelines') {
+            return await sendGuidelinesEmbeds(interaction, env);
+        } else if (embedType === 'tos') {
+            return await sendTOSEmbed(interaction, env);
+        } else if (embedType === 'advertising') {
+            return await sendAdvertisingEmbed(interaction, env);
+        }
+        
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '❌ Unknown embed type.',
+                flags: 64
+            }
+        });
+    } catch (error) {
+        console.error('Embed command error:', error);
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '❌ Error sending embed. Please try again.',
+                flags: 64
+            }
+        });
+    }
+}
+
+async function sendGuidelinesEmbeds(interaction, env) {
+    const channelId = '1315044257664336024';
+    const botToken = env.DISCORD_BOT_TOKEN;
+    
+    try {
+        // Send the three embeds together
+        const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bot ${botToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                embeds: [
+                    {
+                        title: '<:fulllogo:1315278697443495968> © Cirkle Development 2024',
+                        description: `Founded in December 2024, Cirkle Development is on a mission to redefine the global tech landscape. Our goal is not just to provide innovative solutions but to empower businesses with stronger, more dynamic identities that help them thrive in a competitive world.
+
+At Cirkle Development, we are committed to delivering top-tier products that seamlessly combine quality and simplicity. Our offerings are designed to stand out for all the right reasons—offered at competitive, affordable prices while exceeding expectations in performance and design.
+●○●○●○●○●●○●○●○●○●●○●○●○●○●`,
+                        color: 0x10b981,
+                        thumbnail: {
+                            url: 'https://media.discordapp.net/attachments/1315278404009988107/1473323652735828029/Eco_Clean.jpg?ex=6995cb13&is=69947993&hm=2895dc7b4f092c92e8d4771b9a276dfa51cab70fc07c61b37068b245c96d4171&=&format=webp'
+                        }
+                    },
+                    {
+                        title: '📜 Server Rules',
+                        description: `To keep this server safe and appropriate, we ask that you follow the rules listed below. Cirkle not only ensures it's best quality of products but also ensures a safe server evironment.
+
+1. Be respectful of others.
+2. Keep content appropriate.
+3. No spamming.
+4. Avoid Drama.
+5. Respect privacy.
+6. No Malicious Links
+7. No Illegal Activity
+8. **Please be sure to follow Discords and Roblox's ToS and Guidelines!**`,
+                        color: 0x10b981
+                    },
+                    {
+                        title: '<:cirkledev:1315278604736794745> Our Socials and Links',
+                        description: `●○●○●○●○●●○●○●○●○●●○●○●○●○●
+
+<:cirkledev:1315278604736794745> Our Socials and Links
+- <:tiktok:1315671765753659433><:youtube:1315671254438514739><:xlogo:1315672400456716422><:instagram:1452042193299706019> @cirkledev
+<:cirkledev:1315278604736794745> shop.cirkledevelopment.co.uk
+<:clearlydev:1315671921987289119> [Our ClearlyDev Store](https://clearlydev.com/store/cirkle-development)
+<:roblox:1315671124901888061> [Join our Roblox Group!](https://www.roblox.com/communities/8321615/Cirkle-Development#!/about)`,
+                        color: 0x10b981,
+                        thumbnail: {
+                            url: 'https://media.discordapp.net/attachments/1315278404009988107/1433584166447874221/cirkledevtest.png?ex=6995950b&is=6994438b&hm=047bf700e3b41554ac1ab9fc89cfa7467115ce8c7a7ab786e494405bfdf38561&=&format=webp&quality=lossless'
+                        }
+                    }
+                ],
+                components: [
+                    {
+                        type: 1,
+                        components: [
+                            {
+                                type: 3,
+                                custom_id: 'guidelines_dropdown',
+                                placeholder: 'Select an option...',
+                                options: [
+                                    {
+                                        label: 'Our ad',
+                                        value: 'guidelines_ad',
+                                        description: 'View Cirkle advertisements'
+                                    },
+                                    {
+                                        label: 'Meet the team',
+                                        value: 'guidelines_team',
+                                        description: 'Meet the Cirkle team'
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Failed to send embeds: ${error}`);
+        }
+        
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '✅ Guidelines embeds sent successfully!',
+                flags: 64
+            }
+        });
+    } catch (error) {
+        console.error('Guidelines embeds error:', error);
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '❌ Error sending guidelines embeds.',
+                flags: 64
+            }
+        });
+    }
+}
+
+async function sendTOSEmbed(interaction, env) {
+    const channelId = '1315321398008217652';
+    const botToken = env.DISCORD_BOT_TOKEN;
+    
+    try {
+        const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bot ${botToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                embeds: [{
+                    title: '<:fulllogo:1315278697443495968> Cirkle TOS',
+                    description: `When purchasing a Cirkle product, you agree to the TOS Listed below.
+
+• **No Refunds** - Refunds on purchased products are not permitted at Cirkle.
+• **Do not leak**- We prohibit the use of our products without a license. All of our products are installed with a security system to ensure users have a license to use. If found without one, you will receive a blacklist from Cirkle.
+• **These products can only be used on games or groups YOU OWN.**
+• **Keep Cirkle Branding** - Any attempts to change or remove Cirkle Branding without permission from a higher rank (Assistant Director+) will result in consequences.
+• **Reselling is prohibited** - Cirkle prohibits the act to resell our products. If found reselling without permission from a higher rank (Assistant Director+), you will receive consequences.
+
+👉 **Failure to comply with the TOS listed will result in ownership removal and blacklist from the company and other companies under the Cirkle Development Group**.`,
+                    color: 0x10b981,
+                    image: {
+                        url: 'https://media.discordapp.net/attachments/1315278404009988107/1315686108281045062/image.png?ex=6995236c&is=6993d1ec&hm=fd29a5fc8d46b3936689f25769019244ac8eec2a0c99ef15c8522980d854c339&=&format=webp'
+                    }
+                }]
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Failed to send TOS embed: ${error}`);
+        }
+        
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '✅ TOS embed sent successfully!',
+                flags: 64
+            }
+        });
+    } catch (error) {
+        console.error('TOS embed error:', error);
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '❌ Error sending TOS embed.',
+                flags: 64
+            }
+        });
+    }
+}
+
+async function sendAdvertisingEmbed(interaction, env) {
+    const channelId = '1323358326309916702';
+    const botToken = env.DISCORD_BOT_TOKEN;
+    
+    try {
+        const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bot ${botToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                embeds: [{
+                    title: '<:cirkledev:1315278604736794745> Cirkle Advertisement/Campaign Regulations',
+                    description: `To maintain a positive and relevant community experience at Cirkle,, please adhere to the following regulations when advertising or sharing campaigns:
+
+> ### - Roblox Servers Only
+> - Please refrain from advertising servers that are not related to Roblox. As this server is dedicated to the Roblox community, we aim to keep the focus on Roblox-related discussions and interactions.
+
+> ### - No NSFW Content
+> - NSFW content (including but not limited to sexually suggestive, explicit, or violent material) is strictly prohibited within this server.
+
+> ### - 6-Hour Cooldown on Advertising
+> - To prevent excessive spam and ensure a balanced experience for all members, there is a 6-hour cooldown period between advertisements in each designated advertising channel.
+
+Cirkle has the right to delete or take down any advertisements/campaigns if we suspect any of these rules are broken. Cirkle also has the right to issue appropriate sanctions to users using the advertising category, These could include removing your advertisements or campaigns, giving you a warning, or temporarily or permanently banning you from certain channels or features.`,
+                    color: 0x7c3aed
+                }]
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Failed to send advertising embed: ${error}`);
+        }
+        
+        // Get message ID to add reaction
+        const responseData = await response.json();
+        const messageId = responseData.id;
+        
+        // Add checkmark reaction for role assignment
+        try {
+            await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}/reactions/✅/@me`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bot ${botToken}`
+                }
+            });
+        } catch (reactionError) {
+            console.error('Failed to add reaction:', reactionError);
+        }
+        
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '✅ Advertising embed sent successfully with reaction role!',
+                flags: 64
+            }
+        });
+    } catch (error) {
+        console.error('Advertising embed error:', error);
+        return jsonResponse({
+            type: 4,
+            data: {
+                content: '❌ Error sending advertising embed.',
+                flags: 64
+            }
+        });
+    }
 }
 
 async function handleProductEmbedCommand(interaction, env) {

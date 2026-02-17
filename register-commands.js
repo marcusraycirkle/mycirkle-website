@@ -161,6 +161,23 @@ const commands = [
                 required: false
             }
         ]
+    },
+    {
+        name: 'embed',
+        description: '[ADMIN] Send information embeds to channels',
+        options: [
+            {
+                name: 'type',
+                description: 'Type of embed to send',
+                type: 3, // STRING type
+                required: true,
+                choices: [
+                    { name: 'Guidelines', value: 'guidelines' },
+                    { name: 'TOS', value: 'tos' },
+                    { name: 'Advertising', value: 'advertising' }
+                ]
+            }
+        ]
     }
 ];
 
@@ -186,7 +203,7 @@ async function registerCommands() {
         const data = await response.json();
         console.log('✅ Successfully registered commands:');
         data.forEach(cmd => {
-            const isAdmin = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig', 'productembed'].includes(cmd.name);
+            const isAdmin = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig', 'productembed', 'embed'].includes(cmd.name);
             const prefix = isAdmin ? '🔒 [ADMIN] ' : '   ';
             console.log(`${prefix}/${cmd.name} - ${cmd.description}`);
         });
