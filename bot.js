@@ -20,6 +20,9 @@ const FORUM_REWARDS = {
 // In-memory message tracking (per user per channel)
 const messageTracker = new Map(); // key: "userId:channelId", value: count
 
+// Tracking last ad confirmation message per channel
+const lastAdEmbedMessages = new Map(); // key: channelId, value: messageId
+
 if (!BOT_TOKEN) {
     console.error('❌ Error: BOT_TOKEN environment variable is required');
     console.log('Usage: BOT_TOKEN=your_token node bot.js');
@@ -590,6 +593,17 @@ function handlePayload(payload) {
                         } else {
                             // Valid advertisement - send confirmation embed
                             try {
+                                // Delete previous message if exists
+                                const previousMessageId = lastAdEmbedMessages.get(channel_id);
+                                if (previousMessageId) {
+                                    await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages/${previousMessageId}`, {
+                                        method: 'DELETE',
+                                        headers: {
+                                            'Authorization': `Bot ${BOT_TOKEN}`
+                                        }
+                                    }).catch(err => console.log('Previous message already deleted or not found'));
+                                }
+                                
                                 const confirmResponse = await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages`, {
                                     method: 'POST',
                                     headers: {
@@ -608,6 +622,8 @@ function handlePayload(payload) {
                                 });
                                 
                                 if (confirmResponse.ok) {
+                                    const newMessage = await confirmResponse.json();
+                                    lastAdEmbedMessages.set(channel_id, newMessage.id);
                                     console.log(`✅ Sent confirmation for ad from ${author.username}`);
                                 } else {
                                     const errorText = await confirmResponse.text();
@@ -620,23 +636,117 @@ function handlePayload(payload) {
                     })();
                 }
             } else if (t === 'THREAD_CREATE') {
-                // Handle forum post rewards
-                const { owner_id, parent_id } = d;
+                // Handle forum post rewards and special forum handlers
+                const { owner_id, parent_id, id: thread_id, name: thread_name } = d;
+                const botToken = BOT_TOKEN;
                 
-                // Check if forum is tracked
+                // Check if forum is tracked for rewards
                 const pointsToAward = FORUM_REWARDS[parent_id];
-                if (!pointsToAward) break;
+                if (pointsToAward) {
+                    console.log(`📝 User created thread in forum ${parent_id}`);
+                    // Wrap async calls in IIFE
+                    (async () => {
+                        try {
+                            await awardPoints(owner_id, pointsToAward, `Created a discussion thread`);
+                            await sendActivityDM(owner_id, pointsToAward, `Created a discussion thread`);
+                        } catch (err) {
+                            console.error('❌ Error awarding thread points:', err.message);
+                        }
+                    })();
+                }
                 
-                console.log(`📝 User created thread in forum ${parent_id}`);
-                // Wrap async calls in IIFE
-                (async () => {
-                    try {
-                        await awardPoints(owner_id, pointsToAward, `Created a discussion thread`);
-                        await sendActivityDM(owner_id, pointsToAward, `Created a discussion thread`);
-                    } catch (err) {
-                        console.error('❌ Error awarding thread points:', err.message);
-                    }
-                })();
+                // Handle suggestions forum
+                if (parent_id === '1323293808326086717') {
+                    console.log(`💡 New suggestion from user ${owner_id}: ${thread_name}`);
+                    (async () => {
+                        try {
+                            // Get user info
+                            const userResponse = await fetch(`https://discord.com/api/v10/users/${owner_id}`, {
+                                headers: { 'Authorization': `Bot ${botToken}` }
+                            });
+                            const userData = await userResponse.json();
+                            const username = userData.username || 'User';
+                            
+                            // Send suggestion embed to suggestions channel with approve/deny buttons
+                            await fetch(`https://discord.com/api/v10/channels/${parent_id}/messages`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bot ${botToken}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    content: `<@${owner_id}> <@&1315323804528017498>`,
+                                    embeds: [{
+                                        title: '<:cirkledev:1315278604736794745> New Suggestion Recorded 💡',
+                                        description: `**Thank you for sharing your suggestion,** ${username}!\n\nPlease wait whilst a Developer reviews your request. This may take a few hours to a few days. You will be pinged once a response is given.\n\n👉 **Have you checked out our list of denied suggestions?**\nPlease ensure you have checked out the list of our previously denied suggestions, just in case you haven't suggested the same thing! https://discord.com/channels/1310656642672627752/1323296654555877477`,
+                                        color: 0x10b981,
+                                        image: {
+                                            url: 'https://media.discordapp.net/attachments/1315278404009988107/1315681775447445504/image.png?ex=6995c823&is=699476a3&hm=366945720b1914bd4c7d5e0648f5ab09c5b2e3136407081317449288fd9fbe6a&=&format=webp&quality=lossless'
+                                        }
+                                    }],
+                                    components: [
+                                        {
+                                            type: 1,
+                                            components: [
+                                                {
+                                                    type: 2,
+                                                    style: 3,
+                                                    label: 'Approve',
+                                                    custom_id: `suggestion_approve_${owner_id}`
+                                                },
+                                                {
+                                                    type: 2,
+                                                    style: 4,
+                                                    label: 'Deny',
+                                                    custom_id: `suggestion_deny_${owner_id}`
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                })
+                            }).catch(err => console.error('Failed to send suggestion embed:', err));
+                        } catch (error) {
+                            console.error('Error in suggestion handler:', error.message);
+                        }
+                    })();
+                }
+                
+                // Handle reviews forum
+                if (parent_id === '1315679706745409566') {
+                    console.log(`⭐ New review from user ${owner_id}: ${thread_name}`);
+                    (async () => {
+                        try {
+                            // Get user info
+                            const userResponse = await fetch(`https://discord.com/api/v10/users/${owner_id}`, {
+                                headers: { 'Authorization': `Bot ${botToken}` }
+                            });
+                            const userData = await userResponse.json();
+                            const username = userData.username || 'User';
+                            
+                            // Send review thank you embed
+                            await fetch(`https://discord.com/api/v10/channels/${parent_id}/messages`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bot ${botToken}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    content: `<@${owner_id}> <@&1315346851616002158>`,
+                                    embeds: [{
+                                        title: '<:cirkledev:1315278604736794745> Thanks for your review! 🤝',
+                                        description: `✅ **Thank you for sending us a review, ${username}!**\n\nWe appreciate your time writing this review.\n\nThese reviews help us with making our products better, or improve our Customer Support Team. If you have purchased something, or dealt with a Support Agent in a ticket, email or external source, please consider writing a quick review!`,
+                                        color: 0x10b981,
+                                        image: {
+                                            url: 'https://media.discordapp.net/attachments/1315278404009988107/1315681775447445504/image.png?ex=6995c823&is=699476a3&hm=366945720b1914bd4c7d5e0648f5ab09c5b2e3136407081317449288fd9fbe6a&=&format=webp&quality=lossless'
+                                        }
+                                    }]
+                                })
+                            }).catch(err => console.error('Failed to send review embed:', err));
+                        } catch (error) {
+                            console.error('Error in review handler:', error.message);
+                        }
+                    })();
+                }
             } else if (t === 'GUILD_MEMBER_REMOVE') {
                 // Handle user leaving - delete their ads
                 const { user, guild_id } = d;

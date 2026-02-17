@@ -3879,6 +3879,165 @@ https://media.discordapp.net/attachments/1315044517199740928/1439306370229866606
             }
         }
         
+        // Handle suggestion approve button
+        if (customId.startsWith('suggestion_approve_')) {
+            const userId = interaction.member?.user?.id || interaction.user?.id;
+            const approverName = interaction.member?.user?.username || interaction.user?.username;
+            
+            // Check if user has the required role
+            const allowedRoles = ['1315323804528017498', '1315041666851274822'];
+            const hasRole = interaction.member?.roles?.some(role => allowedRoles.includes(role));
+            
+            if (!hasRole) {
+                // Send public error message that will be deleted after 3s
+                const errorResponse = await fetch(
+                    `https://discord.com/api/v10/channels/${interaction.channel_id}/messages`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            content: `<@${userId}>, you cannot use these buttons! Please wait for a developer`,
+                            message_reference: {
+                                message_id: interaction.message.id
+                            }
+                        })
+                    }
+                );
+                
+                if (errorResponse.ok) {
+                    const errorMsg = await errorResponse.json();
+                    // Delete the message after 3 seconds
+                    setTimeout(async () => {
+                        await fetch(
+                            `https://discord.com/api/v10/channels/${interaction.channel_id}/messages/${errorMsg.id}`,
+                            {
+                                method: 'DELETE',
+                                headers: {
+                                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`
+                                }
+                            }
+                        ).catch(err => console.error('Failed to delete error message:', err));
+                    }, 3000);
+                }
+                
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ You do not have permissions to use this button.',
+                        flags: 64
+                    }
+                });
+            }
+            
+            // Update the embed to approved state
+            const currentEmbed = interaction.message.embeds[0];
+            await fetch(`https://discord.com/api/v10/channels/${interaction.channel_id}/messages/${interaction.message.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    embeds: [{
+                        ...currentEmbed,
+                        description: `${currentEmbed.description.split('Please wait')[0]}\n✅ **Suggestion has been approved!**\nApproved by: ${approverName}`
+                    }],
+                    components: []
+                })
+            }).catch(err => console.error('Failed to update embed:', err));
+            
+            return jsonResponse({
+                type: 4,
+                data: {
+                    content: '✅ Suggestion approved!',
+                    flags: 64
+                }
+            });
+        }
+        
+        // Handle suggestion deny button
+        if (customId.startsWith('suggestion_deny_')) {
+            const userId = interaction.member?.user?.id || interaction.user?.id;
+            const approverName = interaction.member?.user?.username || interaction.user?.username;
+            
+            // Check if user has the required role
+            const allowedRoles = ['1315323804528017498', '1315041666851274822'];
+            const hasRole = interaction.member?.roles?.some(role => allowedRoles.includes(role));
+            
+            if (!hasRole) {
+                // Send public error message that will be deleted after 3s
+                const errorResponse = await fetch(
+                    `https://discord.com/api/v10/channels/${interaction.channel_id}/messages`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            content: `<@${userId}>, you cannot use these buttons! Please wait for a developer`,
+                            message_reference: {
+                                message_id: interaction.message.id
+                            }
+                        })
+                    }
+                );
+                
+                if (errorResponse.ok) {
+                    const errorMsg = await errorResponse.json();
+                    // Delete the message after 3 seconds
+                    setTimeout(async () => {
+                        await fetch(
+                            `https://discord.com/api/v10/channels/${interaction.channel_id}/messages/${errorMsg.id}`,
+                            {
+                                method: 'DELETE',
+                                headers: {
+                                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`
+                                }
+                            }
+                        ).catch(err => console.error('Failed to delete error message:', err));
+                    }, 3000);
+                }
+                
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ You do not have permissions to use this button.',
+                        flags: 64
+                    }
+                });
+            }
+            
+            // Show denial reason modal
+            return jsonResponse({
+                type: 9,
+                data: {
+                    custom_id: `suggestion_deny_modal_${interaction.message.id}`,
+                    title: 'Deny Suggestion',
+                    components: [
+                        {
+                            type: 1,
+                            components: [
+                                {
+                                    type: 4,
+                                    custom_id: 'denial_reason',
+                                    label: 'Denial Reason',
+                                    style: 2,
+                                    placeholder: 'Enter the reason for denial...',
+                                    required: true,
+                                    min_length: 10,
+                                    max_length: 1000
+                                }
+                            ]
+                        }
+                    ]
+                }
+            });
+        }
+        
         // Check admin permission for suspension actions
         const isAdmin = await checkAdminRole(interaction.member, env);
         if (!isAdmin) {
@@ -3970,6 +4129,54 @@ https://media.discordapp.net/attachments/1315044517199740928/1439306370229866606
     // Handle modal submissions
     if (interaction.type === 5) {
         const customId = interaction.data.custom_id;
+        
+        // Handle suggestion denial submission
+        if (customId.startsWith('suggestion_deny_modal_')) {
+            const denialReason = interaction.data.components[0].components[0].value;
+            const denierName = interaction.member?.user?.username || interaction.user?.username;
+            
+            // Extract message ID from custom_id
+            const messageId = customId.split('suggestion_deny_modal_')[1];
+            
+            try {
+                // Update the embed to denied state
+                const currentEmbed = interaction.message.embeds[0];
+                const channelId = interaction.channel_id;
+                const botToken = env.DISCORD_BOT_TOKEN;
+                
+                await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        embeds: [{
+                            ...currentEmbed,
+                            description: `${currentEmbed.description.split('Please wait')[0]}\n❌ **Suggestion has been Denied!**\nDenied by: ${denierName}\nReason: ${denialReason}`
+                        }],
+                        components: []
+                    })
+                }).catch(err => console.error('Failed to update denial embed:', err));
+                
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '✅ Suggestion denied!',
+                        flags: 64
+                    }
+                });
+            } catch (error) {
+                console.error('Denial submission error:', error);
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ Error processing denial.',
+                        flags: 64
+                    }
+                });
+            }
+        }
         
         // Check admin permission
         const isAdmin = await checkAdminRole(interaction.member, env);
