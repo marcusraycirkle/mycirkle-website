@@ -5458,8 +5458,8 @@ async function sendAdvertisingEmbed(interaction, env) {
 > ### - No NSFW Content
 > - NSFW content (including but not limited to sexually suggestive, explicit, or violent material) is strictly prohibited within this server.
 
-> ### - 6-Hour Cooldown on Advertising
-> - To prevent excessive spam and ensure a balanced experience for all members, there is a 6-hour cooldown period between advertisements in each designated advertising channel.
+> ### - 3-Hour Cooldown on Advertising
+> - To prevent excessive spam and ensure a balanced experience for all members, there is a 3-hour cooldown period between advertisements in each designated advertising channel.
 
 Cirkle has the right to delete or take down any advertisements/campaigns if we suspect any of these rules are broken. Cirkle also has the right to issue appropriate sanctions to users using the advertising category, These could include removing your advertisements or campaigns, giving you a warning, or temporarily or permanently banning you from certain channels or features.`,
                     color: 0x7c3aed,

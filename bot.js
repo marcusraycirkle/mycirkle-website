@@ -13,8 +13,7 @@ const MESSAGE_THRESHOLD = 5; // Points awarded every 5 messages
 const MESSAGE_REWARD_POINTS = 2;
 
 const FORUM_REWARDS = {
-    '1315679706745409566': 3, // Forum ID -> points
-    '1323293808326086717': 4
+    // Don't reward for forum thread creation - only for active participation
 };
 
 // In-memory message tracking (per user per channel)
@@ -596,12 +595,21 @@ function handlePayload(payload) {
                                 // Delete previous message if exists
                                 const previousMessageId = lastAdEmbedMessages.get(channel_id);
                                 if (previousMessageId) {
-                                    await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages/${previousMessageId}`, {
-                                        method: 'DELETE',
-                                        headers: {
-                                            'Authorization': `Bot ${BOT_TOKEN}`
+                                    try {
+                                        const deleteRes = await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages/${previousMessageId}`, {
+                                            method: 'DELETE',
+                                            headers: {
+                                                'Authorization': `Bot ${BOT_TOKEN}`
+                                            }
+                                        });
+                                        if (deleteRes.ok) {
+                                            console.log(`🗑️ Deleted previous ad embed (ID: ${previousMessageId}) from channel ${channel_id}`);
+                                        } else {
+                                            console.log(`⚠️ Could not delete previous ad embed: ${deleteRes.status}`);
                                         }
-                                    }).catch(err => console.log('Previous message already deleted or not found'));
+                                    } catch (err) {
+                                        console.log('❌ Error deleting previous message:', err.message);
+                                    }
                                 }
                                 
                                 const confirmResponse = await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages`, {
@@ -613,7 +621,7 @@ function handlePayload(payload) {
                                     body: JSON.stringify({
                                         embeds: [{
                                             title: '<:cirkledev:1315278604736794745> **Advert Shared** ✅',
-                                            description: `Thanks for sharing your ad, <@${author.id}>! You can come back in \`6\` hours to share again!\n\n> 👉 **Ads must have a permanent invite link**\n> ❗ **leaving will delete all posted ads.**\n\n**Thanks for advertising in Cirkle!**\nBy advertising in Cirkle Development, you agree to the rules and regulations provided by Cirkle. These can be seen here -> <#1323358326309916702>`,
+                                            description: `Thanks for sharing your ad, <@${author.id}>! You can come back in \`2\` hours to share again!\n\n> 👉 **Ads must have a permanent invite link**\n> ❗ **leaving will delete all posted ads.**\n\n**Thanks for advertising in Cirkle!**\nBy advertising in Cirkle Development, you agree to the rules and regulations provided by Cirkle. These can be seen here -> <#1323358326309916702>`,
                                             color: 0x10b981,
                                             footer: { text: 'Cirkle Development' },
                                             timestamp: new Date().toISOString()
@@ -667,8 +675,8 @@ function handlePayload(payload) {
                             const userData = await userResponse.json();
                             const username = userData.username || 'User';
                             
-                            // Send suggestion embed to suggestions channel with approve/deny buttons
-                            await fetch(`https://discord.com/api/v10/channels/${parent_id}/messages`, {
+                            // Send suggestion embed to the thread with approve/deny buttons
+                            await fetch(`https://discord.com/api/v10/channels/${thread_id}/messages`, {
                                 method: 'POST',
                                 headers: {
                                     'Authorization': `Bot ${botToken}`,
@@ -723,8 +731,8 @@ function handlePayload(payload) {
                             const userData = await userResponse.json();
                             const username = userData.username || 'User';
                             
-                            // Send review thank you embed
-                            await fetch(`https://discord.com/api/v10/channels/${parent_id}/messages`, {
+                            // Send review thank you embed to the thread
+                            await fetch(`https://discord.com/api/v10/channels/${thread_id}/messages`, {
                                 method: 'POST',
                                 headers: {
                                     'Authorization': `Bot ${botToken}`,
