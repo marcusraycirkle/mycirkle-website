@@ -3281,7 +3281,7 @@ async function handleDiscordInteraction(request, env) {
         const options = interaction.data.options || [];
         
         // Check if user is admin for admin commands
-        const adminCommands = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig', 'productembed', 'removeproduct'];
+        const adminCommands = ['givepoints', 'deductpoints', 'process', 'dailyreward', 'adminconfig', 'productembed', 'removeproduct', 'embed'];
         if (adminCommands.includes(command)) {
             const isAdmin = await checkAdminRole(interaction.member, env);
             if (!isAdmin) {
