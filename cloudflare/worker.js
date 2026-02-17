@@ -3759,6 +3759,126 @@ https://media.discordapp.net/attachments/1315044517199740928/1439306370229866606
             }
         }
         
+        // Handle advertising access button
+        if (customId === 'advertising_access_button') {
+            const userId = interaction.member?.user?.id || interaction.user?.id;
+            const roleId = '1323791955569938554';
+            const guildId = interaction.guild_id;
+            const botToken = env.DISCORD_BOT_TOKEN;
+            
+            try {
+                // Check if user already has the role
+                const memberResponse = await fetch(
+                    `https://discord.com/api/v10/guilds/${guildId}/members/${userId}`,
+                    {
+                        headers: {
+                            'Authorization': `Bot ${botToken}`
+                        }
+                    }
+                );
+                
+                if (!memberResponse.ok) {
+                    return jsonResponse({
+                        type: 4,
+                        data: {
+                            content: '❌ Could not verify member status.',
+                            flags: 64
+                        }
+                    });
+                }
+                
+                const memberData = await memberResponse.json();
+                const hasRole = memberData.roles.includes(roleId);
+                
+                if (hasRole) {
+                    return jsonResponse({
+                        type: 4,
+                        data: {
+                            content: 'You already have advertising access!',
+                            flags: 64
+                        }
+                    });
+                }
+                
+                // Add role to user
+                const roleResponse = await fetch(
+                    `https://discord.com/api/v10/guilds/${guildId}/members/${userId}/roles/${roleId}`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bot ${botToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    }
+                );
+                
+                if (!roleResponse.ok) {
+                    return jsonResponse({
+                        type: 4,
+                        data: {
+                            content: '❌ Failed to grant advertising access.',
+                            flags: 64
+                        }
+                    });
+                }
+                
+                // Increment advertiser count
+                let advertiserData = { count: 0 };
+                try {
+                    const existing = await env.USERS_KV.get('advertising_advertiser_count', { type: 'json' });
+                    if (existing && existing.count) {
+                        advertiserData.count = existing.count + 1;
+                    } else {
+                        advertiserData.count = 1;
+                    }
+                } catch (err) {
+                    advertiserData.count = 1;
+                }
+                
+                await env.USERS_KV.put('advertising_advertiser_count', JSON.stringify(advertiserData));
+                
+                // Update the embed with new advertiser count
+                const messageId = interaction.message.id;
+                const channelId = interaction.channel_id;
+                const currentEmbed = interaction.message.embeds[0];
+                
+                await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bot ${botToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        embeds: [{
+                            ...currentEmbed,
+                            footer: {
+                                text: `Advertisers: ${advertiserData.count}`
+                            }
+                        }],
+                        components: interaction.message.components
+                    })
+                }).catch(err => console.error('Failed to update embed:', err));
+                
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '✅ You now have access to advertising! You can now post in the advertising channels.',
+                        flags: 64
+                    }
+                });
+            } catch (error) {
+                console.error('Advertising access button error:', error);
+                return jsonResponse({
+                    type: 4,
+                    data: {
+                        content: '❌ Error granting advertising access.',
+                        flags: 64
+                    }
+                });
+            }
+        }
+        
         // Check admin permission for suspension actions
         const isAdmin = await checkAdminRole(interaction.member, env);
         if (!isAdmin) {
@@ -5103,6 +5223,17 @@ async function sendAdvertisingEmbed(interaction, env) {
     const botToken = env.DISCORD_BOT_TOKEN;
     
     try {
+        // Get current advertiser count
+        let advertiserCount = 0;
+        try {
+            const countData = await env.USERS_KV.get('advertising_advertiser_count', { type: 'json' });
+            if (countData && countData.count) {
+                advertiserCount = countData.count;
+            }
+        } catch (err) {
+            console.log('No advertiser count found, starting at 0');
+        }
+        
         const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
             method: 'POST',
             headers: {
@@ -5124,8 +5255,24 @@ async function sendAdvertisingEmbed(interaction, env) {
 > - To prevent excessive spam and ensure a balanced experience for all members, there is a 6-hour cooldown period between advertisements in each designated advertising channel.
 
 Cirkle has the right to delete or take down any advertisements/campaigns if we suspect any of these rules are broken. Cirkle also has the right to issue appropriate sanctions to users using the advertising category, These could include removing your advertisements or campaigns, giving you a warning, or temporarily or permanently banning you from certain channels or features.`,
-                    color: 0x7c3aed
-                }]
+                    color: 0x7c3aed,
+                    footer: {
+                        text: `Advertisers: ${advertiserCount}`
+                    }
+                }],
+                components: [
+                    {
+                        type: 1,
+                        components: [
+                            {
+                                type: 2,
+                                style: 3,
+                                label: '✅ Click here to gain access to advertising',
+                                custom_id: 'advertising_access_button'
+                            }
+                        ]
+                    }
+                ]
             })
         });
         
@@ -5134,26 +5281,10 @@ Cirkle has the right to delete or take down any advertisements/campaigns if we s
             throw new Error(`Failed to send advertising embed: ${error}`);
         }
         
-        // Get message ID to add reaction
-        const responseData = await response.json();
-        const messageId = responseData.id;
-        
-        // Add checkmark reaction for role assignment
-        try {
-            await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}/reactions/✅/@me`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bot ${botToken}`
-                }
-            });
-        } catch (reactionError) {
-            console.error('Failed to add reaction:', reactionError);
-        }
-        
         return jsonResponse({
             type: 4,
             data: {
-                content: '✅ Advertising embed sent successfully with reaction role!',
+                content: '✅ Advertising embed sent successfully!',
                 flags: 64
             }
         });

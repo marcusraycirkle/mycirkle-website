@@ -443,7 +443,7 @@ function handlePayload(payload) {
                     op: 2,
                     d: {
                         token: BOT_TOKEN,
-                        intents: (1 << 0) | (1 << 9) | (1 << 15) | (1 << 20) | (1 << 1), // GUILDS (1) + GUILD_MEMBERS (2) + GUILD_MESSAGES (512) + MESSAGE_CONTENT (32768) + MESSAGE_REACTIONS (1048576) = 1081859
+                        intents: (1 << 0) | (1 << 9) | (1 << 15) | (1 << 1), // GUILDS (1) + GUILD_MEMBERS (2) + GUILD_MESSAGES (512) + MESSAGE_CONTENT (32768) = 33283
                         properties: {
                             os: 'linux',
                             browser: 'mycirkle-bot',
@@ -528,43 +528,6 @@ function handlePayload(payload) {
                         console.error('❌ Error awarding thread points:', err.message);
                     }
                 })();
-            } else if (t === 'MESSAGE_REACTION_ADD') {
-                // Handle reaction-based role assignment
-                const { user_id, channel_id, message_id, emoji } = d;
-                
-                // Check for advertising embed reaction (✅ emoji = U+2705)
-                if (emoji.name === '✅' && channel_id === '1323358326309916702') {
-                    const roleId = '1323791955569938554';
-                    const guildId = d.guild_id || '1310656642672627752'; // MyCirkle Discord server
-                    
-                    console.log(`🎯 User ${user_id} reacted with ✅ to advertising embed`);
-                    
-                    // Add role to user
-                    (async () => {
-                        try {
-                            const response = await fetch(
-                                `https://discord.com/api/v10/guilds/${guildId}/members/${user_id}/roles/${roleId}`,
-                                {
-                                    method: 'PUT',
-                                    headers: {
-                                        'Authorization': `Bot ${BOT_TOKEN}`,
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({})
-                                }
-                            );
-                            
-                            if (response.ok) {
-                                console.log(`✅ Gave role ${roleId} to user ${user_id}`);
-                            } else {
-                                const responseText = await response.text();
-                                console.error(`❌ Failed to give role: ${response.status} - ${responseText}`);
-                            }
-                        } catch (error) {
-                            console.error('❌ Error adding role:', error.message);
-                        }
-                    })();
-                }
             } else if (t === 'MESSAGE_CREATE') {
                 // Handle advertisement channel messages
                 const { author, channel_id, content, id: message_id } = d;
