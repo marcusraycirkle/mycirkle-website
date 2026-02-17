@@ -480,33 +480,142 @@ function handlePayload(payload) {
                 // Setup status rotation
                 updateStatusRotation();
             } else if (t === 'MESSAGE_CREATE') {
-                // Handle message-based rewards
-                const { author, channel_id, id: message_id } = d;
+                // Handle message-based events
+                const { author, channel_id, content, id: message_id } = d;
                 
                 // Ignore bots
                 if (author.bot) break;
                 
-                // Check if channel is tracked
-                if (!MESSAGE_REWARD_CHANNELS.includes(channel_id)) break;
+                // Handle message-based rewards
+                if (MESSAGE_REWARD_CHANNELS.includes(channel_id)) {
+                    const trackingKey = `${author.id}:${channel_id}`;
+                    const currentCount = messageTracker.get(trackingKey) || 0;
+                    const newCount = currentCount + 1;
+                    
+                    messageTracker.set(trackingKey, newCount);
+                    
+                    // Award points every MESSAGE_THRESHOLD messages
+                    if (newCount % MESSAGE_THRESHOLD === 0) {
+                        console.log(`📨 User ${author.username} reached ${newCount} messages in channel ${channel_id}`);
+                        // Wrap async calls in IIFE
+                        (async () => {
+                            try {
+                                await awardPoints(author.id, MESSAGE_REWARD_POINTS, `Sent ${MESSAGE_THRESHOLD} messages in active channel`);
+                                await sendActivityDM(author.id, MESSAGE_REWARD_POINTS, `Sent ${MESSAGE_THRESHOLD} messages in active channel`);
+                                // Send reply message in channel
+                                await sendChannelMessage(channel_id, `<@${author.id}> You have received ${MESSAGE_REWARD_POINTS} points for activity!`, message_id);
+                            } catch (err) {
+                                console.error('❌ Error awarding message points:', err.message);
+                            }
+                        })();
+                    }
+                }
                 
-                const trackingKey = `${author.id}:${channel_id}`;
-                const currentCount = messageTracker.get(trackingKey) || 0;
-                const newCount = currentCount + 1;
-                
-                messageTracker.set(trackingKey, newCount);
-                
-                // Award points every MESSAGE_THRESHOLD messages
-                if (newCount % MESSAGE_THRESHOLD === 0) {
-                    console.log(`📨 User ${author.username} reached ${newCount} messages in channel ${channel_id}`);
-                    // Wrap async calls in IIFE
+                // Handle advertisement channel messages
+                const adChannels = ['1323358084265152594', '1323358165730852946', '1323358256881602692'];
+                if (adChannels.includes(channel_id)) {
+                    // Wrap in async IIFE
                     (async () => {
-                        try {
-                            await awardPoints(author.id, MESSAGE_REWARD_POINTS, `Sent ${MESSAGE_THRESHOLD} messages in active channel`);
-                            await sendActivityDM(author.id, MESSAGE_REWARD_POINTS, `Sent ${MESSAGE_THRESHOLD} messages in active channel`);
-                            // Send reply message in channel
-                            await sendChannelMessage(channel_id, `<@${author.id}> You have received ${MESSAGE_REWARD_POINTS} points for activity!`, message_id);
-                        } catch (err) {
-                            console.error('❌ Error awarding message points:', err.message);
+                        // Check for inappropriate content
+                        const inappropriateWords = ['badword1', 'badword2', 'badword3']; // Add actual words as needed
+                        const hasMentions = content.includes('@everyone') || content.includes('@here') || content.includes('<@');
+                        const hasInappropriateContent = inappropriateWords.some(word => content.toLowerCase().includes(word));
+                        
+                        // Check for permanent Discord invite
+                        const discordInviteRegex = /discord\.gg\/([a-zA-Z0-9-]+)/gi;
+                        const hasDiscordInvite = discordInviteRegex.test(content);
+                        
+                        console.log(`📢 Message in ad channel ${channel_id} from ${author.username}`);
+                        
+                        let shouldDelete = false;
+                        let deleteReason = '';
+                        
+                        if (hasMentions) {
+                            shouldDelete = true;
+                            deleteReason = 'Your advertisement was deleted because it contains mentions (@everyone, @here, or user mentions), which are not allowed.';
+                        } else if (hasInappropriateContent) {
+                            shouldDelete = true;
+                            deleteReason = 'Your advertisement was deleted because it contains inappropriate language.';
+                        } else if (!hasDiscordInvite) {
+                            shouldDelete = true;
+                            deleteReason = 'Your advertisement was deleted because it does not contain a permanent Discord invite link. Please include a permanent invite (discord.gg/...) in your advertisement.';
+                        }
+                        
+                        if (shouldDelete) {
+                            // Delete the message
+                            await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages/${message_id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Authorization': `Bot ${BOT_TOKEN}`
+                                }
+                            }).catch(err => console.error('Failed to delete message:', err));
+                            
+                            // Send DM to user
+                            try {
+                                const dmChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bot ${BOT_TOKEN}`,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ recipient_id: author.id })
+                                });
+                                
+                                if (!dmChannelResponse.ok) {
+                                    console.error('Failed to create DM channel');
+                                    return;
+                                }
+                                
+                                const dmChannel = await dmChannelResponse.json();
+                                
+                                await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bot ${BOT_TOKEN}`,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        embeds: [{
+                                            title: '❌ Advertisement Deleted',
+                                            description: deleteReason,
+                                            color: 0xef4444,
+                                            footer: { text: 'Cirkle Development' },
+                                            timestamp: new Date().toISOString()
+                                        }]
+                                    })
+                                });
+                            } catch (error) {
+                                console.error('Error sending DM:', error.message);
+                            }
+                        } else {
+                            // Valid advertisement - send confirmation embed
+                            try {
+                                const confirmResponse = await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bot ${BOT_TOKEN}`,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        embeds: [{
+                                            title: '<:cirkledev:1315278604736794745> **Advert Shared** ✅',
+                                            description: `Thanks for sharing your ad, <@${author.id}>! You can come back in \`6\` hours to share again!\n\n> 👉 **Ads must have a permanent invite link**\n> ❗ **leaving will delete all posted ads.**\n\n**Thanks for advertising in Cirkle!**\nBy advertising in Cirkle Development, you agree to the rules and regulations provided by Cirkle. These can be seen here -> <#1323358326309916702>`,
+                                            color: 0x10b981,
+                                            footer: { text: 'Cirkle Development' },
+                                            timestamp: new Date().toISOString()
+                                        }]
+                                    })
+                                });
+                                
+                                if (confirmResponse.ok) {
+                                    console.log(`✅ Sent confirmation for ad from ${author.username}`);
+                                } else {
+                                    const errorText = await confirmResponse.text();
+                                    console.error(`Failed to send confirmation: ${confirmResponse.status} - ${errorText}`);
+                                }
+                            } catch (error) {
+                                console.error('Error sending confirmation embed:', error.message);
+                            }
                         }
                     })();
                 }
@@ -526,117 +635,6 @@ function handlePayload(payload) {
                         await sendActivityDM(owner_id, pointsToAward, `Created a discussion thread`);
                     } catch (err) {
                         console.error('❌ Error awarding thread points:', err.message);
-                    }
-                })();
-            } else if (t === 'MESSAGE_CREATE') {
-                // Handle advertisement channel messages
-                const { author, channel_id, content, id: message_id } = d;
-                
-                // Ignore bot messages
-                if (author.bot) break;
-                
-                const adChannels = ['1323358084265152594', '1323358165730852946', '1323358256881602692'];
-                if (!adChannels.includes(channel_id)) break;
-                
-                // Wrap in async IIFE
-                (async () => {
-                    // Check for inappropriate content
-                    const inappropriateWords = ['badword1', 'badword2', 'badword3']; // Add actual words as needed
-                    const hasMentions = content.includes('@everyone') || content.includes('@here') || content.includes('<@');
-                    const hasInappropriateContent = inappropriateWords.some(word => content.toLowerCase().includes(word));
-                    
-                    // Check for permanent Discord invite
-                    const discordInviteRegex = /discord\.gg\/([a-zA-Z0-9-]+)/gi;
-                    const hasDiscordInvite = discordInviteRegex.test(content);
-                    
-                    console.log(`📢 Message in ad channel ${channel_id} from ${author.username}`);
-                    
-                    let shouldDelete = false;
-                    let deleteReason = '';
-                    
-                    if (hasMentions) {
-                        shouldDelete = true;
-                        deleteReason = 'Your advertisement was deleted because it contains mentions (@everyone, @here, or user mentions), which are not allowed.';
-                    } else if (hasInappropriateContent) {
-                        shouldDelete = true;
-                        deleteReason = 'Your advertisement was deleted because it contains inappropriate language.';
-                    } else if (!hasDiscordInvite) {
-                        shouldDelete = true;
-                        deleteReason = 'Your advertisement was deleted because it does not contain a permanent Discord invite link. Please include a permanent invite (discord.gg/...) in your advertisement.';
-                    }
-                    
-                    if (shouldDelete) {
-                        // Delete the message
-                        await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages/${message_id}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'Authorization': `Bot ${BOT_TOKEN}`
-                            }
-                        }).catch(err => console.error('Failed to delete message:', err));
-                        
-                        // Send DM to user
-                        try {
-                            const dmChannelResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bot ${BOT_TOKEN}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ recipient_id: author.id })
-                            });
-                            
-                            if (!dmChannelResponse.ok) {
-                                console.error('Failed to create DM channel');
-                                return;
-                            }
-                            
-                            const dmChannel = await dmChannelResponse.json();
-                            
-                            await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bot ${BOT_TOKEN}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    embeds: [{
-                                        title: '❌ Advertisement Deleted',
-                                        description: deleteReason,
-                                        color: 0xef4444,
-                                        footer: { text: 'Cirkle Development' },
-                                        timestamp: new Date().toISOString()
-                                    }]
-                                })
-                            });
-                        } catch (error) {
-                            console.error('Error sending DM:', error.message);
-                        }
-                    } else {
-                        // Valid advertisement - send confirmation embed
-                        try {
-                            const confirmResponse = await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bot ${BOT_TOKEN}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    embeds: [{
-                                        title: '<:cirkledev:1315278604736794745> **Advert Shared** ✅',
-                                        description: `Thanks for sharing your ad, <@${author.id}>! You can come back in \`6\` hours to share again!\n\n> 👉 **Ads must have a permanent invite link**\n> ❗ **leaving will delete all posted ads.**\n\n**Thanks for advertising in Cirkle!**\nBy advertising in Cirkle Development, you agree to the rules and regulations provided by Cirkle. These can be seen here -> <#1323358326309916702>`,
-                                        color: 0x10b981,
-                                        footer: { text: 'Cirkle Development' },
-                                        timestamp: new Date().toISOString()
-                                    }]
-                                })
-                            });
-                            
-                            if (confirmResponse.ok) {
-                                console.log(`✅ Sent confirmation for ad from ${author.username}`);
-                            }
-                        } catch (error) {
-                            console.error('Error sending confirmation embed:', error.message);
-                        }
                     }
                 })();
             } else if (t === 'GUILD_MEMBER_REMOVE') {
