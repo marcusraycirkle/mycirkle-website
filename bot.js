@@ -22,6 +22,10 @@ const messageTracker = new Map(); // key: "userId:channelId", value: count
 // Tracking last ad confirmation message per channel
 const lastAdEmbedMessages = new Map(); // key: channelId, value: messageId
 
+// Track recently processed threads to prevent double-sends
+const processedThreads = new Set(); // Stores thread IDs to prevent duplicate processing
+setInterval(() => processedThreads.clear(), 60000); // Clear every 60 seconds
+
 if (!BOT_TOKEN) {
     console.error('❌ Error: BOT_TOKEN environment variable is required');
     console.log('Usage: BOT_TOKEN=your_token node bot.js');
@@ -648,6 +652,13 @@ function handlePayload(payload) {
                 const { owner_id, parent_id, id: thread_id, name: thread_name } = d;
                 const botToken = BOT_TOKEN;
                 
+                // Prevent duplicate processing of the same thread
+                if (processedThreads.has(thread_id)) {
+                    console.log(`⏭️ Skipping duplicate thread event for ${thread_id}`);
+                    break;
+                }
+                processedThreads.add(thread_id);
+                
                 // Check if forum is tracked for rewards
                 const pointsToAward = FORUM_REWARDS[parent_id];
                 if (pointsToAward) {
@@ -720,7 +731,7 @@ function handlePayload(payload) {
                 }
                 
                 // Handle reviews forum
-                if (parent_id === '1315679706745409566') {
+                if (parent_id === '1473351400380567733') {
                     console.log(`⭐ New review from user ${owner_id}: ${thread_name}`);
                     (async () => {
                         try {
